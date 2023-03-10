@@ -130,7 +130,6 @@ GameObject:
   m_Component:
   - component: {fileID: 686721123}
   - component: {fileID: 686721122}
-  - component: {fileID: 686721121}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -138,14 +137,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!81 &686721121
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 686721120}
-  m_Enabled: 1
 --- !u!20 &686721122
 Camera:
   m_ObjectHideFlags: 0
@@ -222,8 +213,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1500875620}
   - component: {fileID: 1500875619}
+  - component: {fileID: 1500875621}
   m_Layer: 0
-  m_Name: TileRenderer
+  m_Name: Renderer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -256,3 +248,15 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1500875621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1500875618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6500063ad906efb4d9ecd97aa3274fde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
