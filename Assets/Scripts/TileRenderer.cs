@@ -31,7 +31,7 @@ public class TileRenderer : MonoBehaviour
             {
                 for (var layer = layerCenter - SIZE; layer < layerCenter + SIZE; layer++)
                 {
-                    var tile = Context.tile.GetTile(x, y, layer);
+                    var tile = Service.tile.GetTile(x, y, layer);
 
                     if (tile != null)
                     {

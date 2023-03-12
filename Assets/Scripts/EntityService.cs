@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 
-public class EntityContext
+public class EntityService
 {
     private readonly List<Entity> entities;
 
-    public EntityContext()
+    public EntityService()
     {
         entities = new();
     }

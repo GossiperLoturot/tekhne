@@ -1,4 +1,4 @@
-﻿public class GenerationRules : TileContext.IGenerationRules
+﻿public class GenerationRules : TileService.IGenerationRules
 {
     public ITile GenerateTile(int x, int y, int layer)
     {

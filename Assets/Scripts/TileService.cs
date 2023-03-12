@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 
-public class TileContext
+public class TileService
 {
     private readonly Dictionary<(int, int, int), ITile> tiles;
     private readonly HashSet<(int, int, int)> initFlags;
     private readonly IGenerationRules genRules;
 
-    public TileContext(IGenerationRules genRules)
+    public TileService(IGenerationRules genRules)
     {
         tiles = new();
         initFlags = new();

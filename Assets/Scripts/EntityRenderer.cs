@@ -19,7 +19,7 @@ public class EntityRenderer : MonoBehaviour
 
         instances.Clear();
 
-        var entities = Context.entity.GetEntities();
+        var entities = Service.entity.GetEntities();
 
         foreach (var entity in entities)
         {
