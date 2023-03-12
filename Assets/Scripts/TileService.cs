@@ -65,7 +65,7 @@ public class TileService
         {
             if (tiles.ContainsKey((x, y, layer)))
             {
-                throw new Exception("invalid tiles");
+                throw new Exception("flags or tiles data is broken");
             }
 
             var tile = genRules.GenerateTile(x, y, layer);
@@ -74,7 +74,7 @@ public class TileService
             {
                 if (tile.x != x || tile.y != y || tile.layer != tile.layer)
                 {
-                    throw new Exception("invalid generate rules");
+                    throw new Exception("invalid tile position");
                 }
 
                 tiles.Add((x, y, layer), tile);
