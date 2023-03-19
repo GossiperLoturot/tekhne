@@ -1,26 +1,142 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 
 public class EntityService
 {
-    private readonly List<Entity> entities;
+    private readonly Dictionary<string, IEntity> entities;
+
+    private Bounds? updateBounds;
+    private Queue<IEntityCommand> updateCommands;
 
     public EntityService()
     {
         entities = new();
+        updateCommands = new();
     }
 
-    public void AddEntity(Entity entity)
+    public void AddEntity(IEntity entity)
     {
-        entities.Add(entity);
+        entities.Add(entity.id, entity);
+
+        entity.OnAdd();
+
+        if (this.updateBounds is Bounds updateBounds)
+        {
+            if (updateBounds.Contains(entity.pos))
+            {
+                updateCommands.Enqueue(new AddEntityCommand(entity));
+            }
+        }
     }
 
-    public IEnumerable<Entity> GetEntities()
+    public void UpdateEntity(IEntity entity)
     {
-        return entities;
+        var prev = entities[entity.id];
+
+        prev.OnRemove();
+
+        entities[entity.id] = entity;
+
+        entity.OnAdd();
+
+        if (this.updateBounds is Bounds updateBounds)
+        {
+            if (updateBounds.Contains(prev.pos))
+            {
+                updateCommands.Enqueue(new RemoveEntityCommand(prev.id));
+            }
+
+            if (updateBounds.Contains(entity.pos))
+            {
+                updateCommands.Enqueue(new AddEntityCommand(entity));
+            }
+        }
     }
 
-    public void RemoveEntity(Entity entity)
+    public void RemoveEntity(string id)
     {
-        entities.Remove(entity);
+        var entity = entities[id];
+
+        entity.OnRemove();
+
+        entities.Remove(entity.id);
+
+        if (this.updateBounds is Bounds updateBounds)
+        {
+            if (updateBounds.Contains(entity.pos))
+            {
+                updateCommands.Enqueue(new AddEntityCommand(entity));
+            }
+        }
+    }
+
+    public IEntity GetEntity(string id)
+    {
+        return entities[id];
+    }
+
+    public void SetUpdateBounds(Bounds bounds)
+    {
+        if (this.updateBounds is Bounds updateBounds)
+        {
+            if (updateBounds != bounds)
+            {
+                foreach (var entity in entities.Values)
+                {
+                    if (updateBounds.Contains(entity.pos) && !bounds.Contains(entity.pos))
+                    {
+                        updateCommands.Enqueue(new RemoveEntityCommand(entity.id));
+                    }
+
+                    if (!updateBounds.Contains(entity.pos) && bounds.Contains(entity.pos))
+                    {
+                        updateCommands.Enqueue(new AddEntityCommand(entity));
+                    }
+                }
+
+                this.updateBounds = bounds;
+            }
+        }
+        else
+        {
+            foreach (var entity in entities.Values)
+            {
+                if (bounds.Contains(entity.pos))
+                {
+                    updateCommands.Enqueue(new AddEntityCommand(entity));
+                }
+            }
+
+            this.updateBounds = bounds;
+        }
+    }
+
+    public Queue<IEntityCommand> GetUpdateCommands()
+    {
+        var cmds = updateCommands;
+        updateCommands = new();
+        return cmds;
+    }
+
+    public interface IEntityCommand { }
+
+    public class AddEntityCommand : IEntityCommand
+    {
+        public IEntity entity { get; private set; }
+
+        public AddEntityCommand(IEntity entity)
+        {
+            this.entity = entity;
+        }
+    }
+
+    public class RemoveEntityCommand : IEntityCommand
+    {
+        public string id { get; private set; }
+
+        public RemoveEntityCommand(string id)
+        {
+            this.id = id;
+        }
     }
 }

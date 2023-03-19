@@ -1,23 +1,30 @@
-﻿public interface IEntity
+﻿using UnityEngine;
+
+public interface IEntity
 {
-    public float x { get; }
-    public float y { get; }
-    public float layer { get; }
+    public string id { get; }
+    public Vector3 pos { get; }
     public string resourceName { get; }
+
+    public void OnAdd();
+
+    public void OnRemove();
 }
 
 public class Entity : IEntity
 {
-    public float x { get; private set; }
-    public float y { get; private set; }
-    public float layer { get; private set; }
+    public string id { get; private set; }
+    public Vector3 pos { get; private set; }
     public string resourceName { get; private set; }
 
-    public Entity(float x, float y, float layer, string resourceName)
+    public Entity(string id, Vector3 pos, string resourceName)
     {
-        this.x = x;
-        this.y = y;
-        this.layer = layer;
+        this.id = id;
+        this.pos = pos;
         this.resourceName = resourceName;
     }
+
+    public void OnAdd() { }
+
+    public void OnRemove() { }
 }

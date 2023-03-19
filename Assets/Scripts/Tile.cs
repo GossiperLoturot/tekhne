@@ -1,29 +1,27 @@
-﻿public interface ITile
+﻿using UnityEngine;
+
+public interface ITile
 {
-    public int x { get; }
-    public int y { get; }
-    public int layer { get; }
+    public Vector3Int pos { get; }
     public string resourceName { get; }
 
-    public void OnSet();
+    public void OnAdd();
+
     public void OnRemove();
 }
 
 public class Tile : ITile
 {
-    public int x { get; private set; }
-    public int y { get; private set; }
-    public int layer { get; private set; }
+    public Vector3Int pos { get; private set; }
     public string resourceName { get; }
 
-    public Tile(int x, int y, int layer, string resourceName)
+    public Tile(Vector3Int pos, string resourceName)
     {
-        this.x = x;
-        this.y = y;
-        this.layer = layer;
+        this.pos = pos;
         this.resourceName = resourceName;
     }
 
-    public void OnSet() { }
+    public void OnAdd() { }
+
     public void OnRemove() { }
 }

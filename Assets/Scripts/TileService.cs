@@ -1,93 +1,174 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 public class TileService
 {
-    private readonly Dictionary<(int, int, int), ITile> tiles;
-    private readonly HashSet<(int, int, int)> initFlags;
-    private readonly IGenerationRules genRules;
+    private readonly Dictionary<Vector3Int, ITile> tiles;
 
-    public TileService(IGenerationRules genRules)
+    private BoundsInt? updateBounds;
+    private Queue<ITileCommand> updateCommands;
+
+    public TileService()
     {
         tiles = new();
-        initFlags = new();
-        this.genRules = genRules;
+        updateCommands = new();
     }
 
-    public void SetTile(ITile tile)
+    public void AddTile(ITile tile)
     {
-        var (x, y, layer) = (tile.x, tile.y, tile.layer);
+        tiles.Add(tile.pos, tile);
 
-        GenerateTile(x, y, layer);
+        tile.OnAdd();
 
-        if (tiles.ContainsKey((x, y, layer)))
+        if (this.updateBounds is BoundsInt updateBounds)
         {
-            tiles[(x, y, layer)] = tile;
-        }
-        else
-        {
-            tiles.Add((x, y, layer), tile);
-        }
-
-        tile.OnSet();
-    }
-
-    public ITile GetTile(int x, int y, int layer)
-    {
-        GenerateTile(x, y, layer);
-
-        if (tiles.ContainsKey((x, y, layer)))
-        {
-            return tiles[(x, y, layer)];
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    public void RemoveTile(int x, int y, int layer)
-    {
-        GenerateTile(x, y, layer);
-
-        if (tiles.ContainsKey((x, y, layer)))
-        {
-            var tile = tiles[(x, y, layer)];
-            tile.OnRemove();
-
-            tiles.Remove((x, y, layer));
-        }
-    }
-
-    private void GenerateTile(int x, int y, int layer)
-    {
-        if (!initFlags.Contains((x, y, layer)))
-        {
-            if (tiles.ContainsKey((x, y, layer)))
+            if (updateBounds.InclusiveContains(tile.pos))
             {
-                throw new Exception("flags or tiles data is broken");
+                updateCommands.Enqueue(new AddTileCommand(tile));
+            }
+        }
+    }
+
+    public void UpdateTile(ITile tile)
+    {
+        var prev = tiles[tile.pos];
+
+        prev.OnRemove();
+
+        tiles[tile.pos] = tile;
+
+        tile.OnAdd();
+
+        if (this.updateBounds is BoundsInt updateBounds)
+        {
+            if (updateBounds.InclusiveContains(prev.pos))
+            {
+                updateCommands.Enqueue(new RemoveTileCommand(prev.pos));
             }
 
-            var tile = genRules.GenerateTile(x, y, layer);
-
-            if (tile != null)
+            if (updateBounds.InclusiveContains(tile.pos))
             {
-                if (tile.x != x || tile.y != y || tile.layer != tile.layer)
+                updateCommands.Enqueue(new AddTileCommand(tile));
+            }
+        }
+    }
+
+    public void RemoveTile(Vector3Int pos)
+    {
+        var tile = tiles[pos];
+
+        tile.OnRemove();
+
+        tiles.Remove(tile.pos);
+
+        if (this.updateBounds is BoundsInt updateBounds)
+        {
+            if (updateBounds.InclusiveContains(tile.pos))
+            {
+                updateCommands.Enqueue(new RemoveTileCommand(tile.pos));
+            }
+        }
+    }
+
+    public ITile GetTile(Vector3Int pos)
+    {
+        return tiles[pos];
+    }
+
+    public void SetUpdateBounds(BoundsInt bounds)
+    {
+        if (this.updateBounds is BoundsInt updateBounds)
+        {
+            if (bounds != updateBounds)
+            {
+                for (var x = updateBounds.xMin; x <= updateBounds.xMax; x++)
                 {
-                    throw new Exception("invalid tile position");
+                    for (var y = updateBounds.yMin; y <= updateBounds.yMax; y++)
+                    {
+                        for (var z = updateBounds.zMin; z <= updateBounds.zMax; z++)
+                        {
+                            var pos = new Vector3Int(x, y, z);
+                            if (!bounds.InclusiveContains(pos))
+                            {
+                                if (tiles.ContainsKey(pos))
+                                {
+                                    updateCommands.Enqueue(new RemoveTileCommand(pos));
+                                }
+                            }
+                        }
+                    }
                 }
 
-                tiles.Add((x, y, layer), tile);
+                for (var x = bounds.xMin; x <= bounds.xMax; x++)
+                {
+                    for (var y = bounds.yMin; y <= bounds.yMax; y++)
+                    {
+                        for (var z = bounds.zMin; z <= bounds.zMax; z++)
+                        {
+                            var pos = new Vector3Int(x, y, z);
+                            if (!updateBounds.InclusiveContains(pos))
+                            {
+                                if (tiles.ContainsKey(pos))
+                                {
+                                    var tile = GetTile(pos);
+                                    updateCommands.Enqueue(new AddTileCommand(tile));
+                                }
+                            }
+                        }
+                    }
+                }
 
-                tile.OnSet();
+                this.updateBounds = bounds;
+            }
+        }
+        else
+        {
+            for (var x = bounds.xMin; x <= bounds.xMax; x++)
+            {
+                for (var y = bounds.yMin; y <= bounds.yMax; y++)
+                {
+                    for (var z = bounds.zMin; z <= bounds.zMax; z++)
+                    {
+                        var pos = new Vector3Int(x, y, z);
+                        if (tiles.ContainsKey(pos))
+                        {
+                            var tile = GetTile(pos);
+                            updateCommands.Enqueue(new AddTileCommand(tile));
+                        }
+                    }
+                }
             }
 
-            initFlags.Add((x, y, layer));
+            this.updateBounds = bounds;
         }
     }
 
-    public interface IGenerationRules
+public Queue<ITileCommand> GetUpdateCommands()
+{
+    var cmds = updateCommands;
+    updateCommands = new();
+    return cmds;
+}
+
+public interface ITileCommand { }
+
+public class AddTileCommand : ITileCommand
+{
+    public ITile tile { get; private set; }
+
+    public AddTileCommand(ITile tile)
     {
-        public ITile GenerateTile(int x, int y, int layer);
+        this.tile = tile;
     }
+}
+
+public class RemoveTileCommand : ITileCommand
+{
+    public Vector3Int pos { get; private set; }
+
+    public RemoveTileCommand(Vector3Int pos)
+    {
+        this.pos = pos;
+    }
+}
 }
