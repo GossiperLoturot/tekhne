@@ -62,6 +62,11 @@ public class EntityService
         }
     }
 
+    public bool ContainsEntity(string id)
+    {
+        return entities.ContainsKey(id);
+    }
+
     public IEntity GetEntity(string id)
     {
         return entities[id];

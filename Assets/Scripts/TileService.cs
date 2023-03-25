@@ -62,6 +62,11 @@ public class TileService
         }
     }
 
+    public bool ContainsTile(Vector3Int pos)
+    {
+        return tiles.ContainsKey(pos);
+    }
+
     public ITile GetTile(Vector3Int pos)
     {
         return tiles[pos];
