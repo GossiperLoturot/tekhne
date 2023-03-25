@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
-public interface IEntity
+public interface IEntity : IEquatable<IEntity>
 {
     public string id { get; }
     public Vector3 pos { get; }
@@ -18,5 +19,10 @@ public class Entity : IEntity
         this.id = id;
         this.pos = pos;
         this.resourceName = resourceName;
+    }
+
+    public bool Equals(IEntity other)
+    {
+        return id == other.id && pos == other.pos && resourceName == other.resourceName;
     }
 }

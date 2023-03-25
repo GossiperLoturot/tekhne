@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
-public interface ITile
+public interface ITile : IEquatable<ITile>
 {
     public Vector3Int pos { get; }
     public string resourceName { get; }
@@ -15,5 +16,10 @@ public class Tile : ITile
     {
         this.pos = pos;
         this.resourceName = resourceName;
+    }
+
+    public bool Equals(ITile other)
+    {
+        return pos == other.pos && resourceName == other.resourceName;
     }
 }
