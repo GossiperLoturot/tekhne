@@ -18,8 +18,6 @@ public class EntityService
     {
         entities.Add(entity.id, entity);
 
-        entity.OnAdd();
-
         if (this.updateBounds is Bounds updateBounds)
         {
             if (updateBounds.Contains(entity.pos))
@@ -33,11 +31,7 @@ public class EntityService
     {
         var prev = entities[entity.id];
 
-        prev.OnRemove();
-
         entities[entity.id] = entity;
-
-        entity.OnAdd();
 
         if (this.updateBounds is Bounds updateBounds)
         {
@@ -56,8 +50,6 @@ public class EntityService
     public void RemoveEntity(string id)
     {
         var entity = entities[id];
-
-        entity.OnRemove();
 
         entities.Remove(entity.id);
 

@@ -4,10 +4,6 @@ public interface ITile
 {
     public Vector3Int pos { get; }
     public string resourceName { get; }
-
-    public void OnAdd();
-
-    public void OnRemove();
 }
 
 public class Tile : ITile
@@ -20,8 +16,4 @@ public class Tile : ITile
         this.pos = pos;
         this.resourceName = resourceName;
     }
-
-    public void OnAdd() { }
-
-    public void OnRemove() { }
 }

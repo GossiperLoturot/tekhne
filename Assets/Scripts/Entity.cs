@@ -5,10 +5,6 @@ public interface IEntity
     public string id { get; }
     public Vector3 pos { get; }
     public string resourceName { get; }
-
-    public void OnAdd();
-
-    public void OnRemove();
 }
 
 public class Entity : IEntity
@@ -23,8 +19,4 @@ public class Entity : IEntity
         this.pos = pos;
         this.resourceName = resourceName;
     }
-
-    public void OnAdd() { }
-
-    public void OnRemove() { }
 }

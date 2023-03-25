@@ -18,8 +18,6 @@ public class TileService
     {
         tiles.Add(tile.pos, tile);
 
-        tile.OnAdd();
-
         if (this.updateBounds is BoundsInt updateBounds)
         {
             if (updateBounds.InclusiveContains(tile.pos))
@@ -33,11 +31,7 @@ public class TileService
     {
         var prev = tiles[tile.pos];
 
-        prev.OnRemove();
-
         tiles[tile.pos] = tile;
-
-        tile.OnAdd();
 
         if (this.updateBounds is BoundsInt updateBounds)
         {
@@ -56,8 +50,6 @@ public class TileService
     public void RemoveTile(Vector3Int pos)
     {
         var tile = tiles[pos];
-
-        tile.OnRemove();
 
         tiles.Remove(tile.pos);
 
@@ -143,32 +135,32 @@ public class TileService
         }
     }
 
-public Queue<ITileCommand> GetUpdateCommands()
-{
-    var cmds = updateCommands;
-    updateCommands = new();
-    return cmds;
-}
-
-public interface ITileCommand { }
-
-public class AddTileCommand : ITileCommand
-{
-    public ITile tile { get; private set; }
-
-    public AddTileCommand(ITile tile)
+    public Queue<ITileCommand> GetUpdateCommands()
     {
-        this.tile = tile;
+        var cmds = updateCommands;
+        updateCommands = new();
+        return cmds;
     }
-}
 
-public class RemoveTileCommand : ITileCommand
-{
-    public Vector3Int pos { get; private set; }
+    public interface ITileCommand { }
 
-    public RemoveTileCommand(Vector3Int pos)
+    public class AddTileCommand : ITileCommand
     {
-        this.pos = pos;
+        public ITile tile { get; private set; }
+
+        public AddTileCommand(ITile tile)
+        {
+            this.tile = tile;
+        }
     }
-}
+
+    public class RemoveTileCommand : ITileCommand
+    {
+        public Vector3Int pos { get; private set; }
+
+        public RemoveTileCommand(Vector3Int pos)
+        {
+            this.pos = pos;
+        }
+    }
 }
