@@ -5,7 +5,7 @@ public class EntityService
 {
     private readonly Dictionary<string, IEntity> entities;
 
-    private Bounds? updateBounds;
+    private BoundsInt? updateBounds;
     private Queue<IEntityCommand> updateCommands;
 
     public EntityService()
@@ -18,7 +18,7 @@ public class EntityService
     {
         entities.Add(entity.id, entity);
 
-        if (this.updateBounds is Bounds updateBounds)
+        if (this.updateBounds is BoundsInt updateBounds)
         {
             if (updateBounds.Contains(entity.pos))
             {
@@ -33,7 +33,7 @@ public class EntityService
 
         entities[entity.id] = entity;
 
-        if (this.updateBounds is Bounds updateBounds)
+        if (this.updateBounds is BoundsInt updateBounds)
         {
             if (updateBounds.Contains(prev.pos))
             {
@@ -53,7 +53,7 @@ public class EntityService
 
         entities.Remove(entity.id);
 
-        if (this.updateBounds is Bounds updateBounds)
+        if (this.updateBounds is BoundsInt updateBounds)
         {
             if (updateBounds.Contains(entity.pos))
             {
@@ -67,9 +67,9 @@ public class EntityService
         return entities[id];
     }
 
-    public void SetUpdateBounds(Bounds bounds)
+    public void SetUpdateBounds(BoundsInt bounds)
     {
-        if (this.updateBounds is Bounds updateBounds)
+        if (this.updateBounds is BoundsInt updateBounds)
         {
             if (updateBounds != bounds)
             {

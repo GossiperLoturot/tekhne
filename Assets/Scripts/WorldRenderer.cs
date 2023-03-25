@@ -20,11 +20,10 @@ public class WorldRenderer : MonoBehaviour
         var center = Vector3Int.FloorToInt(transform.position);
         var extent = new Vector3Int(SIZE, SIZE, LAYER_SIZE);
         var bounds = new BoundsInt(center - extent, 2 * extent);
-        var boundsf = new Bounds(bounds.center, bounds.size);
 
         WorldService.generation.SetUpdateBounds(bounds);
         WorldService.tile.SetUpdateBounds(bounds);
-        WorldService.entity.SetUpdateBounds(boundsf);
+        WorldService.entity.SetUpdateBounds(bounds);
 
         foreach (var cmd in WorldService.tile.GetUpdateCommands())
         {
