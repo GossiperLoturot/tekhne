@@ -1,20 +1,33 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 [RequireComponent(typeof(Camera))]
 public class WorldRenderer : MonoBehaviour
 {
+    private const string PRELOAD_LABELS = "preload";
     private const int LAYER_SIZE = 16;
 
     private Camera camera;
+    private Dictionary<string, GameObject> prefabs;
     private Dictionary<Vector3Int, GameObject> tileInstances;
     private Dictionary<string, GameObject> entityInstances;
 
     private void Start()
     {
         camera = GetComponent<Camera>();
+        prefabs = new();
         tileInstances = new();
         entityInstances = new();
+
+        var resourceLocationsHandle = Addressables.LoadResourceLocationsAsync(PRELOAD_LABELS);
+        foreach (var resourceLocation in resourceLocationsHandle.WaitForCompletion())
+        {
+            var prefabHandle = Addressables.LoadAssetAsync<GameObject>(resourceLocation);
+            prefabs.Add(resourceLocation.PrimaryKey, prefabHandle.WaitForCompletion());
+            Addressables.Release(prefabHandle);
+        }
+        Addressables.Release(resourceLocationsHandle);
     }
 
     private void Update()
@@ -38,7 +51,7 @@ public class WorldRenderer : MonoBehaviour
             switch (cmd)
             {
                 case TileService.AddTileCommand addCmd:
-                    var prefab = Resources.Load<GameObject>(addCmd.tile.resourceName);
+                    var prefab = prefabs[addCmd.tile.resourceName];
                     var instance = Instantiate(prefab, addCmd.tile.pos, Quaternion.identity);
                     tileInstances.Add(addCmd.tile.pos, instance);
                     break;
@@ -55,7 +68,7 @@ public class WorldRenderer : MonoBehaviour
             switch (cmd)
             {
                 case EntityService.AddEntityCommand addCmd:
-                    var prefab = Resources.Load<GameObject>(addCmd.entity.resourceName);
+                    var prefab = prefabs[addCmd.entity.resourceName];
                     var instance = Instantiate(prefab, addCmd.entity.pos, Quaternion.identity);
                     entityInstances.Add(addCmd.entity.id, instance);
                     break;

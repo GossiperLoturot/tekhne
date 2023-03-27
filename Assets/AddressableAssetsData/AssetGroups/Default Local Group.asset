@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Default Local Group
+  m_EditorClassIdentifier: 
+  m_GroupName: Default Local Group
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 1d2bdf94a3b60e74b831b2102157b4b6
+  m_SerializeEntries:
+  - m_GUID: 06040f90f4a892249973e337d5c7f327
+    m_Address: SurfaceStone
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - preload
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 60c4a8a3e5a1c554daa3b7167ca1cd72
+    m_Address: SurfaceGravel
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - preload
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6730d860e2e7aa646ab344871fb81aa4
+    m_Address: SurfaceDirt
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - preload
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2718198a7eb648546a417eacab092eee
+    m_Address: SurfaceSand
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - preload
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1dcf9c54af5d98348adc3abcc46c6d71
+    m_Address: SurfaceGrass
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - preload
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 8dfb5bb0e0ea90f44ad58671b1247dd8, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 646f4a39d0c98c54f9bf73d84c21f54d, type: 2}
+    - {fileID: 11400000, guid: 35dc5da31bfd2774a858d75146001237, type: 2}
