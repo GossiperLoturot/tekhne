@@ -8,6 +8,6 @@
     {
         tile = new TileService();
         entity = new EntityService();
-        generation = new GenerationService(tile);
+        generation = new GenerationService();
     }
 }

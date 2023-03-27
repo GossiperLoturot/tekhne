@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EntityService
@@ -16,6 +17,11 @@ public class EntityService
 
     public void AddEntity(IEntity entity)
     {
+        if (entities.ContainsKey(entity.id))
+        {
+            throw new Exception("entity is already existed");
+        }
+
         entities.Add(entity.id, entity);
 
         if (this.updateBounds is BoundsInt updateBounds)
@@ -29,8 +35,12 @@ public class EntityService
 
     public void UpdateEntity(IEntity entity)
     {
-        var prev = entities[entity.id];
+        if (!entities.ContainsKey(entity.id))
+        {
+            throw new Exception("entity is not founded");
+        }
 
+        var prev = entities[entity.id];
         entities[entity.id] = entity;
 
         if (this.updateBounds is BoundsInt updateBounds)
@@ -49,15 +59,19 @@ public class EntityService
 
     public void RemoveEntity(string id)
     {
-        var entity = entities[id];
+        if (!entities.ContainsKey(id))
+        {
+            throw new Exception("entity is not founded");
+        }
 
+        var entity = entities[id];
         entities.Remove(entity.id);
 
         if (this.updateBounds is BoundsInt updateBounds)
         {
             if (updateBounds.Contains(entity.pos))
             {
-                updateCommands.Enqueue(new AddEntityCommand(entity));
+                updateCommands.Enqueue(new RemoveEntityCommand(entity.id));
             }
         }
     }
@@ -69,6 +83,11 @@ public class EntityService
 
     public IEntity GetEntity(string id)
     {
+        if (!entities.ContainsKey(id))
+        {
+            throw new Exception("entity is not founded");
+        }
+
         return entities[id];
     }
 

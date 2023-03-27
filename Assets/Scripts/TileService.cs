@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class TileService
 {
-    private readonly Dictionary<Vector3Int, ITile> tiles;
+    private readonly Dictionary<(int, int), Dictionary<int, ITile>> tiles;
 
     private BoundsInt? updateBounds;
     private Queue<ITileCommand> updateCommands;
@@ -16,7 +17,18 @@ public class TileService
 
     public void AddTile(ITile tile)
     {
-        tiles.Add(tile.pos, tile);
+        var (xy, z) = ((tile.pos.x, tile.pos.y), tile.pos.z);
+
+        if (tiles.ContainsKey(xy) && tiles[xy].ContainsKey(z))
+        {
+            throw new Exception("tile is already existed");
+        }
+
+        if (!tiles.ContainsKey(xy))
+        {
+            tiles.Add(xy, new());
+        }
+        tiles[xy].Add(z, tile);
 
         if (this.updateBounds is BoundsInt updateBounds)
         {
@@ -29,19 +41,20 @@ public class TileService
 
     public void UpdateTile(ITile tile)
     {
-        var prev = tiles[tile.pos];
+        var (xy, z) = ((tile.pos.x, tile.pos.y), tile.pos.z);
 
-        tiles[tile.pos] = tile;
+        if (!tiles.ContainsKey(xy) || !tiles[xy].ContainsKey(z))
+        {
+            throw new Exception("tile is not founded");
+        }
+
+        tiles[xy][z] = tile;
 
         if (this.updateBounds is BoundsInt updateBounds)
         {
-            if (updateBounds.InclusiveContains(prev.pos))
-            {
-                updateCommands.Enqueue(new RemoveTileCommand(prev.pos));
-            }
-
             if (updateBounds.InclusiveContains(tile.pos))
             {
+                updateCommands.Enqueue(new RemoveTileCommand(tile.pos));
                 updateCommands.Enqueue(new AddTileCommand(tile));
             }
         }
@@ -49,27 +62,45 @@ public class TileService
 
     public void RemoveTile(Vector3Int pos)
     {
-        var tile = tiles[pos];
+        var (xy, z) = ((pos.x, pos.y), pos.z);
 
-        tiles.Remove(tile.pos);
+        if (!tiles.ContainsKey(xy) || !tiles[xy].ContainsKey(z))
+        {
+            throw new Exception("tile is not founded");
+        }
+
+        tiles[xy].Remove(z);
+        if (tiles[xy].Count == 0)
+        {
+            tiles.Remove(xy);
+        }
 
         if (this.updateBounds is BoundsInt updateBounds)
         {
-            if (updateBounds.InclusiveContains(tile.pos))
+            if (updateBounds.InclusiveContains(pos))
             {
-                updateCommands.Enqueue(new RemoveTileCommand(tile.pos));
+                updateCommands.Enqueue(new RemoveTileCommand(pos));
             }
         }
     }
 
     public bool ContainsTile(Vector3Int pos)
     {
-        return tiles.ContainsKey(pos);
+        var (xy, z) = ((pos.x, pos.y), pos.z);
+
+        return tiles.ContainsKey(xy) && tiles[xy].ContainsKey(z);
     }
 
     public ITile GetTile(Vector3Int pos)
     {
-        return tiles[pos];
+        var (xy, z) = ((pos.x, pos.y), pos.z);
+
+        if (!tiles.ContainsKey(xy) || !tiles[xy].ContainsKey(z))
+        {
+            throw new Exception("tile is not founded");
+        }
+
+        return tiles[xy][z];
     }
 
     public void SetUpdateBounds(BoundsInt bounds)
@@ -82,14 +113,17 @@ public class TileService
                 {
                     for (var y = updateBounds.yMin; y <= updateBounds.yMax; y++)
                     {
-                        for (var z = updateBounds.zMin; z <= updateBounds.zMax; z++)
+                        if (tiles.ContainsKey((x, y)))
                         {
-                            var pos = new Vector3Int(x, y, z);
-                            if (!bounds.InclusiveContains(pos))
+                            foreach (var (z, tile) in tiles[(x, y)])
                             {
-                                if (tiles.ContainsKey(pos))
+                                if (bounds.zMin <= z && z <= bounds.zMax)
                                 {
-                                    updateCommands.Enqueue(new RemoveTileCommand(pos));
+                                    var pos = new Vector3Int(x, y, z);
+                                    if (!bounds.InclusiveContains(pos))
+                                    {
+                                        updateCommands.Enqueue(new RemoveTileCommand(pos));
+                                    }
                                 }
                             }
                         }
@@ -100,15 +134,17 @@ public class TileService
                 {
                     for (var y = bounds.yMin; y <= bounds.yMax; y++)
                     {
-                        for (var z = bounds.zMin; z <= bounds.zMax; z++)
+                        if (tiles.ContainsKey((x, y)))
                         {
-                            var pos = new Vector3Int(x, y, z);
-                            if (!updateBounds.InclusiveContains(pos))
+                            foreach (var (z, tile) in tiles[(x, y)])
                             {
-                                if (tiles.ContainsKey(pos))
+                                if (bounds.zMin <= z && z <= bounds.zMax)
                                 {
-                                    var tile = GetTile(pos);
-                                    updateCommands.Enqueue(new AddTileCommand(tile));
+                                    var pos = new Vector3Int(x, y, z);
+                                    if (!updateBounds.InclusiveContains(pos))
+                                    {
+                                        updateCommands.Enqueue(new AddTileCommand(tile));
+                                    }
                                 }
                             }
                         }
@@ -124,13 +160,14 @@ public class TileService
             {
                 for (var y = bounds.yMin; y <= bounds.yMax; y++)
                 {
-                    for (var z = bounds.zMin; z <= bounds.zMax; z++)
+                    if (tiles.ContainsKey((x, y)))
                     {
-                        var pos = new Vector3Int(x, y, z);
-                        if (tiles.ContainsKey(pos))
+                        foreach (var (z, tile) in tiles[(x, y)])
                         {
-                            var tile = GetTile(pos);
-                            updateCommands.Enqueue(new AddTileCommand(tile));
+                            if (bounds.zMin <= z && z <= bounds.zMax)
+                            {
+                                updateCommands.Enqueue(new AddTileCommand(tile));
+                            }
                         }
                     }
                 }

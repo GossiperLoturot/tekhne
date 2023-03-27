@@ -3,14 +3,12 @@ using UnityEngine;
 
 public class GenerationService
 {
-    private readonly TileService tileService;
     private readonly HashSet<Vector2Int> initFlags;
 
     private BoundsInt? updateBounds;
 
-    public GenerationService(TileService tileService)
+    public GenerationService()
     {
-        this.tileService = tileService;
         initFlags = new();
     }
 
@@ -31,11 +29,11 @@ public class GenerationService
                         var value = FBMNoise(x * 0.1f, y * 0.1f);
                         if (0.5f < value)
                         {
-                            tileService.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceStone"));
+                            WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceStone"));
                         }
                         else
                         {
-                            tileService.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceGrass"));
+                            WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceGrass"));
                         }
 
                         // generation rules end

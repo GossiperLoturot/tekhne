@@ -1,25 +1,33 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(Camera))]
 public class WorldRenderer : MonoBehaviour
 {
-    private const int SIZE = 16;
-    private const int LAYER_SIZE = 4;
+    private const int LAYER_SIZE = 16;
 
+    private Camera camera;
     private Dictionary<Vector3Int, GameObject> tileInstances;
     private Dictionary<string, GameObject> entityInstances;
 
     private void Start()
     {
+        camera = GetComponent<Camera>();
         tileInstances = new();
         entityInstances = new();
     }
 
     private void Update()
     {
-        var center = Vector3Int.FloorToInt(transform.position);
-        var extent = new Vector3Int(SIZE, SIZE, LAYER_SIZE);
-        var bounds = new BoundsInt(center - extent, 2 * extent);
+        var widthExtent = Mathf.CeilToInt(camera.orthographicSize * camera.aspect);
+        var heightExtent = Mathf.CeilToInt(camera.orthographicSize);
+        var layerExtent = Mathf.CeilToInt(transform.position.z);
+
+        var center = Vector3Int.RoundToInt(new Vector3(transform.position.x, transform.position.y));
+        var extent = new Vector3Int(widthExtent, heightExtent, layerExtent);
+
+        var bounds = new BoundsInt();
+        bounds.SetMinMax(center - extent, center + extent);
 
         WorldService.generation.SetUpdateBounds(bounds);
         WorldService.tile.SetUpdateBounds(bounds);
