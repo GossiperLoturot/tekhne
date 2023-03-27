@@ -4,9 +4,11 @@ using UnityEngine;
 
 public class TileService
 {
-    private readonly Dictionary<(int, int), Dictionary<int, ITile>> tiles;
+    private const int GROUP_SIZE = 16;
 
-    private BoundsInt? updateBounds;
+    private readonly Dictionary<Vector3Int, Dictionary<Vector3Int, ITile>> tiles;
+
+    private BoundsInt? updateGroupBounds;
     private Queue<ITileCommand> updateCommands;
 
     public TileService()
@@ -17,22 +19,22 @@ public class TileService
 
     public void AddTile(ITile tile)
     {
-        var (xy, z) = ((tile.pos.x, tile.pos.y), tile.pos.z);
+        var group = Vector3Int.FloorToInt((Vector3)tile.pos / GROUP_SIZE);
 
-        if (tiles.ContainsKey(xy) && tiles[xy].ContainsKey(z))
+        if (tiles.ContainsKey(group) && tiles[group].ContainsKey(tile.pos))
         {
             throw new Exception("tile is already existed");
         }
 
-        if (!tiles.ContainsKey(xy))
+        if (!tiles.ContainsKey(group))
         {
-            tiles.Add(xy, new());
+            tiles.Add(group, new());
         }
-        tiles[xy].Add(z, tile);
+        tiles[group].Add(tile.pos, tile);
 
-        if (this.updateBounds is BoundsInt updateBounds)
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
-            if (updateBounds.InclusiveContains(tile.pos))
+            if (updateGroupBounds.InclusiveContains(group))
             {
                 updateCommands.Enqueue(new AddTileCommand(tile));
             }
@@ -41,18 +43,18 @@ public class TileService
 
     public void UpdateTile(ITile tile)
     {
-        var (xy, z) = ((tile.pos.x, tile.pos.y), tile.pos.z);
+        var group = Vector3Int.FloorToInt((Vector3)tile.pos / GROUP_SIZE);
 
-        if (!tiles.ContainsKey(xy) || !tiles[xy].ContainsKey(z))
+        if (!tiles.ContainsKey(group) || !tiles[group].ContainsKey(tile.pos))
         {
             throw new Exception("tile is not founded");
         }
 
-        tiles[xy][z] = tile;
+        tiles[group][tile.pos] = tile;
 
-        if (this.updateBounds is BoundsInt updateBounds)
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
-            if (updateBounds.InclusiveContains(tile.pos))
+            if (updateGroupBounds.InclusiveContains(group))
             {
                 updateCommands.Enqueue(new RemoveTileCommand(tile.pos));
                 updateCommands.Enqueue(new AddTileCommand(tile));
@@ -62,22 +64,22 @@ public class TileService
 
     public void RemoveTile(Vector3Int pos)
     {
-        var (xy, z) = ((pos.x, pos.y), pos.z);
+        var group = Vector3Int.FloorToInt((Vector3)pos / GROUP_SIZE);
 
-        if (!tiles.ContainsKey(xy) || !tiles[xy].ContainsKey(z))
+        if (!tiles.ContainsKey(group) || !tiles[group].ContainsKey(pos))
         {
             throw new Exception("tile is not founded");
         }
 
-        tiles[xy].Remove(z);
-        if (tiles[xy].Count == 0)
+        tiles[group].Remove(pos);
+        if (tiles[group].Count == 0)
         {
-            tiles.Remove(xy);
+            tiles.Remove(group);
         }
 
-        if (this.updateBounds is BoundsInt updateBounds)
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
-            if (updateBounds.InclusiveContains(pos))
+            if (updateGroupBounds.InclusiveContains(group))
             {
                 updateCommands.Enqueue(new RemoveTileCommand(pos));
             }
@@ -86,41 +88,46 @@ public class TileService
 
     public bool ContainsTile(Vector3Int pos)
     {
-        var (xy, z) = ((pos.x, pos.y), pos.z);
+        var group = Vector3Int.FloorToInt((Vector3)pos / GROUP_SIZE);
 
-        return tiles.ContainsKey(xy) && tiles[xy].ContainsKey(z);
+        return tiles.ContainsKey(group) && tiles[group].ContainsKey(pos);
     }
 
     public ITile GetTile(Vector3Int pos)
     {
-        var (xy, z) = ((pos.x, pos.y), pos.z);
+        var group = Vector3Int.FloorToInt((Vector3)pos / GROUP_SIZE);
 
-        if (!tiles.ContainsKey(xy) || !tiles[xy].ContainsKey(z))
+        if (!tiles.ContainsKey(group) || !tiles[group].ContainsKey(pos))
         {
             throw new Exception("tile is not founded");
         }
 
-        return tiles[xy][z];
+        return tiles[group][pos];
     }
 
     public void SetUpdateBounds(BoundsInt bounds)
     {
-        if (this.updateBounds is BoundsInt updateBounds)
+        var groupBounds = new BoundsInt();
+        var min = Vector3Int.FloorToInt((Vector3)bounds.min / GROUP_SIZE);
+        var max = Vector3Int.FloorToInt((Vector3)bounds.max / GROUP_SIZE);
+        groupBounds.SetMinMax(min, max);
+
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
-            if (bounds != updateBounds)
+            if (groupBounds != updateGroupBounds)
             {
-                for (var x = updateBounds.xMin; x <= updateBounds.xMax; x++)
+                for (var x = updateGroupBounds.xMin; x <= updateGroupBounds.xMax; x++)
                 {
-                    for (var y = updateBounds.yMin; y <= updateBounds.yMax; y++)
+                    for (var y = updateGroupBounds.yMin; y <= updateGroupBounds.yMax; y++)
                     {
-                        if (tiles.ContainsKey((x, y)))
+                        for (var z = updateGroupBounds.zMin; z <= updateGroupBounds.zMax; z++)
                         {
-                            foreach (var (z, tile) in tiles[(x, y)])
+                            var group = new Vector3Int(x, y, z);
+                            if (!groupBounds.InclusiveContains(group))
                             {
-                                if (bounds.zMin <= z && z <= bounds.zMax)
+                                if (tiles.ContainsKey(group))
                                 {
-                                    var pos = new Vector3Int(x, y, z);
-                                    if (!bounds.InclusiveContains(pos))
+                                    foreach (var (pos, tile) in tiles[group])
                                     {
                                         updateCommands.Enqueue(new RemoveTileCommand(pos));
                                     }
@@ -130,18 +137,18 @@ public class TileService
                     }
                 }
 
-                for (var x = bounds.xMin; x <= bounds.xMax; x++)
+                for (var x = groupBounds.xMin; x <= groupBounds.xMax; x++)
                 {
-                    for (var y = bounds.yMin; y <= bounds.yMax; y++)
+                    for (var y = groupBounds.yMin; y <= groupBounds.yMax; y++)
                     {
-                        if (tiles.ContainsKey((x, y)))
+                        for (var z = groupBounds.zMin; z <= groupBounds.zMax; z++)
                         {
-                            foreach (var (z, tile) in tiles[(x, y)])
+                            var group = new Vector3Int(x, y, z);
+                            if (!updateGroupBounds.InclusiveContains(group))
                             {
-                                if (bounds.zMin <= z && z <= bounds.zMax)
+                                if (tiles.ContainsKey(group))
                                 {
-                                    var pos = new Vector3Int(x, y, z);
-                                    if (!updateBounds.InclusiveContains(pos))
+                                    foreach (var (pos, tile) in tiles[group])
                                     {
                                         updateCommands.Enqueue(new AddTileCommand(tile));
                                     }
@@ -151,20 +158,21 @@ public class TileService
                     }
                 }
 
-                this.updateBounds = bounds;
+                this.updateGroupBounds = groupBounds;
             }
         }
         else
         {
-            for (var x = bounds.xMin; x <= bounds.xMax; x++)
+            for (var x = groupBounds.xMin; x <= groupBounds.xMax; x++)
             {
-                for (var y = bounds.yMin; y <= bounds.yMax; y++)
+                for (var y = groupBounds.yMin; y <= groupBounds.yMax; y++)
                 {
-                    if (tiles.ContainsKey((x, y)))
+                    for (var z = groupBounds.zMin; z <= groupBounds.zMax; z++)
                     {
-                        foreach (var (z, tile) in tiles[(x, y)])
+                        var group = new Vector3Int(x, y, z);
+                        if (tiles.ContainsKey(group))
                         {
-                            if (bounds.zMin <= z && z <= bounds.zMax)
+                            foreach (var (pos, tile) in tiles[group])
                             {
                                 updateCommands.Enqueue(new AddTileCommand(tile));
                             }
@@ -173,7 +181,7 @@ public class TileService
                 }
             }
 
-            this.updateBounds = bounds;
+            this.updateGroupBounds = groupBounds;
         }
     }
 

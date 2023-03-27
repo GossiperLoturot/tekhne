@@ -4,14 +4,18 @@ using UnityEngine;
 
 public class EntityService
 {
-    private readonly Dictionary<string, IEntity> entities;
+    private const int GROUP_SIZE = 16;
 
-    private BoundsInt? updateBounds;
+    private readonly Dictionary<string, IEntity> entities;
+    private readonly Dictionary<Vector3Int, HashSet<string>> groupIndex;
+
+    private BoundsInt? updateGroupBounds;
     private Queue<IEntityCommand> updateCommands;
 
     public EntityService()
     {
         entities = new();
+        groupIndex = new();
         updateCommands = new();
     }
 
@@ -24,9 +28,16 @@ public class EntityService
 
         entities.Add(entity.id, entity);
 
-        if (this.updateBounds is BoundsInt updateBounds)
+        var group = Vector3Int.FloorToInt(entity.pos / GROUP_SIZE);
+        if (!groupIndex.ContainsKey(group))
         {
-            if (updateBounds.Contains(entity.pos))
+            groupIndex.Add(group, new());
+        }
+        groupIndex[group].Add(entity.id);
+
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
+        {
+            if (updateGroupBounds.Contains(group))
             {
                 updateCommands.Enqueue(new AddEntityCommand(entity));
             }
@@ -43,14 +54,28 @@ public class EntityService
         var prev = entities[entity.id];
         entities[entity.id] = entity;
 
-        if (this.updateBounds is BoundsInt updateBounds)
+        var prevGroup = Vector3Int.FloorToInt(prev.pos / GROUP_SIZE);
+        groupIndex[prevGroup].Remove(prev.id);
+        if (groupIndex[prevGroup].Count == 0)
         {
-            if (updateBounds.Contains(prev.pos))
+            groupIndex.Remove(prevGroup);
+        }
+
+        var group = Vector3Int.FloorToInt(entity.pos / GROUP_SIZE);
+        if (!groupIndex.ContainsKey(group))
+        {
+            groupIndex.Add(group, new());
+        }
+        groupIndex[group].Add(entity.id);
+
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
+        {
+            if (updateGroupBounds.Contains(prevGroup))
             {
                 updateCommands.Enqueue(new RemoveEntityCommand(prev.id));
             }
 
-            if (updateBounds.Contains(entity.pos))
+            if (updateGroupBounds.Contains(group))
             {
                 updateCommands.Enqueue(new AddEntityCommand(entity));
             }
@@ -67,9 +92,16 @@ public class EntityService
         var entity = entities[id];
         entities.Remove(entity.id);
 
-        if (this.updateBounds is BoundsInt updateBounds)
+        var group = Vector3Int.FloorToInt(entity.pos / GROUP_SIZE);
+        groupIndex[group].Remove(entity.id);
+        if (groupIndex[group].Count == 0)
         {
-            if (updateBounds.Contains(entity.pos))
+            groupIndex.Remove(group);
+        }
+
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
+        {
+            if (updateGroupBounds.Contains(group))
             {
                 updateCommands.Enqueue(new RemoveEntityCommand(entity.id));
             }
@@ -93,37 +125,83 @@ public class EntityService
 
     public void SetUpdateBounds(BoundsInt bounds)
     {
-        if (this.updateBounds is BoundsInt updateBounds)
-        {
-            if (updateBounds != bounds)
-            {
-                foreach (var entity in entities.Values)
-                {
-                    if (updateBounds.Contains(entity.pos) && !bounds.Contains(entity.pos))
-                    {
-                        updateCommands.Enqueue(new RemoveEntityCommand(entity.id));
-                    }
+        var groupBounds = new BoundsInt();
+        var min = Vector3Int.FloorToInt((Vector3)bounds.min / GROUP_SIZE);
+        var max = Vector3Int.FloorToInt((Vector3)bounds.max / GROUP_SIZE);
+        groupBounds.SetMinMax(min, max);
 
-                    if (!updateBounds.Contains(entity.pos) && bounds.Contains(entity.pos))
+        if (this.updateGroupBounds is BoundsInt updateGroupBounds)
+        {
+            if (updateGroupBounds != groupBounds)
+            {
+                for (var x = updateGroupBounds.xMin; x <= updateGroupBounds.xMax; x++)
+                {
+                    for (var y = updateGroupBounds.yMin; y <= updateGroupBounds.yMax; y++)
                     {
-                        updateCommands.Enqueue(new AddEntityCommand(entity));
+                        for (var z = updateGroupBounds.zMin; z <= updateGroupBounds.zMax; z++)
+                        {
+                            var group = new Vector3Int(x, y, z);
+                            if (!groupBounds.InclusiveContains(group))
+                            {
+                                if (groupIndex.ContainsKey(group))
+                                {
+                                    foreach (var id in groupIndex[group])
+                                    {
+                                        updateCommands.Enqueue(new RemoveEntityCommand(id));
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
-                this.updateBounds = bounds;
+                for (var x = groupBounds.xMin; x <= groupBounds.xMax; x++)
+                {
+                    for (var y = groupBounds.yMin; y <= groupBounds.yMax; y++)
+                    {
+                        for (var z = groupBounds.zMin; z <= groupBounds.zMax; z++)
+                        {
+                            var group = new Vector3Int(x, y, z);
+                            if (!updateGroupBounds.InclusiveContains(group))
+                            {
+                                if (groupIndex.ContainsKey(group))
+                                {
+                                    foreach (var id in groupIndex[group])
+                                    {
+                                        var entity = entities[id];
+                                        updateCommands.Enqueue(new AddEntityCommand(entity));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                this.updateGroupBounds = groupBounds;
             }
         }
         else
         {
-            foreach (var entity in entities.Values)
+            for (var x = groupBounds.xMin; x <= groupBounds.xMax; x++)
             {
-                if (bounds.Contains(entity.pos))
+                for (var y = groupBounds.yMin; y <= groupBounds.yMax; y++)
                 {
-                    updateCommands.Enqueue(new AddEntityCommand(entity));
+                    for (var z = groupBounds.zMin; z <= groupBounds.zMax; z++)
+                    {
+                        var group = new Vector3Int(x, y, z);
+                        if (groupIndex.ContainsKey(group))
+                        {
+                            foreach (var id in groupIndex[group])
+                            {
+                                var entity = entities[id];
+                                updateCommands.Enqueue(new AddEntityCommand(entity));
+                            }
+                        }
+                    }
                 }
             }
 
-            this.updateBounds = bounds;
+            this.updateGroupBounds = groupBounds;
         }
     }
 
