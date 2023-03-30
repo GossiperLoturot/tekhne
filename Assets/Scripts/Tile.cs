@@ -5,6 +5,10 @@ public interface ITile : IEquatable<ITile>
 {
     public Vector3Int pos { get; }
     public string resourceName { get; }
+
+    public void OnAfterAdd();
+
+    public void OnBeforeRemove();
 }
 
 public class Tile : ITile
@@ -22,4 +26,8 @@ public class Tile : ITile
     {
         return pos == other.pos && resourceName == other.resourceName;
     }
+
+    public void OnAfterAdd() { }
+
+    public void OnBeforeRemove() { }
 }

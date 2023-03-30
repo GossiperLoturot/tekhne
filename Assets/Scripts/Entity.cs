@@ -6,6 +6,10 @@ public interface IEntity : IEquatable<IEntity>
     public string id { get; }
     public Vector3 pos { get; }
     public string resourceName { get; }
+
+    public void OnAfterAdd();
+
+    public void OnBeforeRemove();
 }
 
 public class Entity : IEntity
@@ -25,4 +29,8 @@ public class Entity : IEntity
     {
         return id == other.id && pos == other.pos && resourceName == other.resourceName;
     }
+
+    public void OnAfterAdd() { }
+
+    public void OnBeforeRemove() { }
 }

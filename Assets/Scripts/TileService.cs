@@ -31,6 +31,7 @@ public class TileService
             tiles.Add(group, new());
         }
         tiles[group].Add(tile.pos, tile);
+        tile.OnAfterAdd();
 
         if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
@@ -50,7 +51,10 @@ public class TileService
             throw new Exception("tile is not founded");
         }
 
+        var prev = tiles[group][tile.pos];
+        prev.OnBeforeRemove();
         tiles[group][tile.pos] = tile;
+        tile.OnAfterAdd();
 
         if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
@@ -71,6 +75,8 @@ public class TileService
             throw new Exception("tile is not founded");
         }
 
+        var prev = tiles[group][pos];
+        prev.OnBeforeRemove();
         tiles[group].Remove(pos);
         if (tiles[group].Count == 0)
         {

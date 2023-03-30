@@ -42,6 +42,7 @@ public class WorldRenderer : MonoBehaviour
         bounds.SetMinMax(center - extent, center + extent);
 
         WorldService.generation.SetUpdateBounds(bounds);
+        WorldService.update.DispatchUpdateEvent();
         WorldService.tile.SetUpdateBounds(bounds);
         WorldService.entity.SetUpdateBounds(bounds);
 

@@ -27,6 +27,7 @@ public class EntityService
         }
 
         entities.Add(entity.id, entity);
+        entity.OnAfterAdd();
 
         var group = Vector3Int.FloorToInt(entity.pos / GROUP_SIZE);
         if (!groupIndex.ContainsKey(group))
@@ -52,7 +53,9 @@ public class EntityService
         }
 
         var prev = entities[entity.id];
+        prev.OnBeforeRemove();
         entities[entity.id] = entity;
+        entity.OnAfterAdd();
 
         var prevGroup = Vector3Int.FloorToInt(prev.pos / GROUP_SIZE);
         groupIndex[prevGroup].Remove(prev.id);
@@ -90,6 +93,7 @@ public class EntityService
         }
 
         var entity = entities[id];
+        entity.OnBeforeRemove();
         entities.Remove(entity.id);
 
         var group = Vector3Int.FloorToInt(entity.pos / GROUP_SIZE);
