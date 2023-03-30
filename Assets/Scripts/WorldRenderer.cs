@@ -6,7 +6,6 @@ using UnityEngine.AddressableAssets;
 public class WorldRenderer : MonoBehaviour
 {
     private const string PRELOAD_LABELS = "preload";
-    private const int LAYER_SIZE = 16;
 
     private Camera camera;
     private Dictionary<string, GameObject> prefabs;
