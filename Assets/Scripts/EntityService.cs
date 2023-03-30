@@ -37,7 +37,7 @@ public class EntityService
 
         if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
-            if (updateGroupBounds.Contains(group))
+            if (updateGroupBounds.InclusiveContains(group))
             {
                 updateCommands.Enqueue(new AddEntityCommand(entity));
             }
@@ -70,12 +70,12 @@ public class EntityService
 
         if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
-            if (updateGroupBounds.Contains(prevGroup))
+            if (updateGroupBounds.InclusiveContains(prevGroup))
             {
                 updateCommands.Enqueue(new RemoveEntityCommand(prev.id));
             }
 
-            if (updateGroupBounds.Contains(group))
+            if (updateGroupBounds.InclusiveContains(group))
             {
                 updateCommands.Enqueue(new AddEntityCommand(entity));
             }
@@ -101,7 +101,7 @@ public class EntityService
 
         if (this.updateGroupBounds is BoundsInt updateGroupBounds)
         {
-            if (updateGroupBounds.Contains(group))
+            if (updateGroupBounds.InclusiveContains(group))
             {
                 updateCommands.Enqueue(new RemoveEntityCommand(entity.id));
             }
