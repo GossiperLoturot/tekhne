@@ -127,6 +127,40 @@ public class EntityService
         return entities[id];
     }
 
+    public List<IEntity> GetEntitiesFromBounds(BoundsInt bounds)
+    {
+        var result = new List<IEntity>();
+
+        var groupBounds = new BoundsInt();
+        var min = Vector3Int.FloorToInt((Vector3)bounds.min / GROUP_SIZE);
+        var max = Vector3Int.FloorToInt((Vector3)bounds.max / GROUP_SIZE);
+        groupBounds.SetMinMax(min, max);
+
+        for (var x = groupBounds.xMin; x <= groupBounds.xMax; x++)
+        {
+            for (var y = groupBounds.yMin; y <= groupBounds.yMax; y++)
+            {
+                for (var z = groupBounds.zMin; z <= groupBounds.zMax; z++)
+                {
+                    var group = new Vector3Int(x, y, z);
+                    if (groupIndex.ContainsKey(group))
+                    {
+                        foreach (var id in groupIndex[group])
+                        {
+                            var entity = entities[id];
+                            if (bounds.Contains(entity.pos))
+                            {
+                                result.Add(entity);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
     public void SetUpdateBounds(BoundsInt bounds)
     {
         var groupBounds = new BoundsInt();
