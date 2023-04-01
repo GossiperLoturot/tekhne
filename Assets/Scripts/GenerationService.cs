@@ -30,10 +30,25 @@ public class GenerationService
                         if (0.5f < value)
                         {
                             WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceStone"));
+
+                            if (0.75f < Random.value)
+                            {
+                                WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 1), "ObjectPebbles"));
+                            }
                         }
                         else
                         {
                             WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceGrass"));
+
+                            var prob = Random.value;
+                            if (0.5f <= prob && prob < 0.75f)
+                            {
+                                WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 1), "ObjectShortGrass"));
+                            }
+                            else if (0.75f <= prob)
+                            {
+                                WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 1), "ObjectLongGrass"));
+                            }
                         }
 
                         // generation rules end
