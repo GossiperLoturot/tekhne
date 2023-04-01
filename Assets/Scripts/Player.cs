@@ -34,12 +34,25 @@ public class Player : MonoBehaviour
                 throw new Exception("camera is null. please set camera in inspector");
             }
 
-            var rawPos = camera.ScreenToWorldPoint(pointerValue);
-            var pos = Vector3Int.RoundToInt(new Vector3(rawPos.x, rawPos.y));
+            var pos = camera.ScreenToWorldPoint(pointerValue);
+            var hit = Physics2D.OverlapPoint(pos);
 
-            if (WorldService.tile.ContainsTile(pos))
+            if (hit != null)
             {
-                WorldService.tile.RemoveTile(pos);
+                var customProperty = hit.GetComponentInParent<ICustomProperty>();
+
+                switch (customProperty)
+                {
+                    case CustomPropertyTile prop:
+                        var tile = WorldService.tile.GetTile(prop.value);
+                        // do something
+                        break;
+
+                    case CustomPropertyEntity prop:
+                        var entity = WorldService.entity.GetEntity(prop.value);
+                        // do something
+                        break;
+                }
             }
         }
     }

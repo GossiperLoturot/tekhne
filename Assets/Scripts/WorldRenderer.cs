@@ -52,7 +52,10 @@ public class WorldRenderer : MonoBehaviour
             {
                 case TileService.AddTileCommand addCmd:
                     var prefab = prefabs[addCmd.tile.resourceName];
-                    var instance = Instantiate(prefab, addCmd.tile.pos, Quaternion.identity);
+                    var projPos = Projection(addCmd.tile.pos);
+                    var instance = Instantiate(prefab, projPos, Quaternion.identity);
+                    var customProperty = instance.AddComponent<CustomPropertyTile>();
+                    customProperty.value = addCmd.tile.pos;
                     tileInstances.Add(addCmd.tile.pos, instance);
                     break;
 
@@ -69,7 +72,10 @@ public class WorldRenderer : MonoBehaviour
             {
                 case EntityService.AddEntityCommand addCmd:
                     var prefab = prefabs[addCmd.entity.resourceName];
-                    var instance = Instantiate(prefab, addCmd.entity.pos, Quaternion.identity);
+                    var projPos = Projection(addCmd.entity.pos);
+                    var instance = Instantiate(prefab, projPos, Quaternion.identity);
+                    var customProperty = instance.AddComponent<CustomPropertyEntity>();
+                    customProperty.value = addCmd.entity.id;
                     entityInstances.Add(addCmd.entity.id, instance);
                     break;
 
@@ -79,5 +85,10 @@ public class WorldRenderer : MonoBehaviour
                     break;
             }
         }
+    }
+
+    private Vector3 Projection(Vector3 pos)
+    {
+        return new Vector3(pos.x, pos.y + pos.z, -pos.z);
     }
 }
