@@ -34,3 +34,13 @@ public class Entity : IEntity
 
     public void OnBeforeRemove() { }
 }
+
+public class EntityPickable : Entity, IPickable
+{
+    public EntityPickable(string id, Vector3 pos, string resourceName) : base(id, pos, resourceName) { }
+
+    public void Pick()
+    {
+        WorldService.entity.RemoveEntity(id);
+    }
+}

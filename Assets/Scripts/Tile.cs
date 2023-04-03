@@ -31,3 +31,21 @@ public class Tile : ITile
 
     public void OnBeforeRemove() { }
 }
+
+public class TileHarvestable : Tile, IHarvestable
+{
+    public string itemResourceName { get; private set; }
+
+    public TileHarvestable(Vector3Int pos, string resourceName, string itemResourceName) : base(pos, resourceName) 
+    {
+        this.itemResourceName = itemResourceName;
+    }
+
+    public void OnHarvest()
+    {
+        var id = Guid.NewGuid().ToString();
+        var entity = new EntityPickable(id, pos, itemResourceName);
+        WorldService.entity.AddEntity(entity);
+        WorldService.tile.RemoveTile(pos);
+    }
+}

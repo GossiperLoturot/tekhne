@@ -4,6 +4,8 @@ using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
+    private const float PICK_DISTANCE = 3.0f;
+
     public Camera camera;
     public float moveSpeed;
 
@@ -12,6 +14,25 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
+        var center = Vector3Int.FloorToInt(transform.position);
+        var extent = Vector3Int.one * Mathf.CeilToInt(PICK_DISTANCE);
+
+        var bounds = new BoundsInt();
+        bounds.SetMinMax(center - extent, center + extent);
+
+        var entities = WorldService.entity.GetEntitiesFromBounds(bounds);
+        foreach (var entity in entities)
+        {
+            if (entity is IPickable pickableEntity)
+            {
+                var sqrDist = Vector3.SqrMagnitude(entity.pos - transform.position);
+                if (sqrDist <= PICK_DISTANCE * PICK_DISTANCE)
+                {
+                    pickableEntity.Pick();
+                }
+            }
+        }
+
         transform.position += new Vector3(moveValue.x, moveValue.y) * moveSpeed * Time.deltaTime;
     }
 
@@ -45,12 +66,18 @@ public class Player : MonoBehaviour
                 {
                     case CustomPropertyTile prop:
                         var tile = WorldService.tile.GetTile(prop.value);
-                        // do something
+                        if (tile is IHarvestable tileHarvestable)
+                        {
+                            tileHarvestable.OnHarvest();
+                        }
                         break;
 
                     case CustomPropertyEntity prop:
                         var entity = WorldService.entity.GetEntity(prop.value);
-                        // do something
+                        if (entity is IHarvestable entityHarvestable)
+                        {
+                            entityHarvestable.OnHarvest();
+                        }
                         break;
                 }
             }
