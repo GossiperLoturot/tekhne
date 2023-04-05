@@ -43,11 +43,11 @@ public class GenerationService
                             var prob = Random.value;
                             if (0.5f <= prob && prob < 0.75f)
                             {
-                                WorldService.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectShortGrass", "ItemGrass"));
+                                WorldService.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectShortGrass", new Item("ItemGrass")));
                             }
                             else if (0.75f <= prob)
                             {
-                                WorldService.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectLongGrass", "ItemGrass"));
+                                WorldService.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectLongGrass", new Item("ItemGrass")));
                             }
                         }
 

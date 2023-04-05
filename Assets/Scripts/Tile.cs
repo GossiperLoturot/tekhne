@@ -34,17 +34,17 @@ public class Tile : ITile
 
 public class TileHarvestable : Tile, IHarvestable
 {
-    public string itemResourceName { get; private set; }
+    public IItem item { get; private set; }
 
-    public TileHarvestable(Vector3Int pos, string resourceName, string itemResourceName) : base(pos, resourceName) 
+    public TileHarvestable(Vector3Int pos, string resourceName, IItem item) : base(pos, resourceName) 
     {
-        this.itemResourceName = itemResourceName;
+        this.item = item;
     }
 
     public void OnHarvest()
     {
         var id = Guid.NewGuid().ToString();
-        var entity = new EntityPickable(id, pos, itemResourceName);
+        var entity = new EntityPickable(id, pos, item);
         WorldService.entity.AddEntity(entity);
         WorldService.tile.RemoveTile(pos);
     }

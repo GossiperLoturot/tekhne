@@ -37,7 +37,12 @@ public class Entity : IEntity
 
 public class EntityPickable : Entity, IPickable
 {
-    public EntityPickable(string id, Vector3 pos, string resourceName) : base(id, pos, resourceName) { }
+    public IItem item { get; private set; }
+
+    public EntityPickable(string id, Vector3 pos, IItem item) : base(id, pos, item.resourceName)
+    {
+        this.item = item;
+    }
 
     public void Pick()
     {
