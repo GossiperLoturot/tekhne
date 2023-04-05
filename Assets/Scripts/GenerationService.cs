@@ -26,6 +26,13 @@ public class GenerationService
                     {
                         // generation rules start
 
+                        if (x == 0 && y == 0)
+                        {
+                            var id = System.Guid.NewGuid().ToString();
+                            var entity = new EntityCircularMotion(id, Vector3.forward, "SurfaceSand", Vector3.forward);
+                            WorldService.entity.AddEntity(entity);
+                        }
+
                         var value = FBMNoise(x * 0.1f, y * 0.1f);
                         if (0.5f < value)
                         {
