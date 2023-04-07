@@ -47,26 +47,8 @@ MonoBehaviour:
     m_SerializedLabels:
     - preload
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: af75c89e9a20d7344ac63523b5b41102
-    m_Address: ObjectPebbles
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - preload
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 7654631e527a59c458d7897122ca3ad0
-    m_Address: ObjectShortGrass
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - preload
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 8aec5c0aea413d344ac0afa6c2c2a6a2
-    m_Address: ObjectLongGrass
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - preload
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 6f0b9c2b8ded8a146bf025a04ab0bd8f
-    m_Address: ItemGrass
+  - m_GUID: 031c18f77d0a46a4aab3ef6c8e7f3c69
+    m_Address: Fallback
     m_ReadOnly: 0
     m_SerializedLabels:
     - preload

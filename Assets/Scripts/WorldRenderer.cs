@@ -6,6 +6,7 @@ using UnityEngine.AddressableAssets;
 public class WorldRenderer : MonoBehaviour
 {
     private const string PRELOAD_LABELS = "preload";
+    private const string FALLBACK_RESOURCE_NAME = "Fallback";
 
     private Camera camera;
     private Dictionary<string, GameObject> prefabs;
@@ -51,7 +52,13 @@ public class WorldRenderer : MonoBehaviour
             switch (cmd)
             {
                 case TileService.AddTileCommand addCmd:
-                    var prefab = prefabs[addCmd.tile.resourceName];
+                    GameObject prefab;
+                    if (prefabs.ContainsKey(addCmd.tile.resourceName))
+                    {
+                        prefab = prefabs[addCmd.tile.resourceName];
+                    } else {
+                        prefab = prefabs[FALLBACK_RESOURCE_NAME];
+                    }
                     var projPos = Projection(addCmd.tile.pos);
                     var instance = Instantiate(prefab, projPos, Quaternion.identity);
                     var customProperty = instance.AddComponent<CustomPropertyTile>();
@@ -71,7 +78,13 @@ public class WorldRenderer : MonoBehaviour
             switch (cmd)
             {
                 case EntityService.AddEntityCommand addCmd:
-                    var prefab = prefabs[addCmd.entity.resourceName];
+                    GameObject prefab;
+                    if (prefabs.ContainsKey(addCmd.entity.resourceName))
+                    {
+                        prefab = prefabs[addCmd.entity.resourceName];
+                    } else {
+                        prefab = prefabs[FALLBACK_RESOURCE_NAME];
+                    }
                     var projPos = Projection(addCmd.entity.pos);
                     var instance = Instantiate(prefab, projPos, Quaternion.identity);
                     var customProperty = instance.AddComponent<CustomPropertyEntity>();
