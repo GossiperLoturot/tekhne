@@ -4,12 +4,14 @@ using UnityEngine;
 public class GenerationService
 {
     private readonly HashSet<Vector2Int> initFlags;
+    private readonly System.Random rng;
 
     private BoundsInt? updateBounds;
 
     public GenerationService()
     {
         initFlags = new();
+        rng = new System.Random();
     }
 
     public void SetUpdateBounds(BoundsInt bounds)
@@ -38,7 +40,8 @@ public class GenerationService
                         {
                             WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceStone"));
 
-                            if (0.75f < Random.value)
+                            var prob = rng.NextDouble();
+                            if (0.75f < prob)
                             {
                                 WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 1), "ObjectPebbles"));
                             }
@@ -47,7 +50,7 @@ public class GenerationService
                         {
                             WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceGrass"));
 
-                            var prob = Random.value;
+                            var prob = rng.NextDouble();
                             if (0.5f <= prob && prob < 0.75f)
                             {
                                 WorldService.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectShortGrass", new Item("ItemGrass")));

@@ -65,19 +65,23 @@ public class Player : MonoBehaviour
                 switch (customProperty)
                 {
                     case CustomPropertyTile prop:
+                        WorldService.mutex.WaitOne();
                         var tile = WorldService.tile.GetTile(prop.value);
                         if (tile is IHarvestable tileHarvestable)
                         {
                             tileHarvestable.OnHarvest();
                         }
+                        WorldService.mutex.ReleaseMutex();
                         break;
 
                     case CustomPropertyEntity prop:
+                        WorldService.mutex.WaitOne();
                         var entity = WorldService.entity.GetEntity(prop.value);
                         if (entity is IHarvestable entityHarvestable)
                         {
                             entityHarvestable.OnHarvest();
                         }
+                        WorldService.mutex.ReleaseMutex();
                         break;
                 }
             }

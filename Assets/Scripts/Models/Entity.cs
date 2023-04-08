@@ -82,7 +82,7 @@ public class EntityCircularMotion : IEntity,  UpdateService.IUpdatable
 
     public void OnUpdate()
     {
-        var time = Time.time;
+        var time = DateTime.Now.Millisecond / 1000.0f * 2.0f * System.MathF.PI;
         var pos = centerPos + new Vector3(Mathf.Cos(time), Mathf.Sin(time));
         var entity = new EntityCircularMotion(id, pos, resourceName, centerPos);
         WorldService.entity.UpdateEntity(entity);
