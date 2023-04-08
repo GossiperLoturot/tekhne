@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -17,7 +17,7 @@ public class WorldRenderer : MonoBehaviour
 
     private BoundsInt? bounds;
     private bool subThreadEnabled;
-    private Thread subThread;
+    private Task subThread;
 
     private void Start()
     {
@@ -36,7 +36,7 @@ public class WorldRenderer : MonoBehaviour
         Addressables.Release(resourceLocationsHandle);
 
         subThreadEnabled = true;
-        subThread = new Thread(new ThreadStart(UpdateInSubThread));
+        subThread = new Task(UpdateInSubThread);
         subThread.Start();
     }
 
@@ -56,7 +56,7 @@ public class WorldRenderer : MonoBehaviour
                 }
             }
 
-            Thread.Sleep(SLEEP_MILLISECONDS);
+            Task.Delay(SLEEP_MILLISECONDS).Wait();
         }
     }
 
@@ -133,6 +133,7 @@ public class WorldRenderer : MonoBehaviour
     private void OnDestroy()
     {
         subThreadEnabled = false;
-        subThread.Join();
+        subThread.Wait();
+        subThread.Dispose();
     }
 }
