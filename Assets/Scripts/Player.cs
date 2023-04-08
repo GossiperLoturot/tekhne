@@ -20,15 +20,18 @@ public class Player : MonoBehaviour
         var bounds = new BoundsInt();
         bounds.SetMinMax(center - extent, center + extent);
 
-        var entities = WorldService.entity.GetEntitiesFromBounds(bounds);
-        foreach (var entity in entities)
+        using (var _ = new WorldService())
         {
-            if (entity is IPickable pickableEntity)
+            var entities = WorldService.current.entity.GetEntitiesFromBounds(bounds);
+            foreach (var entity in entities)
             {
-                var sqrDist = Vector3.SqrMagnitude(entity.pos - transform.position);
-                if (sqrDist <= PICK_DISTANCE * PICK_DISTANCE)
+                if (entity is IPickable pickableEntity)
                 {
-                    pickableEntity.Pick();
+                    var sqrDist = Vector3.SqrMagnitude(entity.pos - transform.position);
+                    if (sqrDist <= PICK_DISTANCE * PICK_DISTANCE)
+                    {
+                        pickableEntity.Pick();
+                    }
                 }
             }
         }
@@ -65,23 +68,25 @@ public class Player : MonoBehaviour
                 switch (customProperty)
                 {
                     case CustomPropertyTile prop:
-                        WorldService.mutex.WaitOne();
-                        var tile = WorldService.tile.GetTile(prop.value);
-                        if (tile is IHarvestable tileHarvestable)
+                        using (var _ = new WorldService())
                         {
-                            tileHarvestable.OnHarvest();
+                            var tile = WorldService.current.tile.GetTile(prop.value);
+                            if (tile is IHarvestable tileHarvestable)
+                            {
+                                tileHarvestable.OnHarvest();
+                            }
                         }
-                        WorldService.mutex.ReleaseMutex();
                         break;
 
                     case CustomPropertyEntity prop:
-                        WorldService.mutex.WaitOne();
-                        var entity = WorldService.entity.GetEntity(prop.value);
-                        if (entity is IHarvestable entityHarvestable)
+                        using (var _ = new WorldService())
                         {
-                            entityHarvestable.OnHarvest();
+                            var entity = WorldService.current.entity.GetEntity(prop.value);
+                            if (entity is IHarvestable entityHarvestable)
+                            {
+                                entityHarvestable.OnHarvest();
+                            }
                         }
-                        WorldService.mutex.ReleaseMutex();
                         break;
                 }
             }

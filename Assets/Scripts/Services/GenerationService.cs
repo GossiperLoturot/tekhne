@@ -32,32 +32,32 @@ public class GenerationService
                         {
                             var id = System.Guid.NewGuid().ToString();
                             var entity = new EntityCircularMotion(id, Vector3.forward, "SurfaceSand", Vector3.forward);
-                            WorldService.entity.AddEntity(entity);
+                            WorldService.current.entity.AddEntity(entity);
                         }
 
                         var value = FBMNoise(x * 0.1f, y * 0.1f);
                         if (0.5f < value)
                         {
-                            WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceStone"));
+                            WorldService.current.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceStone"));
 
                             var prob = rng.NextDouble();
                             if (0.75f < prob)
                             {
-                                WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 1), "ObjectPebbles"));
+                                WorldService.current.tile.AddTile(new Tile(new Vector3Int(x, y, 1), "ObjectPebbles"));
                             }
                         }
                         else
                         {
-                            WorldService.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceGrass"));
+                            WorldService.current.tile.AddTile(new Tile(new Vector3Int(x, y, 0), "SurfaceGrass"));
 
                             var prob = rng.NextDouble();
                             if (0.5f <= prob && prob < 0.75f)
                             {
-                                WorldService.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectShortGrass", new Item("ItemGrass")));
+                                WorldService.current.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectShortGrass", new Item("ItemGrass")));
                             }
                             else if (0.75f <= prob)
                             {
-                                WorldService.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectLongGrass", new Item("ItemGrass")));
+                                WorldService.current.tile.AddTile(new TileHarvestable(new Vector3Int(x, y, 1), "ObjectLongGrass", new Item("ItemGrass")));
                             }
                         }
 

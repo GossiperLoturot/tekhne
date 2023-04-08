@@ -45,7 +45,7 @@ public class TileHarvestable : Tile, IHarvestable
     {
         var id = Guid.NewGuid().ToString();
         var entity = new EntityPickable(id, pos, item);
-        WorldService.entity.AddEntity(entity);
-        WorldService.tile.RemoveTile(pos);
+        WorldService.current.entity.AddEntity(entity);
+        WorldService.current.tile.RemoveTile(pos);
     }
 }

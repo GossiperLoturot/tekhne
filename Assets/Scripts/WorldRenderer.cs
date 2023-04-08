@@ -44,18 +44,17 @@ public class WorldRenderer : MonoBehaviour
     {
         while (subThreadEnabled)
         {
-            WorldService.mutex.WaitOne();
-
-            WorldService.update.DispatchUpdateEvent();
-
-            if (this.bounds is BoundsInt bounds)
+            using (var _ = new WorldService())
             {
-                WorldService.generation.SetUpdateBounds(bounds);
-                WorldService.tile.SetUpdateBounds(bounds);
-                WorldService.entity.SetUpdateBounds(bounds);
-            }
+                WorldService.current.update.DispatchUpdateEvent();
 
-            WorldService.mutex.ReleaseMutex();
+                if (this.bounds is BoundsInt bounds)
+                {
+                    WorldService.current.generation.SetUpdateBounds(bounds);
+                    WorldService.current.tile.SetUpdateBounds(bounds);
+                    WorldService.current.entity.SetUpdateBounds(bounds);
+                }
+            }
 
             Thread.Sleep(SLEEP_MILLISECONDS);
         }
@@ -74,45 +73,44 @@ public class WorldRenderer : MonoBehaviour
         bounds.SetMinMax(center - extent, center + extent);
         this.bounds = bounds;
 
-        WorldService.mutex.WaitOne();
-
-        foreach (var cmd in WorldService.tile.GetUpdateCommands())
+        using (var _ = new WorldService())
         {
-            switch (cmd)
+            foreach (var cmd in WorldService.current.tile.GetUpdateCommands())
             {
-                case TileService.AddTileCommand addCmd:
-                    var instance = Instantiate(GetPrefab(addCmd.tile.resourceName), GetProjectionPos(addCmd.tile.pos), Quaternion.identity);
-                    var customProperty = instance.AddComponent<CustomPropertyTile>();
-                    customProperty.value = addCmd.tile.pos;
-                    tileInstances.Add(addCmd.tile.pos, instance);
-                    break;
+                switch (cmd)
+                {
+                    case TileService.AddTileCommand addCmd:
+                        var instance = Instantiate(GetPrefab(addCmd.tile.resourceName), GetProjectionPos(addCmd.tile.pos), Quaternion.identity);
+                        var customProperty = instance.AddComponent<CustomPropertyTile>();
+                        customProperty.value = addCmd.tile.pos;
+                        tileInstances.Add(addCmd.tile.pos, instance);
+                        break;
 
-                case TileService.RemoveTileCommand removeCmd:
-                    Destroy(tileInstances[removeCmd.pos]);
-                    tileInstances.Remove(removeCmd.pos);
-                    break;
+                    case TileService.RemoveTileCommand removeCmd:
+                        Destroy(tileInstances[removeCmd.pos]);
+                        tileInstances.Remove(removeCmd.pos);
+                        break;
+                }
+            }
+
+            foreach (var cmd in WorldService.current.entity.GetUpdateCommands())
+            {
+                switch (cmd)
+                {
+                    case EntityService.AddEntityCommand addCmd:
+                        var instance = Instantiate(GetPrefab(addCmd.entity.resourceName), GetProjectionPos(addCmd.entity.pos), Quaternion.identity);
+                        var customProperty = instance.AddComponent<CustomPropertyEntity>();
+                        customProperty.value = addCmd.entity.id;
+                        entityInstances.Add(addCmd.entity.id, instance);
+                        break;
+
+                    case EntityService.RemoveEntityCommand removeCmd:
+                        Destroy(entityInstances[removeCmd.id]);
+                        entityInstances.Remove(removeCmd.id);
+                        break;
+                }
             }
         }
-
-        foreach (var cmd in WorldService.entity.GetUpdateCommands())
-        {
-            switch (cmd)
-            {
-                case EntityService.AddEntityCommand addCmd:
-                    var instance = Instantiate(GetPrefab(addCmd.entity.resourceName), GetProjectionPos(addCmd.entity.pos), Quaternion.identity);
-                    var customProperty = instance.AddComponent<CustomPropertyEntity>();
-                    customProperty.value = addCmd.entity.id;
-                    entityInstances.Add(addCmd.entity.id, instance);
-                    break;
-
-                case EntityService.RemoveEntityCommand removeCmd:
-                    Destroy(entityInstances[removeCmd.id]);
-                    entityInstances.Remove(removeCmd.id);
-                    break;
-            }
-        }
-
-        WorldService.mutex.ReleaseMutex();
     }
 
     private GameObject GetPrefab(string resourceName)

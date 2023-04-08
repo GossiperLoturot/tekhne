@@ -46,7 +46,7 @@ public class EntityPickable : Entity, IPickable
 
     public void Pick()
     {
-        WorldService.entity.RemoveEntity(id);
+        WorldService.current.entity.RemoveEntity(id);
     }
 }
 
@@ -72,12 +72,12 @@ public class EntityCircularMotion : IEntity,  UpdateService.IUpdatable
 
     public void OnAfterAdd()
     {
-        WorldService.update.AddUpdatable(this);
+        WorldService.current.update.AddUpdatable(this);
     }
 
     public void OnBeforeRemove()
     {
-        WorldService.update.RemoveUpdatable(id);
+        WorldService.current.update.RemoveUpdatable(id);
     }
 
     public void OnUpdate()
@@ -85,6 +85,6 @@ public class EntityCircularMotion : IEntity,  UpdateService.IUpdatable
         var time = DateTime.Now.Millisecond / 1000.0f * 2.0f * System.MathF.PI;
         var pos = centerPos + new Vector3(Mathf.Cos(time), Mathf.Sin(time));
         var entity = new EntityCircularMotion(id, pos, resourceName, centerPos);
-        WorldService.entity.UpdateEntity(entity);
+        WorldService.current.entity.UpdateEntity(entity);
     }
 }
