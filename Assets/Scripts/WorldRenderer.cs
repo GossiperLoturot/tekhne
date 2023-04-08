@@ -52,15 +52,7 @@ public class WorldRenderer : MonoBehaviour
             switch (cmd)
             {
                 case TileService.AddTileCommand addCmd:
-                    GameObject prefab;
-                    if (prefabs.ContainsKey(addCmd.tile.resourceName))
-                    {
-                        prefab = prefabs[addCmd.tile.resourceName];
-                    } else {
-                        prefab = prefabs[FALLBACK_RESOURCE_NAME];
-                    }
-                    var projPos = Projection(addCmd.tile.pos);
-                    var instance = Instantiate(prefab, projPos, Quaternion.identity);
+                    var instance = Instantiate(GetPrefab(addCmd.tile.resourceName), GetProjectionPos(addCmd.tile.pos), Quaternion.identity);
                     var customProperty = instance.AddComponent<CustomPropertyTile>();
                     customProperty.value = addCmd.tile.pos;
                     tileInstances.Add(addCmd.tile.pos, instance);
@@ -78,15 +70,7 @@ public class WorldRenderer : MonoBehaviour
             switch (cmd)
             {
                 case EntityService.AddEntityCommand addCmd:
-                    GameObject prefab;
-                    if (prefabs.ContainsKey(addCmd.entity.resourceName))
-                    {
-                        prefab = prefabs[addCmd.entity.resourceName];
-                    } else {
-                        prefab = prefabs[FALLBACK_RESOURCE_NAME];
-                    }
-                    var projPos = Projection(addCmd.entity.pos);
-                    var instance = Instantiate(prefab, projPos, Quaternion.identity);
+                    var instance = Instantiate(GetPrefab(addCmd.entity.resourceName), GetProjectionPos(addCmd.entity.pos), Quaternion.identity);
                     var customProperty = instance.AddComponent<CustomPropertyEntity>();
                     customProperty.value = addCmd.entity.id;
                     entityInstances.Add(addCmd.entity.id, instance);
@@ -100,7 +84,19 @@ public class WorldRenderer : MonoBehaviour
         }
     }
 
-    private Vector3 Projection(Vector3 pos)
+    private GameObject GetPrefab(string resourceName)
+    {
+        if (prefabs.ContainsKey(resourceName))
+        {
+            return prefabs[resourceName];
+        }
+        else
+        {
+            return prefabs[FALLBACK_RESOURCE_NAME];
+        }
+    }
+
+    private Vector3 GetProjectionPos(Vector3 pos)
     {
         return new Vector3(pos.x, pos.y + pos.z, -pos.z);
     }
