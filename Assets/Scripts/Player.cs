@@ -12,6 +12,13 @@ public class Player : MonoBehaviour
     private Vector2 moveValue;
     private Vector2 pointerValue;
 
+    private ItemStorage itemStorage;
+
+    private void Start()
+    {
+        itemStorage = new ItemStorage(10);
+    }
+
     private void Update()
     {
         var center = Vector3Int.FloorToInt(transform.position);
@@ -30,7 +37,7 @@ public class Player : MonoBehaviour
                     var sqrDist = Vector3.SqrMagnitude(entity.pos - transform.position);
                     if (sqrDist <= PICK_DISTANCE * PICK_DISTANCE)
                     {
-                        pickableEntity.Pick();
+                        pickableEntity.Pick(itemStorage);
                     }
                 }
             }

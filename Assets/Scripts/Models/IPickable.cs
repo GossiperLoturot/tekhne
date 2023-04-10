@@ -1,4 +1,4 @@
 ﻿public interface IPickable
 {
-    public void Pick();
+    public void Pick(IItemStorage itemStorage);
 }
