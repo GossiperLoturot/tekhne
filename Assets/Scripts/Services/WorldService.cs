@@ -3,6 +3,7 @@ using System.Threading;
 
 public class WorldService : IDisposable
 {
+    private static readonly PlayerService _player;
     private static readonly TileService _tile;
     private static readonly EntityService _entity;
     private static readonly GenerationService _generation;
@@ -11,6 +12,7 @@ public class WorldService : IDisposable
 
     public static WorldService current { get; private set; }
 
+    public readonly PlayerService player;
     public readonly TileService tile;
     public readonly EntityService entity;
     public readonly GenerationService generation;
@@ -18,6 +20,7 @@ public class WorldService : IDisposable
 
     static WorldService()
     {
+        _player = new PlayerService();
         _tile = new TileService();
         _entity = new EntityService();
         _generation = new GenerationService();
@@ -28,6 +31,7 @@ public class WorldService : IDisposable
     public WorldService()
     {
         _mutex.WaitOne();
+        player = _player;
         tile = _tile;
         entity = _entity;
         generation = _generation;
