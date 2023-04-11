@@ -1,8 +1,7 @@
 public interface IItemStorage
 {
-    public bool CheckInsert(IItem item);
-
-    public void Insert(IItem item);
+    public bool TryInsert(IItem item);
+    public bool TryExtract(IItem item);
 }
 
 public class ItemStorage : IItemStorage
@@ -14,28 +13,29 @@ public class ItemStorage : IItemStorage
         items = new IItem[slotCount];
     }
 
-    public bool CheckInsert(IItem item)
-    {
-        for (var i = 0; i < items.Length; i++)
-        {
-            if (items[i] == null)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public void Insert(IItem item)
+    public bool TryInsert(IItem item)
     {
         for (var i = 0; i < items.Length; i++)
         {
             if (items[i] == null)
             {
                 items[i] = item;
-                return;
+                return true;
             }
         }
+        return false;
+    }
+
+    public bool TryExtract(IItem item)
+    {
+        for (var i = 0; i < items.Length; i++)
+        {
+            if (items[i] == item)
+            {
+                items[i] = null;
+                return true;
+            }
+        }
+        return false;
     }
 }

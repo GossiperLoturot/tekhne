@@ -46,9 +46,8 @@ public class EntityPickable : Entity, IPickable
 
     public void Pick(IItemStorage itemStorage)
     {
-        if (itemStorage.CheckInsert(item))
+        if (itemStorage.TryInsert(item))
         {
-            itemStorage.Insert(item);
             WorldService.current.entity.RemoveEntity(id);
         }
     }
