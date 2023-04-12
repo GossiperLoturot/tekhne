@@ -1,26 +1,28 @@
 use std::collections::HashMap;
 
-use crate::models::{Bounds3D, Pos3D, Tile};
+use glam::IVec3;
+
+use crate::models::{IBounds3, Tile};
 
 #[derive(Debug, Clone)]
 pub enum TileCmd {
     Add(Tile),
-    Remove(Pos3D<i32>),
+    Remove(IVec3),
 }
 
 pub struct TileClient {
-    bounds: Bounds3D<i32>,
+    bounds: IBounds3,
     cmds: Vec<TileCmd>,
 }
 
 impl TileClient {
-    pub fn new(bounds: Bounds3D<i32>, cmds: Vec<TileCmd>) -> Self {
+    pub fn new(bounds: IBounds3, cmds: Vec<TileCmd>) -> Self {
         Self { bounds, cmds }
     }
 }
 
 pub struct TileService {
-    tiles: HashMap<Pos3D<i32>, Tile>,
+    tiles: HashMap<IVec3, Tile>,
     clients: HashMap<String, TileClient>,
 }
 
@@ -45,7 +47,7 @@ impl TileService {
         }
     }
 
-    pub fn remove_tile(&mut self, pos: Pos3D<i32>) {
+    pub fn remove_tile(&mut self, pos: IVec3) {
         if !self.tiles.contains_key(&pos) {
             panic!("tile is not found at pos {:?}", pos);
         }
@@ -58,16 +60,16 @@ impl TileService {
         }
     }
 
-    pub fn get_tile(&self, pos: Pos3D<i32>) -> Option<Tile> {
+    pub fn get_tile(&self, pos: IVec3) -> Option<Tile> {
         self.tiles.get(&pos).cloned()
     }
 
-    pub fn set_bounds(&mut self, client_name: String, bounds: Bounds3D<i32>) {
+    pub fn set_bounds(&mut self, client_name: String, bounds: IBounds3) {
         if let Some(client) = self.clients.get_mut(&client_name) {
             for x in client.bounds.min.x..=client.bounds.max.x {
                 for y in client.bounds.min.y..=client.bounds.max.y {
                     for z in client.bounds.min.z..=client.bounds.max.z {
-                        let pos = Pos3D::new(x, y, z);
+                        let pos = IVec3::new(x, y, z);
                         if !bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos) {
                             client.cmds.push(TileCmd::Remove(pos));
                         }
@@ -78,7 +80,7 @@ impl TileService {
             for x in bounds.min.x..=bounds.max.x {
                 for y in bounds.min.y..=bounds.max.y {
                     for z in bounds.min.z..=bounds.max.z {
-                        let pos = Pos3D::new(x, y, z);
+                        let pos = IVec3::new(x, y, z);
                         if !client.bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos)
                         {
                             let tile = self.tiles.get(&pos).unwrap();
@@ -95,7 +97,7 @@ impl TileService {
             for x in bounds.min.x..=bounds.max.x {
                 for y in bounds.min.y..=bounds.max.y {
                     for z in bounds.min.z..=bounds.max.z {
-                        let pos = Pos3D::new(x, y, z);
+                        let pos = IVec3::new(x, y, z);
                         if self.tiles.contains_key(&pos) {
                             let tile = self.tiles.get(&pos).unwrap();
                             cmds.push(TileCmd::Add(tile.clone()));

@@ -1,32 +1,17 @@
-use std::hash::Hash;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Pos3D<T> {
-    pub x: T,
-    pub y: T,
-    pub z: T,
-}
-
-impl<T> Pos3D<T> {
-    pub fn new(x: T, y: T, z: T) -> Self {
-        Self { x, y, z }
-    }
-}
+use glam::IVec3;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Bounds3D<T> {
-    pub min: Pos3D<T>,
-    pub max: Pos3D<T>,
+pub struct IBounds3 {
+    pub min: IVec3,
+    pub max: IVec3,
 }
 
-impl<T> Bounds3D<T> {
-    pub fn new(min: Pos3D<T>, max: Pos3D<T>) -> Self {
+impl IBounds3 {
+    pub fn new(min: IVec3, max: IVec3) -> Self {
         Self { min, max }
     }
-}
 
-impl<T: PartialOrd> Bounds3D<T> {
-    pub fn inclusive_contains(&self, point: &Pos3D<T>) -> bool {
+    pub fn inclusive_contains(&self, point: &IVec3) -> bool {
         point.x < self.min.x
             || self.max.x < point.x
             || point.y < self.min.y
@@ -38,6 +23,6 @@ impl<T: PartialOrd> Bounds3D<T> {
 
 #[derive(Debug, Clone)]
 pub struct Tile {
-    pub pos: Pos3D<i32>,
+    pub pos: IVec3,
     pub resource_name: String,
 }
