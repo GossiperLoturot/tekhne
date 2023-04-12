@@ -38,6 +38,7 @@ impl TileService {
         if self.tiles.contains_key(&tile.pos) {
             panic!("tile is already existed at pos {:?}.", tile.pos);
         }
+
         self.tiles.insert(tile.pos.clone(), tile.clone());
 
         for (_, client) in &mut self.clients {
@@ -51,6 +52,7 @@ impl TileService {
         if !self.tiles.contains_key(&pos) {
             panic!("tile is not found at pos {:?}", pos);
         }
+
         self.tiles.remove(&pos);
 
         for (_, client) in &mut self.clients {

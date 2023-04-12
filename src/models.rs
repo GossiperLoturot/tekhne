@@ -1,4 +1,4 @@
-use glam::IVec3;
+use glam::{IVec3, Vec3A};
 
 #[derive(Debug, Clone, Copy)]
 pub struct IBounds3 {
@@ -24,5 +24,12 @@ impl IBounds3 {
 #[derive(Debug, Clone)]
 pub struct Tile {
     pub pos: IVec3,
+    pub resource_name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct Entity {
+    pub id: String,
+    pub pos: Vec3A,
     pub resource_name: String,
 }

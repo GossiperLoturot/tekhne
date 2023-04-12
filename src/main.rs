@@ -1,5 +1,6 @@
+mod entity_service;
 mod models;
-mod services;
+mod tile_service;
 
 fn main() {
     unimplemented!()
