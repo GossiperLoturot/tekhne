@@ -1,6 +1,6 @@
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos3D<T> {
     pub x: T,
     pub y: T,
@@ -10,16 +10,6 @@ pub struct Pos3D<T> {
 impl<T> Pos3D<T> {
     pub fn new(x: T, y: T, z: T) -> Self {
         Self { x, y, z }
-    }
-}
-
-impl<T: Eq> Eq for Pos3D<T> {}
-
-impl<T: Hash> Hash for Pos3D<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.x.hash(state);
-        self.y.hash(state);
-        self.z.hash(state);
     }
 }
 
@@ -46,7 +36,7 @@ impl<T: PartialOrd> Bounds3D<T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Tile {
     pub pos: Pos3D<i32>,
     pub resource_name: String,

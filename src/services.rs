@@ -3,15 +3,25 @@ use std::collections::HashMap;
 use crate::models::{Bounds3D, Pos3D, Tile};
 
 #[derive(Debug, Clone)]
-pub enum TileCommand {
-    AddTile(Tile),
-    RemoveTile(Pos3D<i32>),
+pub enum TileCmd {
+    Add(Tile),
+    Remove(Pos3D<i32>),
+}
+
+pub struct TileClient {
+    bounds: Bounds3D<i32>,
+    cmds: Vec<TileCmd>,
+}
+
+impl TileClient {
+    pub fn new(bounds: Bounds3D<i32>, cmds: Vec<TileCmd>) -> Self {
+        Self { bounds, cmds }
+    }
 }
 
 pub struct TileService {
     tiles: HashMap<Pos3D<i32>, Tile>,
-    clients: HashMap<String, Bounds3D<i32>>,
-    commands: HashMap<String, Vec<TileCommand>>,
+    clients: HashMap<String, TileClient>,
 }
 
 impl TileService {
@@ -19,7 +29,6 @@ impl TileService {
         Self {
             tiles: HashMap::new(),
             clients: HashMap::new(),
-            commands: HashMap::new(),
         }
     }
 
@@ -29,10 +38,9 @@ impl TileService {
         }
         self.tiles.insert(tile.pos.clone(), tile.clone());
 
-        for (client_name, bounds) in &self.clients {
-            if bounds.inclusive_contains(&tile.pos) {
-                let cmd = self.commands.get_mut(client_name).unwrap();
-                cmd.push(TileCommand::AddTile(tile.clone()));
+        for (_, client) in &mut self.clients {
+            if client.bounds.inclusive_contains(&tile.pos) {
+                client.cmds.push(TileCmd::Add(tile.clone()));
             }
         }
     }
@@ -43,10 +51,9 @@ impl TileService {
         }
         self.tiles.remove(&pos);
 
-        for (client_name, bounds) in &self.clients {
-            if bounds.inclusive_contains(&pos) {
-                let cmd = self.commands.get_mut(client_name).unwrap();
-                cmd.push(TileCommand::RemoveTile(pos.clone()));
+        for (_, client) in &mut self.clients {
+            if client.bounds.inclusive_contains(&pos) {
+                client.cmds.push(TileCmd::Remove(pos.clone()));
             }
         }
     }
@@ -56,20 +63,59 @@ impl TileService {
     }
 
     pub fn set_bounds(&mut self, client_name: String, bounds: Bounds3D<i32>) {
-        self.clients.insert(client_name.clone(), bounds);
+        if let Some(client) = self.clients.get_mut(&client_name) {
+            for x in client.bounds.min.x..=client.bounds.max.x {
+                for y in client.bounds.min.y..=client.bounds.max.y {
+                    for z in client.bounds.min.z..=client.bounds.max.z {
+                        let pos = Pos3D::new(x, y, z);
+                        if !bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos) {
+                            client.cmds.push(TileCmd::Remove(pos));
+                        }
+                    }
+                }
+            }
 
-        if !self.commands.contains_key(&client_name) {
-            self.commands.insert(client_name, vec![]);
+            for x in bounds.min.x..=bounds.max.x {
+                for y in bounds.min.y..=bounds.max.y {
+                    for z in bounds.min.z..=bounds.max.z {
+                        let pos = Pos3D::new(x, y, z);
+                        if !client.bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos)
+                        {
+                            let tile = self.tiles.get(&pos).unwrap();
+                            client.cmds.push(TileCmd::Add(tile.clone()));
+                        }
+                    }
+                }
+            }
+
+            client.bounds = bounds;
+        } else {
+            let mut cmds = vec![];
+
+            for x in bounds.min.x..=bounds.max.x {
+                for y in bounds.min.y..=bounds.max.y {
+                    for z in bounds.min.z..=bounds.max.z {
+                        let pos = Pos3D::new(x, y, z);
+                        if self.tiles.contains_key(&pos) {
+                            let tile = self.tiles.get(&pos).unwrap();
+                            cmds.push(TileCmd::Add(tile.clone()));
+                        }
+                    }
+                }
+            }
+
+            let client = TileClient::new(bounds, cmds);
+            self.clients.insert(client_name, client);
         }
     }
 
-    pub fn get_commands(&mut self, client_name: String) -> Vec<TileCommand> {
-        let Some(cmd) = self.commands.get_mut(&client_name) else {
+    pub fn get_commands(&mut self, client_name: String) -> Vec<TileCmd> {
+        let Some(client) = self.clients.get_mut(&client_name) else {
             panic!("client named {:?} is not found", client_name);
         };
 
-        let mut res = vec![];
-        std::mem::swap(cmd, &mut res);
-        res
+        let mut out_cmds = vec![];
+        std::mem::swap(&mut client.cmds, &mut out_cmds);
+        out_cmds
     }
 }
