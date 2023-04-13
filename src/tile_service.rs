@@ -68,31 +68,34 @@ impl TileService {
 
     pub fn set_bounds(&mut self, client_name: String, bounds: IBounds3) {
         if let Some(client) = self.clients.get_mut(&client_name) {
-            for x in client.bounds.min.x..=client.bounds.max.x {
-                for y in client.bounds.min.y..=client.bounds.max.y {
-                    for z in client.bounds.min.z..=client.bounds.max.z {
-                        let pos = IVec3::new(x, y, z);
-                        if !bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos) {
-                            client.cmds.push(TileCmd::Remove(pos));
+            if client.bounds != bounds {
+                for x in client.bounds.min.x..=client.bounds.max.x {
+                    for y in client.bounds.min.y..=client.bounds.max.y {
+                        for z in client.bounds.min.z..=client.bounds.max.z {
+                            let pos = IVec3::new(x, y, z);
+                            if !bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos) {
+                                client.cmds.push(TileCmd::Remove(pos));
+                            }
                         }
                     }
                 }
-            }
 
-            for x in bounds.min.x..=bounds.max.x {
-                for y in bounds.min.y..=bounds.max.y {
-                    for z in bounds.min.z..=bounds.max.z {
-                        let pos = IVec3::new(x, y, z);
-                        if !client.bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos)
-                        {
-                            let tile = self.tiles.get(&pos).unwrap();
-                            client.cmds.push(TileCmd::Add(tile.clone()));
+                for x in bounds.min.x..=bounds.max.x {
+                    for y in bounds.min.y..=bounds.max.y {
+                        for z in bounds.min.z..=bounds.max.z {
+                            let pos = IVec3::new(x, y, z);
+                            if !client.bounds.inclusive_contains(&pos)
+                                && self.tiles.contains_key(&pos)
+                            {
+                                let tile = self.tiles.get(&pos).unwrap();
+                                client.cmds.push(TileCmd::Add(tile.clone()));
+                            }
                         }
                     }
                 }
-            }
 
-            client.bounds = bounds;
+                client.bounds = bounds;
+            }
         } else {
             let mut cmds = vec![];
 

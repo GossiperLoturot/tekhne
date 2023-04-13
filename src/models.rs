@@ -1,6 +1,6 @@
 use glam::{IVec3, Vec3A};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IBounds3 {
     pub min: IVec3,
     pub max: IVec3,

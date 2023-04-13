@@ -94,38 +94,40 @@ impl EntityService {
         let group_bounds = IBounds3::new(min, max);
 
         if let Some(client) = self.clients.get_mut(&client_name) {
-            for x in client.group_bounds.min.x..=client.group_bounds.max.x {
-                for y in client.group_bounds.min.y..=client.group_bounds.max.y {
-                    for z in client.group_bounds.min.z..=client.group_bounds.max.z {
-                        let group = IVec3::new(x, y, z);
-                        if !group_bounds.inclusive_contains(&group) {
-                            if let Some(ids) = self.group_index.get(&group) {
-                                for id in ids {
-                                    client.cmds.push(EntityCmd::Remove(id.clone()));
+            if client.group_bounds != group_bounds {
+                for x in client.group_bounds.min.x..=client.group_bounds.max.x {
+                    for y in client.group_bounds.min.y..=client.group_bounds.max.y {
+                        for z in client.group_bounds.min.z..=client.group_bounds.max.z {
+                            let group = IVec3::new(x, y, z);
+                            if !group_bounds.inclusive_contains(&group) {
+                                if let Some(ids) = self.group_index.get(&group) {
+                                    for id in ids {
+                                        client.cmds.push(EntityCmd::Remove(id.clone()));
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            for x in group_bounds.min.x..=group_bounds.max.x {
-                for y in group_bounds.min.y..=group_bounds.max.y {
-                    for z in group_bounds.min.z..=group_bounds.max.z {
-                        let group = IVec3::new(x, y, z);
-                        if !client.group_bounds.inclusive_contains(&group) {
-                            if let Some(ids) = self.group_index.get(&group) {
-                                for id in ids {
-                                    let entity = self.entities.get(id).unwrap();
-                                    client.cmds.push(EntityCmd::Add(entity.clone()));
+                for x in group_bounds.min.x..=group_bounds.max.x {
+                    for y in group_bounds.min.y..=group_bounds.max.y {
+                        for z in group_bounds.min.z..=group_bounds.max.z {
+                            let group = IVec3::new(x, y, z);
+                            if !client.group_bounds.inclusive_contains(&group) {
+                                if let Some(ids) = self.group_index.get(&group) {
+                                    for id in ids {
+                                        let entity = self.entities.get(id).unwrap();
+                                        client.cmds.push(EntityCmd::Add(entity.clone()));
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            client.group_bounds = group_bounds;
+                client.group_bounds = group_bounds;
+            }
         } else {
             let mut cmds = vec![];
 
