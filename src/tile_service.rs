@@ -4,7 +4,7 @@ use glam::IVec3;
 
 use crate::models::{IBounds3, Tile};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum TileCmd {
     Add(Tile),
     Remove(IVec3),
@@ -113,7 +113,7 @@ impl TileService {
         }
     }
 
-    pub fn get_commands(&mut self, client_name: String) -> Vec<TileCmd> {
+    pub fn get_cmds(&mut self, client_name: String) -> Vec<TileCmd> {
         let Some(client) = self.clients.get_mut(&client_name) else {
             panic!("client named {:?} is not found", client_name);
         };
@@ -121,5 +121,90 @@ impl TileService {
         let mut out_cmds = vec![];
         std::mem::swap(&mut client.cmds, &mut out_cmds);
         out_cmds
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use glam::IVec3;
+
+    use crate::models::{IBounds3, Tile};
+
+    use super::{TileCmd, TileService};
+
+    #[test]
+    fn add_tile() {
+        let mut service = TileService::new();
+        service.add_tile(Tile::new(
+            IVec3::new(0, 0, 0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+
+        let tile = service.get_tile(IVec3::new(0, 0, 0)).unwrap();
+        assert_eq!(tile.pos, IVec3::new(0, 0, 0));
+        assert_eq!(tile.resource_name, "TEST_RESOURCE_NAME");
+    }
+
+    #[test]
+    fn remove_tile() {
+        let mut service = TileService::new();
+        service.add_tile(Tile::new(
+            IVec3::new(0, 0, 0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+        service.remove_tile(IVec3::new(0, 0, 0));
+
+        let is_none = service.get_tile(IVec3::new(0, 0, 0)).is_none();
+        assert!(is_none);
+    }
+
+    #[test]
+    fn set_bounds_before_fill_data() {
+        let mut service = TileService::new();
+        service.set_bounds(
+            "TEST_CLIENT_NAME".to_string(),
+            IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
+        );
+
+        service.add_tile(Tile::new(
+            IVec3::new(0, 0, 0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+        service.add_tile(Tile::new(
+            IVec3::new(-1, -1, -1),
+            "TEST_OTHER_RESOURCE_NAME".to_string(),
+        ));
+
+        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let [TileCmd::Add(tile)] = &cmds[..] else {
+            panic!("unexpected cmds {:?}", cmds);
+        };
+        assert_eq!(tile.pos, IVec3::new(0, 0, 0));
+        assert_eq!(tile.resource_name, "TEST_RESOURCE_NAME".to_string());
+    }
+
+    #[test]
+    fn set_bounds_after_fill_data() {
+        let mut service = TileService::new();
+        service.add_tile(Tile::new(
+            IVec3::new(0, 0, 0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+        service.add_tile(Tile::new(
+            IVec3::new(-1, -1, -1),
+            "TEST_OTHER_RESOURCE_NAME".to_string(),
+        ));
+
+        service.set_bounds(
+            "TEST_CLIENT_NAME".to_string(),
+            IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
+        );
+
+        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let [TileCmd::Add(tile)] = &cmds[..] else {
+            panic!("unexpected cmds {:?}", cmds);
+        };
+        assert_eq!(tile.pos, IVec3::new(0, 0, 0));
+        assert_eq!(tile.resource_name, "TEST_RESOURCE_NAME".to_string());
     }
 }

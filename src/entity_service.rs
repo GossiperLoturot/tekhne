@@ -7,6 +7,7 @@ use glam::IVec3;
 
 use crate::models::{Entity, IBounds3};
 
+#[derive(Debug)]
 pub enum EntityCmd {
     Add(Entity),
     Remove(String),
@@ -93,15 +94,14 @@ impl EntityService {
         let group_bounds = IBounds3::new(min, max);
 
         if let Some(client) = self.clients.get_mut(&client_name) {
-            for x in group_bounds.min.x..=group_bounds.max.x {
-                for y in group_bounds.min.y..=group_bounds.max.y {
-                    for z in group_bounds.min.z..=group_bounds.max.z {
+            for x in client.group_bounds.min.x..=client.group_bounds.max.x {
+                for y in client.group_bounds.min.y..=client.group_bounds.max.y {
+                    for z in client.group_bounds.min.z..=client.group_bounds.max.z {
                         let group = IVec3::new(x, y, z);
-                        if !client.group_bounds.inclusive_contains(&group) {
+                        if !group_bounds.inclusive_contains(&group) {
                             if let Some(ids) = self.group_index.get(&group) {
                                 for id in ids {
-                                    let entity = self.entities.get(id).unwrap();
-                                    client.cmds.push(EntityCmd::Add(entity.clone()));
+                                    client.cmds.push(EntityCmd::Remove(id.clone()));
                                 }
                             }
                         }
@@ -109,11 +109,11 @@ impl EntityService {
                 }
             }
 
-            for x in client.group_bounds.min.x..=client.group_bounds.max.x {
-                for y in client.group_bounds.min.y..=client.group_bounds.max.y {
-                    for z in client.group_bounds.min.z..=client.group_bounds.max.z {
+            for x in group_bounds.min.x..=group_bounds.max.x {
+                for y in group_bounds.min.y..=group_bounds.max.y {
+                    for z in group_bounds.min.z..=group_bounds.max.z {
                         let group = IVec3::new(x, y, z);
-                        if !group_bounds.inclusive_contains(&group) {
+                        if !client.group_bounds.inclusive_contains(&group) {
                             if let Some(ids) = self.group_index.get(&group) {
                                 for id in ids {
                                     let entity = self.entities.get(id).unwrap();
@@ -135,7 +135,8 @@ impl EntityService {
                         let group = IVec3::new(x, y, z);
                         if let Some(ids) = self.group_index.get(&group) {
                             for id in ids {
-                                cmds.push(EntityCmd::Remove(id.clone()));
+                                let entity = self.entities.get(id).unwrap();
+                                cmds.push(EntityCmd::Add(entity.clone()));
                             }
                         }
                     }
@@ -147,7 +148,7 @@ impl EntityService {
         }
     }
 
-    pub fn get_commands(&mut self, client_name: String) -> Vec<EntityCmd> {
+    pub fn get_cmds(&mut self, client_name: String) -> Vec<EntityCmd> {
         let Some(client) = self.clients.get_mut(&client_name) else {
             panic!("client named {:?} is not found", client_name);
         };
@@ -155,5 +156,98 @@ impl EntityService {
         let mut out_cmds = vec![];
         std::mem::swap(&mut client.cmds, &mut out_cmds);
         out_cmds
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use glam::{IVec3, Vec3A};
+
+    use crate::models::{Entity, IBounds3};
+
+    use super::{EntityCmd, EntityService};
+
+    #[test]
+    fn add_tile() {
+        let mut service = EntityService::new();
+        service.add_entity(Entity::new(
+            "TEST_ENTITY_ID".to_string(),
+            Vec3A::new(0.0, 0.0, 0.0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+
+        let entity = service.get_entity("TEST_ENTITY_ID".to_string()).unwrap();
+        assert_eq!(entity.pos, Vec3A::new(0.0, 0.0, 0.0));
+        assert_eq!(entity.resource_name, "TEST_RESOURCE_NAME");
+    }
+
+    #[test]
+    fn remove_tile() {
+        let mut service = EntityService::new();
+        service.add_entity(Entity::new(
+            "TEST_ENTITY_ID".to_string(),
+            Vec3A::new(0.0, 0.0, 0.0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+        service.remove_entity("TEST_ENTITY_ID".to_string());
+
+        let is_none = service.get_entity("TEST_ENTITY_ID".to_string()).is_none();
+        assert!(is_none);
+    }
+
+    #[test]
+    fn set_bounds_before_fill_data() {
+        let mut service = EntityService::new();
+        service.set_bounds(
+            "TEST_CLIENT_NAME".to_string(),
+            IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
+        );
+
+        service.add_entity(Entity::new(
+            "TEST_ENTITY_ID".to_string(),
+            Vec3A::new(0.0, 0.0, 0.0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+        service.add_entity(Entity::new(
+            "TEST_OTHER_ENTITY_ID".to_string(),
+            Vec3A::new(-1.0, -1.0, -1.0),
+            "TEST_OTHER_RESOURCE_NAME".to_string(),
+        ));
+
+        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let [EntityCmd::Add(entity)] = &cmds[..] else {
+            panic!("unexpected cmds {:?}", cmds);
+        };
+        assert_eq!(entity.id, "TEST_ENTITY_ID".to_string());
+        assert_eq!(entity.pos, Vec3A::new(0.0, 0.0, 0.0));
+        assert_eq!(entity.resource_name, "TEST_RESOURCE_NAME".to_string());
+    }
+
+    #[test]
+    fn set_bounds_after_fill_data() {
+        let mut service = EntityService::new();
+        service.add_entity(Entity::new(
+            "TEST_ENTITY_ID".to_string(),
+            Vec3A::new(0.0, 0.0, 0.0),
+            "TEST_RESOURCE_NAME".to_string(),
+        ));
+        service.add_entity(Entity::new(
+            "TEST_OTHER_ENTITY_ID".to_string(),
+            Vec3A::new(-1.0, -1.0, -1.0),
+            "TEST_OTHER_RESOURCE_NAME".to_string(),
+        ));
+
+        service.set_bounds(
+            "TEST_CLIENT_NAME".to_string(),
+            IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
+        );
+
+        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let [EntityCmd::Add(entity)] = &cmds[..] else {
+            panic!("unexpected cmds {:?}", cmds);
+        };
+        assert_eq!(entity.id, "TEST_ENTITY_ID".to_string());
+        assert_eq!(entity.pos, Vec3A::new(0.0, 0.0, 0.0));
+        assert_eq!(entity.resource_name, "TEST_RESOURCE_NAME".to_string());
     }
 }
