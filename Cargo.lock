@@ -2020,6 +2020,7 @@ name = "tekhne"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "glam",
 ]
 
 [[package]]
