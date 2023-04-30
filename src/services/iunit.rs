@@ -1,69 +1,63 @@
+use crate::models::*;
+use bevy::prelude::*;
 use std::collections::HashMap;
 
-use glam::IVec3;
-
-use crate::models::{IBounds3, Tile};
-
 #[derive(Debug)]
-pub enum TileCmd {
-    Add(Tile),
+pub enum IUnitCmd {
+    Add(IUnit),
     Remove(IVec3),
 }
 
-pub struct TileClient {
+#[derive(Debug)]
+pub struct IUnitClient {
+    id: String,
     bounds: IBounds3,
-    cmds: Vec<TileCmd>,
+    cmds: Vec<IUnitCmd>,
 }
 
-impl TileClient {
-    pub fn new(bounds: IBounds3, cmds: Vec<TileCmd>) -> Self {
-        Self { bounds, cmds }
+impl IUnitClient {
+    pub fn new(id: String, bounds: IBounds3, cmds: Vec<IUnitCmd>) -> Self {
+        Self { id, bounds, cmds }
     }
 }
 
-pub struct TileService {
-    tiles: HashMap<IVec3, Tile>,
-    clients: HashMap<String, TileClient>,
+#[derive(Debug, Default, Resource)]
+pub struct IUnitService {
+    iunits: HashMap<IVec3, IUnit>,
+    clients: HashMap<String, IUnitClient>,
 }
 
-impl TileService {
-    pub fn new() -> Self {
-        Self {
-            tiles: HashMap::new(),
-            clients: HashMap::new(),
-        }
-    }
-
-    pub fn add_tile(&mut self, tile: Tile) {
-        if self.tiles.contains_key(&tile.pos) {
-            panic!("tile is already existed at pos {:?}.", tile.pos);
+impl IUnitService {
+    pub fn add_iunit(&mut self, iunit: IUnit) {
+        if self.iunits.contains_key(&iunit.pos) {
+            panic!("iunit is already existed at pos {:?}.", iunit.pos);
         }
 
-        self.tiles.insert(tile.pos.clone(), tile.clone());
+        self.iunits.insert(iunit.pos, iunit.clone());
 
         for (_, client) in &mut self.clients {
-            if client.bounds.inclusive_contains(&tile.pos) {
-                client.cmds.push(TileCmd::Add(tile.clone()));
+            if client.bounds.inclusive_contains(&iunit.pos) {
+                client.cmds.push(IUnitCmd::Add(iunit.clone()));
             }
         }
     }
 
-    pub fn remove_tile(&mut self, pos: IVec3) {
-        if !self.tiles.contains_key(&pos) {
-            panic!("tile is not found at pos {:?}", pos);
+    pub fn remove_iunit(&mut self, pos: IVec3) {
+        if !self.iunits.contains_key(&pos) {
+            panic!("iunit is not found at pos {:?}", pos);
         }
 
-        self.tiles.remove(&pos);
+        self.iunits.remove(&pos);
 
         for (_, client) in &mut self.clients {
             if client.bounds.inclusive_contains(&pos) {
-                client.cmds.push(TileCmd::Remove(pos.clone()));
+                client.cmds.push(IUnitCmd::Remove(pos));
             }
         }
     }
 
-    pub fn get_tile(&self, pos: IVec3) -> Option<Tile> {
-        self.tiles.get(&pos).cloned()
+    pub fn get_iunit(&self, pos: IVec3) -> Option<IUnit> {
+        self.iunits.get(&pos).cloned()
     }
 
     pub fn set_bounds(&mut self, client_name: String, bounds: IBounds3) {
@@ -73,8 +67,8 @@ impl TileService {
                     for y in client.bounds.min.y..=client.bounds.max.y {
                         for z in client.bounds.min.z..=client.bounds.max.z {
                             let pos = IVec3::new(x, y, z);
-                            if !bounds.inclusive_contains(&pos) && self.tiles.contains_key(&pos) {
-                                client.cmds.push(TileCmd::Remove(pos));
+                            if !bounds.inclusive_contains(&pos) && self.iunits.contains_key(&pos) {
+                                client.cmds.push(IUnitCmd::Remove(pos));
                             }
                         }
                     }
@@ -85,10 +79,10 @@ impl TileService {
                         for z in bounds.min.z..=bounds.max.z {
                             let pos = IVec3::new(x, y, z);
                             if !client.bounds.inclusive_contains(&pos)
-                                && self.tiles.contains_key(&pos)
+                                && self.iunits.contains_key(&pos)
                             {
-                                let tile = self.tiles.get(&pos).unwrap();
-                                client.cmds.push(TileCmd::Add(tile.clone()));
+                                let iunit = self.iunits.get(&pos).unwrap();
+                                client.cmds.push(IUnitCmd::Add(iunit.clone()));
                             }
                         }
                     }
@@ -103,20 +97,20 @@ impl TileService {
                 for y in bounds.min.y..=bounds.max.y {
                     for z in bounds.min.z..=bounds.max.z {
                         let pos = IVec3::new(x, y, z);
-                        if self.tiles.contains_key(&pos) {
-                            let tile = self.tiles.get(&pos).unwrap();
-                            cmds.push(TileCmd::Add(tile.clone()));
+                        if self.iunits.contains_key(&pos) {
+                            let iunit = self.iunits.get(&pos).unwrap();
+                            cmds.push(IUnitCmd::Add(iunit.clone()));
                         }
                     }
                 }
             }
 
-            let client = TileClient::new(bounds, cmds);
+            let client = IUnitClient::new(client_name.clone(), bounds, cmds);
             self.clients.insert(client_name, client);
         }
     }
 
-    pub fn get_cmds(&mut self, client_name: String) -> Vec<TileCmd> {
+    pub fn get_cmds(&mut self, client_name: String) -> Vec<IUnitCmd> {
         let Some(client) = self.clients.get_mut(&client_name) else {
             panic!("client named {:?} is not found", client_name);
         };
@@ -129,71 +123,67 @@ impl TileService {
 
 #[cfg(test)]
 mod tests {
-    use glam::IVec3;
-
-    use crate::models::{IBounds3, Tile};
-
-    use super::{TileCmd, TileService};
+    use super::*;
 
     #[test]
-    fn add_tile() {
-        let mut service = TileService::new();
-        service.add_tile(Tile::new(
+    fn add_iunit() {
+        let mut service = IUnitService::default();
+        service.add_iunit(IUnit::new(
             IVec3::new(0, 0, 0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
 
-        let tile = service.get_tile(IVec3::new(0, 0, 0)).unwrap();
-        assert_eq!(tile.pos, IVec3::new(0, 0, 0));
-        assert_eq!(tile.resource_name, "TEST_RESOURCE_NAME");
+        let iunit = service.get_iunit(IVec3::new(0, 0, 0)).unwrap();
+        assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
+        assert_eq!(iunit.resource_name, "TEST_RESOURCE_NAME");
     }
 
     #[test]
-    fn remove_tile() {
-        let mut service = TileService::new();
-        service.add_tile(Tile::new(
+    fn remove_iunit() {
+        let mut service = IUnitService::default();
+        service.add_iunit(IUnit::new(
             IVec3::new(0, 0, 0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
-        service.remove_tile(IVec3::new(0, 0, 0));
+        service.remove_iunit(IVec3::new(0, 0, 0));
 
-        let is_none = service.get_tile(IVec3::new(0, 0, 0)).is_none();
+        let is_none = service.get_iunit(IVec3::new(0, 0, 0)).is_none();
         assert!(is_none);
     }
 
     #[test]
     fn set_bounds_before_fill_data() {
-        let mut service = TileService::new();
+        let mut service = IUnitService::default();
         service.set_bounds(
             "TEST_CLIENT_NAME".to_string(),
             IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
         );
 
-        service.add_tile(Tile::new(
+        service.add_iunit(IUnit::new(
             IVec3::new(0, 0, 0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
-        service.add_tile(Tile::new(
+        service.add_iunit(IUnit::new(
             IVec3::new(-1, -1, -1),
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
 
         let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
-        let [TileCmd::Add(tile)] = &cmds[..] else {
+        let [IUnitCmd::Add(iunit)] = &cmds[..] else {
             panic!("unexpected cmds {:?}", cmds);
         };
-        assert_eq!(tile.pos, IVec3::new(0, 0, 0));
-        assert_eq!(tile.resource_name, "TEST_RESOURCE_NAME".to_string());
+        assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
+        assert_eq!(iunit.resource_name, "TEST_RESOURCE_NAME".to_string());
     }
 
     #[test]
     fn set_bounds_after_fill_data() {
-        let mut service = TileService::new();
-        service.add_tile(Tile::new(
+        let mut service = IUnitService::default();
+        service.add_iunit(IUnit::new(
             IVec3::new(0, 0, 0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
-        service.add_tile(Tile::new(
+        service.add_iunit(IUnit::new(
             IVec3::new(-1, -1, -1),
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
@@ -204,10 +194,10 @@ mod tests {
         );
 
         let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
-        let [TileCmd::Add(tile)] = &cmds[..] else {
+        let [IUnitCmd::Add(iunit)] = &cmds[..] else {
             panic!("unexpected cmds {:?}", cmds);
         };
-        assert_eq!(tile.pos, IVec3::new(0, 0, 0));
-        assert_eq!(tile.resource_name, "TEST_RESOURCE_NAME".to_string());
+        assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
+        assert_eq!(iunit.resource_name, "TEST_RESOURCE_NAME".to_string());
     }
 }

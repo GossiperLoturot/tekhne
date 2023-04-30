@@ -1,4 +1,4 @@
-use glam::{IVec3, Vec3A};
+use bevy::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IBounds3 {
@@ -23,26 +23,26 @@ impl IBounds3 {
 }
 
 #[derive(Debug, Clone)]
-pub struct Tile {
+pub struct IUnit {
     pub pos: IVec3,
     pub resource_name: String,
 }
 
-impl Tile {
+impl IUnit {
     pub fn new(pos: IVec3, resource_name: String) -> Self {
         Self { pos, resource_name }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Entity {
+pub struct Unit {
     pub id: String,
-    pub pos: Vec3A,
+    pub pos: Vec3,
     pub resource_name: String,
 }
 
-impl Entity {
-    pub fn new(id: String, pos: Vec3A, resource_name: String) -> Self {
+impl Unit {
+    pub fn new(id: String, pos: Vec3, resource_name: String) -> Self {
         Self {
             id,
             pos,
@@ -53,9 +53,7 @@ impl Entity {
 
 #[cfg(test)]
 mod tests {
-    use glam::IVec3;
-
-    use super::IBounds3;
+    use super::*;
 
     #[test]
     fn inclusive_contains_in_bound() {

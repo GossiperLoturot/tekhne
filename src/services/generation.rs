@@ -1,40 +1,31 @@
+use crate::{models::*, services::IUnitService};
+use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 
-use glam::{IVec2, IVec3};
-
-use crate::{
-    models::{IBounds3, Tile},
-    tile_service::TileService,
-};
-
+#[derive(Debug)]
 pub struct GenerationClient {
+    id: String,
     bounds: IBounds3,
 }
 
 impl GenerationClient {
-    pub fn new(bounds: IBounds3) -> Self {
-        Self { bounds }
+    pub fn new(id: String, bounds: IBounds3) -> Self {
+        Self { id, bounds }
     }
 }
 
+#[derive(Debug, Default, Resource)]
 pub struct GenerationService {
     init_flags: HashSet<IVec2>,
     clients: HashMap<String, GenerationClient>,
 }
 
 impl GenerationService {
-    pub fn new() -> Self {
-        Self {
-            init_flags: HashSet::new(),
-            clients: HashMap::new(),
-        }
-    }
-
     pub fn set_bounds(
         &mut self,
         client_name: String,
         bounds: IBounds3,
-        tile_service: &mut TileService,
+        iunit_service: &mut IUnitService,
     ) {
         if match self.clients.get(&client_name) {
             Some(client) => client.bounds != bounds,
@@ -46,8 +37,8 @@ impl GenerationService {
                     if !self.init_flags.contains(&pos) {
                         // generation rules start
 
-                        let tile = Tile::new(IVec3::new(pos.x, pos.y, 0), "Surface".to_string());
-                        tile_service.add_tile(tile);
+                        let iunit = IUnit::new(IVec3::new(pos.x, pos.y, 0), "Surface".to_string());
+                        iunit_service.add_iunit(iunit);
 
                         // generation rules end
 
@@ -55,24 +46,23 @@ impl GenerationService {
                     }
                 }
             }
+
+            let client = GenerationClient::new(client_name.clone(), bounds);
+            self.clients.insert(client_name, client);
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use glam::IVec3;
-
-    use crate::{models::IBounds3, tile_service::TileService};
-
-    use super::GenerationService;
+    use super::*;
 
     #[test]
     fn set_bounds() {
-        let mut tile_service = TileService::new();
-        let mut gen_service = GenerationService::new();
+        let mut iunit_service = IUnitService::default();
+        let mut gen_service = GenerationService::default();
 
         let bounds = IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8));
-        gen_service.set_bounds("TEST_CLIENT_NAME".to_string(), bounds, &mut tile_service);
+        gen_service.set_bounds("TEST_CLIENT_NAME".to_string(), bounds, &mut iunit_service);
     }
 }

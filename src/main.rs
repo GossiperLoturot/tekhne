@@ -1,8 +1,5 @@
-mod entity_service;
-mod generation_service;
 mod models;
-mod tile_service;
-
+mod services;
 use bevy::prelude::*;
 
 fn main() {
@@ -12,4 +9,6 @@ fn main() {
         .run();
 }
 
-fn setup() {}
+fn setup(mut cmds: Commands) {
+    cmds.spawn(Camera2dBundle::default());
+}
