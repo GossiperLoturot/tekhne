@@ -29,18 +29,18 @@ const GROUP_SIZE: f32 = 16.0;
 
 #[derive(Debug, Default, Resource)]
 pub struct UnitService {
-    entities: HashMap<String, Unit>,
+    units: HashMap<String, Unit>,
     group_index: HashMap<IVec3, HashSet<String>>,
     clients: HashMap<String, UnitClient>,
 }
 
 impl UnitService {
     pub fn add_unit(&mut self, unit: Unit) {
-        if self.entities.contains_key(&unit.id) {
+        if self.units.contains_key(&unit.id) {
             panic!("unit is already existed at id {:?}", unit.id);
         }
 
-        self.entities.insert(unit.id.clone(), unit.clone());
+        self.units.insert(unit.id.clone(), unit.clone());
 
         let group = (unit.pos / GROUP_SIZE).floor().as_ivec3();
         if !self.group_index.contains_key(&group) {
@@ -59,11 +59,11 @@ impl UnitService {
     }
 
     pub fn remove_unit(&mut self, id: String) {
-        if !self.entities.contains_key(&id) {
+        if !self.units.contains_key(&id) {
             panic!("unit is not found at id {:?}", id);
         }
 
-        let unit = self.entities.remove(&id).unwrap();
+        let unit = self.units.remove(&id).unwrap();
 
         let group = (unit.pos / GROUP_SIZE).floor().as_ivec3();
         self.group_index.get_mut(&group).unwrap().remove(&unit.id);
@@ -79,7 +79,7 @@ impl UnitService {
     }
 
     pub fn get_unit(&self, id: String) -> Option<Unit> {
-        self.entities.get(&id).cloned()
+        self.units.get(&id).cloned()
     }
 
     pub fn set_bounds(&mut self, client_name: String, bounds: IBounds3) {
@@ -111,7 +111,7 @@ impl UnitService {
                             if !client.group_bounds.inclusive_contains(&group) {
                                 if let Some(ids) = self.group_index.get(&group) {
                                     for id in ids {
-                                        let unit = self.entities.get(id).unwrap();
+                                        let unit = self.units.get(id).unwrap();
                                         client.cmds.push(UnitCmd::Add(unit.clone()));
                                     }
                                 }
@@ -131,7 +131,7 @@ impl UnitService {
                         let group = IVec3::new(x, y, z);
                         if let Some(ids) = self.group_index.get(&group) {
                             for id in ids {
-                                let unit = self.entities.get(id).unwrap();
+                                let unit = self.units.get(id).unwrap();
                                 cmds.push(UnitCmd::Add(unit.clone()));
                             }
                         }
