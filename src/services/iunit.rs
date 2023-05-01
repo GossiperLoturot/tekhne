@@ -60,8 +60,8 @@ impl IUnitService {
         self.iunits.get(&pos).cloned()
     }
 
-    pub fn set_bounds(&mut self, client_name: String, bounds: IBounds3) {
-        if let Some(client) = self.clients.get_mut(&client_name) {
+    pub fn set_bounds(&mut self, client_name: &str, bounds: IBounds3) {
+        if let Some(client) = self.clients.get_mut(client_name) {
             if client.bounds != bounds {
                 for x in client.bounds.min.x..=client.bounds.max.x {
                     for y in client.bounds.min.y..=client.bounds.max.y {
@@ -105,13 +105,13 @@ impl IUnitService {
                 }
             }
 
-            let client = IUnitClient::new(client_name.clone(), bounds, cmds);
-            self.clients.insert(client_name, client);
+            let client = IUnitClient::new(client_name.to_string(), bounds, cmds);
+            self.clients.insert(client_name.to_string(), client);
         }
     }
 
-    pub fn get_cmds(&mut self, client_name: String) -> Vec<IUnitCmd> {
-        let Some(client) = self.clients.get_mut(&client_name) else {
+    pub fn get_cmds(&mut self, client_name: &str) -> Vec<IUnitCmd> {
+        let Some(client) = self.clients.get_mut(client_name) else {
             panic!("client named {:?} is not found", client_name);
         };
 
@@ -155,7 +155,7 @@ mod tests {
     fn set_bounds_before_fill_data() {
         let mut service = IUnitService::default();
         service.set_bounds(
-            "TEST_CLIENT_NAME".to_string(),
+            "TEST_CLIENT_NAME",
             IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
         );
 
@@ -168,7 +168,7 @@ mod tests {
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
 
-        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let cmds = service.get_cmds("TEST_CLIENT_NAME");
         let [IUnitCmd::Add(iunit)] = &cmds[..] else {
             panic!("unexpected cmds {:?}", cmds);
         };
@@ -189,11 +189,11 @@ mod tests {
         ));
 
         service.set_bounds(
-            "TEST_CLIENT_NAME".to_string(),
+            "TEST_CLIENT_NAME",
             IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
         );
 
-        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let cmds = service.get_cmds("TEST_CLIENT_NAME");
         let [IUnitCmd::Add(iunit)] = &cmds[..] else {
             panic!("unexpected cmds {:?}", cmds);
         };

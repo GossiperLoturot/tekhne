@@ -23,11 +23,11 @@ pub struct GenerationService {
 impl GenerationService {
     pub fn set_bounds(
         &mut self,
-        client_name: String,
+        client_name: &str,
         bounds: IBounds3,
         iunit_service: &mut IUnitService,
     ) {
-        if match self.clients.get(&client_name) {
+        if match self.clients.get(client_name) {
             Some(client) => client.bounds != bounds,
             None => true,
         } {
@@ -47,8 +47,8 @@ impl GenerationService {
                 }
             }
 
-            let client = GenerationClient::new(client_name.clone(), bounds);
-            self.clients.insert(client_name, client);
+            let client = GenerationClient::new(client_name.to_string(), bounds);
+            self.clients.insert(client_name.to_string(), client);
         }
     }
 }
@@ -63,6 +63,6 @@ mod tests {
         let mut gen_service = GenerationService::default();
 
         let bounds = IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8));
-        gen_service.set_bounds("TEST_CLIENT_NAME".to_string(), bounds, &mut iunit_service);
+        gen_service.set_bounds("TEST_CLIENT_NAME", bounds, &mut iunit_service);
     }
 }

@@ -58,12 +58,12 @@ impl UnitService {
         }
     }
 
-    pub fn remove_unit(&mut self, id: String) {
-        if !self.units.contains_key(&id) {
+    pub fn remove_unit(&mut self, id: &str) {
+        if !self.units.contains_key(id) {
             panic!("unit is not found at id {:?}", id);
         }
 
-        let unit = self.units.remove(&id).unwrap();
+        let unit = self.units.remove(id).unwrap();
 
         let group = (unit.pos / GROUP_SIZE).floor().as_ivec3();
         self.group_index.get_mut(&group).unwrap().remove(&unit.id);
@@ -73,21 +73,21 @@ impl UnitService {
 
         for (_, client) in &mut self.clients {
             if client.group_bounds.inclusive_contains(&group) {
-                client.cmds.push(UnitCmd::Remove(id.clone()));
+                client.cmds.push(UnitCmd::Remove(id.to_string()));
             }
         }
     }
 
-    pub fn get_unit(&self, id: String) -> Option<Unit> {
-        self.units.get(&id).cloned()
+    pub fn get_unit(&self, id: &str) -> Option<Unit> {
+        self.units.get(id).cloned()
     }
 
-    pub fn set_bounds(&mut self, client_name: String, bounds: IBounds3) {
+    pub fn set_bounds(&mut self, client_name: &str, bounds: IBounds3) {
         let min = (bounds.min.as_vec3() / GROUP_SIZE).floor().as_ivec3();
         let max = (bounds.max.as_vec3() / GROUP_SIZE).floor().as_ivec3();
         let group_bounds = IBounds3::new(min, max);
 
-        if let Some(client) = self.clients.get_mut(&client_name) {
+        if let Some(client) = self.clients.get_mut(client_name) {
             if client.group_bounds != group_bounds {
                 for x in client.group_bounds.min.x..=client.group_bounds.max.x {
                     for y in client.group_bounds.min.y..=client.group_bounds.max.y {
@@ -139,13 +139,13 @@ impl UnitService {
                 }
             }
 
-            let client = UnitClient::new(client_name.clone(), group_bounds, cmds);
-            self.clients.insert(client_name, client);
+            let client = UnitClient::new(client_name.to_string(), group_bounds, cmds);
+            self.clients.insert(client_name.to_string(), client);
         }
     }
 
-    pub fn get_cmds(&mut self, client_name: String) -> Vec<UnitCmd> {
-        let Some(client) = self.clients.get_mut(&client_name) else {
+    pub fn get_cmds(&mut self, client_name: &str) -> Vec<UnitCmd> {
+        let Some(client) = self.clients.get_mut(client_name) else {
             panic!("client named {:?} is not found", client_name);
         };
 
@@ -168,7 +168,7 @@ mod tests {
             "TEST_RESOURCE_NAME".to_string(),
         ));
 
-        let unit = service.get_unit("TEST_UNIT_ID".to_string()).unwrap();
+        let unit = service.get_unit("TEST_UNIT_ID").unwrap();
         assert_eq!(unit.pos, Vec3::new(0.0, 0.0, 0.0));
         assert_eq!(unit.resource_name, "TEST_RESOURCE_NAME");
     }
@@ -181,9 +181,9 @@ mod tests {
             Vec3::new(0.0, 0.0, 0.0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
-        service.remove_unit("TEST_UNIT_ID".to_string());
+        service.remove_unit("TEST_UNIT_ID");
 
-        let is_none = service.get_unit("TEST_UNIT_ID".to_string()).is_none();
+        let is_none = service.get_unit("TEST_UNIT_ID").is_none();
         assert!(is_none);
     }
 
@@ -191,7 +191,7 @@ mod tests {
     fn set_bounds_before_fill_data() {
         let mut service = UnitService::default();
         service.set_bounds(
-            "TEST_CLIENT_NAME".to_string(),
+            "TEST_CLIENT_NAME",
             IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
         );
 
@@ -206,7 +206,7 @@ mod tests {
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
 
-        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let cmds = service.get_cmds("TEST_CLIENT_NAME");
         let [UnitCmd::Add(unit)] = &cmds[..] else {
             panic!("unexpected cmds {:?}", cmds);
         };
@@ -230,11 +230,11 @@ mod tests {
         ));
 
         service.set_bounds(
-            "TEST_CLIENT_NAME".to_string(),
+            "TEST_CLIENT_NAME",
             IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)),
         );
 
-        let cmds = service.get_cmds("TEST_CLIENT_NAME".to_string());
+        let cmds = service.get_cmds("TEST_CLIENT_NAME");
         let [UnitCmd::Add(unit)] = &cmds[..] else {
             panic!("unexpected cmds {:?}", cmds);
         };
