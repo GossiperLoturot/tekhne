@@ -3,13 +3,8 @@ name = "tekhne"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies.bevy]
-version = "0.10"
-default-features = false
-features = [
- "bevy_asset",
- "bevy_sprite",
- "bevy_core_pipeline",
- "bevy_render",
- "wayland",
-]
+[dependencies]
+glam = "0.24"
+pollster = "0.3"
+wgpu = "0.16"
+winit = { version = "0.28", default-features = false, features = ["x11", "wayland"] }

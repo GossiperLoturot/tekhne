@@ -1,5 +1,5 @@
 use crate::{models::*, services::IUnitService};
-use bevy::prelude::*;
+use glam::*;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ impl GenerationClient {
     }
 }
 
-#[derive(Debug, Default, Resource)]
+#[derive(Debug, Default)]
 pub struct GenerationService {
     init_flags: HashSet<IVec2>,
     clients: HashMap<String, GenerationClient>,

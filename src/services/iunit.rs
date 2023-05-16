@@ -1,5 +1,5 @@
 use crate::models::*;
-use bevy::prelude::*;
+use glam::*;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ impl IUnitClient {
     }
 }
 
-#[derive(Debug, Default, Resource)]
+#[derive(Debug, Default)]
 pub struct IUnitService {
     iunits: HashMap<IVec3, IUnit>,
     clients: HashMap<String, IUnitClient>,

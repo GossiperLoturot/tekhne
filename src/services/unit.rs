@@ -1,5 +1,5 @@
 use crate::models::*;
-use bevy::prelude::*;
+use glam::*;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ impl UnitClient {
 
 const GROUP_SIZE: f32 = 16.0;
 
-#[derive(Debug, Default, Resource)]
+#[derive(Debug, Default)]
 pub struct UnitService {
     units: HashMap<String, Unit>,
     group_index: HashMap<IVec3, HashSet<String>>,
@@ -164,12 +164,12 @@ mod tests {
         let mut service = UnitService::default();
         service.add_unit(Unit::new(
             "TEST_UNIT_ID".to_string(),
-            Vec3::new(0.0, 0.0, 0.0),
+            Vec3A::new(0.0, 0.0, 0.0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
 
         let unit = service.get_unit("TEST_UNIT_ID").unwrap();
-        assert_eq!(unit.pos, Vec3::new(0.0, 0.0, 0.0));
+        assert_eq!(unit.pos, Vec3A::new(0.0, 0.0, 0.0));
         assert_eq!(unit.resource_name, "TEST_RESOURCE_NAME");
     }
 
@@ -178,7 +178,7 @@ mod tests {
         let mut service = UnitService::default();
         service.add_unit(Unit::new(
             "TEST_UNIT_ID".to_string(),
-            Vec3::new(0.0, 0.0, 0.0),
+            Vec3A::new(0.0, 0.0, 0.0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
         service.remove_unit("TEST_UNIT_ID");
@@ -197,12 +197,12 @@ mod tests {
 
         service.add_unit(Unit::new(
             "TEST_UNIT_ID".to_string(),
-            Vec3::new(0.0, 0.0, 0.0),
+            Vec3A::new(0.0, 0.0, 0.0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
         service.add_unit(Unit::new(
             "TEST_OTHER_UNIT_ID".to_string(),
-            Vec3::new(-1.0, -1.0, -1.0),
+            Vec3A::new(-1.0, -1.0, -1.0),
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
 
@@ -211,7 +211,7 @@ mod tests {
             panic!("unexpected cmds {:?}", cmds);
         };
         assert_eq!(unit.id, "TEST_UNIT_ID".to_string());
-        assert_eq!(unit.pos, Vec3::new(0.0, 0.0, 0.0));
+        assert_eq!(unit.pos, Vec3A::new(0.0, 0.0, 0.0));
         assert_eq!(unit.resource_name, "TEST_RESOURCE_NAME".to_string());
     }
 
@@ -220,12 +220,12 @@ mod tests {
         let mut service = UnitService::default();
         service.add_unit(Unit::new(
             "TEST_UNIT_ID".to_string(),
-            Vec3::new(0.0, 0.0, 0.0),
+            Vec3A::new(0.0, 0.0, 0.0),
             "TEST_RESOURCE_NAME".to_string(),
         ));
         service.add_unit(Unit::new(
             "TEST_OTHER_UNIT_ID".to_string(),
-            Vec3::new(-1.0, -1.0, -1.0),
+            Vec3A::new(-1.0, -1.0, -1.0),
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
 
@@ -239,7 +239,7 @@ mod tests {
             panic!("unexpected cmds {:?}", cmds);
         };
         assert_eq!(unit.id, "TEST_UNIT_ID".to_string());
-        assert_eq!(unit.pos, Vec3::new(0.0, 0.0, 0.0));
+        assert_eq!(unit.pos, Vec3A::new(0.0, 0.0, 0.0));
         assert_eq!(unit.resource_name, "TEST_RESOURCE_NAME".to_string());
     }
 }
