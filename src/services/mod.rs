@@ -3,5 +3,5 @@ mod iunit;
 mod unit;
 
 pub use generation::GenerationService;
-pub use iunit::{IUnitCmd, IUnitService};
-pub use unit::{UnitCmd, UnitService};
+pub use iunit::IUnitService;
+pub use unit::UnitService;
