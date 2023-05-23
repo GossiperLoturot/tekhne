@@ -51,6 +51,23 @@ impl Unit {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Player {
+    pub position: Vec3A,
+    pub view_area: IBounds3,
+    pub zoom: f32,
+}
+
+impl Player {
+    pub fn new(position: Vec3A, view_area: IBounds3, zoom: f32) -> Self {
+        Self {
+            position,
+            view_area,
+            zoom,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
