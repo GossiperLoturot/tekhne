@@ -1,4 +1,5 @@
 mod iunit;
+mod player;
 
 pub struct Renderer {
     device: wgpu::Device,
