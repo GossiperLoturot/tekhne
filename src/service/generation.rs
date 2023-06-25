@@ -1,4 +1,4 @@
-use crate::{models::*, services::IUnitService};
+use crate::{model::*, service::IUnitService};
 use glam::*;
 use std::collections::HashSet;
 
@@ -8,7 +8,7 @@ pub struct GenerationService {
 }
 
 impl GenerationService {
-    pub fn generate(&mut self, bounds: IBounds3, iunit_service: &mut IUnitService) {
+    pub fn generate(&mut self, bounds: Bounds<IVec3>, iunit_service: &mut IUnitService) {
         for x in bounds.min.x..=bounds.max.x {
             for y in bounds.min.y..=bounds.max.y {
                 let pos = IVec2::new(x, y);
@@ -35,7 +35,7 @@ mod tests {
         let mut iunit_service = IUnitService::default();
         let mut gen_service = GenerationService::default();
 
-        let bounds = IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8));
+        let bounds = Bounds::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8));
         gen_service.generate(bounds, &mut iunit_service);
     }
 }

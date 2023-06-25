@@ -1,4 +1,5 @@
-use crate::models::*;
+use crate::model::*;
+use glam::*;
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
@@ -27,11 +28,11 @@ impl UnitService {
         self.units.get(id)
     }
 
-    pub fn get_units(&self, bounds: IBounds3) -> Vec<&Unit> {
+    pub fn get_units(&self, bounds: Bounds<Vec3A>) -> Vec<&Unit> {
         let mut units = vec![];
 
         for unit in self.units.values() {
-            if bounds.inclusive_contains(&unit.pos.round().as_ivec3()) {
+            if bounds.inclusive_contains(&unit.pos) {
                 units.push(unit);
             }
         }
@@ -43,7 +44,6 @@ impl UnitService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use glam::*;
 
     #[test]
     fn add_unit() {
@@ -87,7 +87,10 @@ mod tests {
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
 
-        let units = service.get_units(IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
+        let units = service.get_units(Bounds::new(
+            Vec3A::new(0.0, 0.0, 0.0),
+            Vec3A::new(8.0, 8.0, 8.0),
+        ));
         assert_eq!(units.len(), 1);
         let unit = units.get(0).unwrap();
         assert_eq!(unit.id, "TEST_UNIT_ID".to_string());

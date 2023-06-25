@@ -1,15 +1,18 @@
-pub struct Player {
+use crate::service;
+use glam::*;
+
+pub struct PlayerResource {
     buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
 
-impl Player {
-    pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
+impl PlayerResource {
+    pub fn new(device: &wgpu::Device) -> Self {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: 0,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+            size: std::mem::size_of::<Mat4>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -43,7 +46,26 @@ impl Player {
         }
     }
 
-    pub fn draw(&self, queue: &wgpu::Queue) {
-        queue.write_buffer(&self.buffer, 0, &[]);
+    pub fn pre_draw(&self, queue: &wgpu::Queue, service: &service::PlayerService) {
+        if let Some(player) = service.get_player() {
+            let matrix = Mat4::orthographic_lh(
+                player.view_area.min.x as f32,
+                player.view_area.max.x as f32,
+                player.view_area.min.y as f32,
+                player.view_area.max.y as f32,
+                player.view_area.min.z as f32,
+                player.view_area.max.z as f32,
+            );
+
+            queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[matrix]));
+        }
+    }
+
+    pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
+        &self.bind_group_layout
+    }
+
+    pub fn bind_group(&self) -> &wgpu::BindGroup {
+        &self.bind_group
     }
 }

@@ -1,6 +1,6 @@
-mod models;
-mod renderers;
-mod services;
+mod model;
+mod renderer;
+mod service;
 
 fn main() {
     let event_loop = winit::event_loop::EventLoopBuilder::new().build();
@@ -9,13 +9,15 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let renderer = pollster::block_on(renderers::Renderer::new_async(&window));
+    let mut service = service::Service::new();
+    let mut renderer = pollster::block_on(renderer::Renderer::new_async(&window));
 
     use winit::event::Event;
     use winit::event::WindowEvent;
     event_loop.run(move |event, _, control_flow| match event {
         Event::RedrawRequested(window_id) if window_id == window.id() => {
-            renderer.draw();
+            service.update();
+            renderer.draw(&service);
         }
         Event::RedrawEventsCleared => {
             window.request_redraw();

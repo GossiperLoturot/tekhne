@@ -1,4 +1,4 @@
-use crate::models::{IBounds3, Player};
+use crate::model::{Bounds, Player};
 use glam::*;
 
 #[derive(Debug, Default)]
@@ -12,11 +12,10 @@ impl PlayerService {
             panic!("player already exists");
         }
 
-        // temporary code
-        const VIEW_SIZE: i32 = 32;
+        const VIEW_SIZE: f32 = 32.0;
         self.player = Some(Player::new(
             Vec3A::default(),
-            IBounds3::new(IVec3::splat(-VIEW_SIZE), IVec3::splat(VIEW_SIZE)),
+            Bounds::new(Vec3A::splat(-VIEW_SIZE), Vec3A::splat(VIEW_SIZE)),
             VIEW_SIZE as f32,
         ));
     }

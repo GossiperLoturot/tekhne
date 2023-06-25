@@ -1,4 +1,4 @@
-use crate::models::*;
+use crate::model::*;
 use glam::*;
 use std::collections::HashMap;
 
@@ -28,7 +28,7 @@ impl IUnitService {
         self.iunits.get(&pos)
     }
 
-    pub fn get_iunits(&self, bounds: IBounds3) -> Vec<&IUnit> {
+    pub fn get_iunits(&self, bounds: Bounds<IVec3>) -> Vec<&IUnit> {
         let mut iunits = vec![];
 
         for x in bounds.min.x..=bounds.max.x {
@@ -87,7 +87,7 @@ mod tests {
             "TEST_OTHER_RESOURCE_NAME".to_string(),
         ));
 
-        let iunits = service.get_iunits(IBounds3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
+        let iunits = service.get_iunits(Bounds::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
         assert_eq!(iunits.len(), 1);
         let iunit = iunits.get(0).unwrap();
         assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
