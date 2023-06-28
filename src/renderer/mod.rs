@@ -1,14 +1,14 @@
 use crate::service;
 
-mod iunit;
 mod player;
+mod unit;
 
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface,
     player_resource: player::PlayerResource,
-    iunit_pipeline: iunit::IUnitPipeline,
+    unit_pipeline: unit::UnitPipeline,
 }
 
 impl Renderer {
@@ -34,14 +34,14 @@ impl Renderer {
         surface.configure(&device, &config);
 
         let player_pipeline = player::PlayerResource::new(&device);
-        let iunit_pipeline = iunit::IUnitPipeline::new(&device, &config, &player_pipeline);
+        let unit_pipeline = unit::UnitPipeline::new(&device, &config, &player_pipeline);
 
         Self {
             device,
             queue,
             surface,
             player_resource: player_pipeline,
-            iunit_pipeline,
+            unit_pipeline,
         }
     }
 
@@ -63,12 +63,10 @@ impl Renderer {
             depth_stencil_attachment: None,
         });
 
-        self.player_resource
-            .pre_draw(&self.queue, &service.player_service);
-        self.iunit_pipeline
-            .pre_draw(&self.queue, &service.iunit_service, &service.player_service);
+        self.player_resource.pre_draw(&self.queue, &service);
+        self.unit_pipeline.pre_draw(&self.queue, &service);
 
-        self.iunit_pipeline
+        self.unit_pipeline
             .draw(&mut render_pass, &self.player_resource);
 
         drop(render_pass);

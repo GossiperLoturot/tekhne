@@ -46,8 +46,8 @@ impl PlayerResource {
         }
     }
 
-    pub fn pre_draw(&self, queue: &wgpu::Queue, service: &service::PlayerService) {
-        if let Some(player) = service.get_player() {
+    pub fn pre_draw(&self, queue: &wgpu::Queue, service: &service::Service) {
+        if let Some(player) = service.player_service.get_player() {
             let matrix = Mat4::orthographic_lh(
                 player.view_area.min.x as f32,
                 player.view_area.max.x as f32,

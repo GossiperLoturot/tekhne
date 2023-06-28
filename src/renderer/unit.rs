@@ -21,13 +21,13 @@ impl Instance {
 }
 
 #[derive(Debug)]
-pub struct IUnitPipeline {
+pub struct UnitPipeline {
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl IUnitPipeline {
+impl UnitPipeline {
     pub fn new(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
@@ -41,7 +41,7 @@ impl IUnitPipeline {
         });
 
         let shader =
-            device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/iunit.wgsl"));
+            device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/unit.wgsl"));
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -91,25 +91,36 @@ impl IUnitPipeline {
         }
     }
 
-    pub fn pre_draw(
-        &mut self,
-        queue: &wgpu::Queue,
-        service: &service::IUnitService,
-        player_service: &service::PlayerService,
-    ) {
-        let iunits = service.get_iunits(
-            player_service
-                .get_player()
-                .map(|player| player.view_area.into())
-                .unwrap_or_default(),
-        );
-
-        let instance_data = iunits
+    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &service::Service) {
+        let iunits = service
+            .iunit_service
+            .get_iunits(
+                service
+                    .player_service
+                    .get_player()
+                    .map(|player| player.view_area.into())
+                    .unwrap_or_default(),
+            )
             .into_iter()
             .map(|iunit| Instance {
                 position: iunit.pos.as_vec3(),
-            })
-            .collect::<Vec<_>>();
+            });
+
+        let units = service
+            .unit_service
+            .get_units(
+                service
+                    .player_service
+                    .get_player()
+                    .map(|player| player.view_area)
+                    .unwrap_or_default(),
+            )
+            .into_iter()
+            .map(|unit| Instance {
+                position: unit.pos.into(),
+            });
+
+        let instance_data = iunits.chain(units).collect::<Vec<_>>();
 
         queue.write_buffer(
             &self.instance_buffer,
