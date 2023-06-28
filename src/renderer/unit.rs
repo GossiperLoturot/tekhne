@@ -1,4 +1,4 @@
-use super::player;
+use super::camera;
 use crate::service;
 use glam::*;
 
@@ -31,7 +31,7 @@ impl UnitPipeline {
     pub fn new(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-        player_resource: &player::PlayerResource,
+        camera_resource: &camera::CameraResource,
     ) -> Self {
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -45,7 +45,7 @@ impl UnitPipeline {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[player_resource.bind_group_layout()],
+            bind_group_layouts: &[camera_resource.bind_group_layout()],
             push_constant_ranges: &[],
         });
 
@@ -96,9 +96,9 @@ impl UnitPipeline {
             .iunit_service
             .get_iunits(
                 service
-                    .player_service
-                    .get_player()
-                    .map(|player| player.view_area.into())
+                    .camera_service
+                    .get_camera()
+                    .map(|camera| camera.view_area.into())
                     .unwrap_or_default(),
             )
             .into_iter()
@@ -110,9 +110,9 @@ impl UnitPipeline {
             .unit_service
             .get_units(
                 service
-                    .player_service
-                    .get_player()
-                    .map(|player| player.view_area)
+                    .camera_service
+                    .get_camera()
+                    .map(|camera| camera.view_area)
                     .unwrap_or_default(),
             )
             .into_iter()
@@ -133,10 +133,10 @@ impl UnitPipeline {
     pub fn draw<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
-        player_resouce: &'a player::PlayerResource,
+        camera_resouce: &'a camera::CameraResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_bind_group(0, player_resouce.bind_group(), &[]);
+        render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
         render_pass.draw(0..6, 0..self.instance_count);
     }

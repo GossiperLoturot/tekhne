@@ -1,15 +1,15 @@
+mod camera;
 mod generation;
 mod iunit;
-mod player;
 mod unit;
 
+pub use camera::CameraService;
 pub use generation::GenerationService;
 pub use iunit::IUnitService;
-pub use player::PlayerService;
 pub use unit::UnitService;
 
 pub struct Service {
-    pub player_service: PlayerService,
+    pub camera_service: CameraService,
     pub iunit_service: IUnitService,
     pub unit_service: UnitService,
     pub generation_service: GenerationService,
@@ -18,7 +18,7 @@ pub struct Service {
 impl Service {
     pub fn new() -> Self {
         Self {
-            player_service: PlayerService::default(),
+            camera_service: CameraService::default(),
             iunit_service: IUnitService::default(),
             unit_service: UnitService::default(),
             generation_service: GenerationService::default(),
@@ -26,12 +26,12 @@ impl Service {
     }
 
     pub fn update(&mut self) {
-        if self.player_service.get_player().is_none() {
-            self.player_service.spawn_player();
+        if self.camera_service.get_camera().is_none() {
+            self.camera_service.spawn_camera();
         }
 
-        if let Some(player) = self.player_service.get_player() {
-            let bounds = player.view_area;
+        if let Some(camera) = self.camera_service.get_camera() {
+            let bounds = camera.view_area;
 
             self.generation_service
                 .generate(bounds.into(), &mut self.iunit_service);

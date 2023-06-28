@@ -1,13 +1,13 @@
 use crate::service;
 
-mod player;
+mod camera;
 mod unit;
 
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface,
-    player_resource: player::PlayerResource,
+    camera_resource: camera::CameraResource,
     unit_pipeline: unit::UnitPipeline,
 }
 
@@ -33,14 +33,14 @@ impl Renderer {
             .unwrap();
         surface.configure(&device, &config);
 
-        let player_pipeline = player::PlayerResource::new(&device);
-        let unit_pipeline = unit::UnitPipeline::new(&device, &config, &player_pipeline);
+        let camera_pipeline = camera::CameraResource::new(&device);
+        let unit_pipeline = unit::UnitPipeline::new(&device, &config, &camera_pipeline);
 
         Self {
             device,
             queue,
             surface,
-            player_resource: player_pipeline,
+            camera_resource: camera_pipeline,
             unit_pipeline,
         }
     }
@@ -63,11 +63,11 @@ impl Renderer {
             depth_stencil_attachment: None,
         });
 
-        self.player_resource.pre_draw(&self.queue, &service);
+        self.camera_resource.pre_draw(&self.queue, &service);
         self.unit_pipeline.pre_draw(&self.queue, &service);
 
         self.unit_pipeline
-            .draw(&mut render_pass, &self.player_resource);
+            .draw(&mut render_pass, &self.camera_resource);
 
         drop(render_pass);
         self.queue.submit([encoder.finish()]);

@@ -1,13 +1,13 @@
 use crate::service;
 use glam::*;
 
-pub struct PlayerResource {
+pub struct CameraResource {
     buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
 
-impl PlayerResource {
+impl CameraResource {
     pub fn new(device: &wgpu::Device) -> Self {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -47,14 +47,14 @@ impl PlayerResource {
     }
 
     pub fn pre_draw(&self, queue: &wgpu::Queue, service: &service::Service) {
-        if let Some(player) = service.player_service.get_player() {
+        if let Some(camera) = service.camera_service.get_camera() {
             let matrix = Mat4::orthographic_lh(
-                player.view_area.min.x as f32,
-                player.view_area.max.x as f32,
-                player.view_area.min.y as f32,
-                player.view_area.max.y as f32,
-                player.view_area.min.z as f32,
-                player.view_area.max.z as f32,
+                camera.view_area.min.x as f32,
+                camera.view_area.max.x as f32,
+                camera.view_area.min.y as f32,
+                camera.view_area.max.y as f32,
+                camera.view_area.min.z as f32,
+                camera.view_area.max.z as f32,
             );
 
             queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[matrix]));
