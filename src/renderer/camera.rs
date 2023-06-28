@@ -5,10 +5,11 @@ pub struct CameraResource {
     buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
+    aspect_ratio: f32,
 }
 
 impl CameraResource {
-    pub fn new(device: &wgpu::Device) -> Self {
+    pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: std::mem::size_of::<Mat4>() as u64,
@@ -39,18 +40,21 @@ impl CameraResource {
             }],
         });
 
+        let aspect_ratio = config.width as f32 / config.height as f32;
+
         Self {
             buffer,
             bind_group_layout,
             bind_group,
+            aspect_ratio,
         }
     }
 
     pub fn pre_draw(&self, queue: &wgpu::Queue, service: &service::Service) {
         if let Some(camera) = service.camera_service.get_camera() {
             let matrix = Mat4::orthographic_lh(
-                camera.view_area.min.x as f32,
-                camera.view_area.max.x as f32,
+                camera.view_area.min.x as f32 * self.aspect_ratio,
+                camera.view_area.max.x as f32 * self.aspect_ratio,
                 camera.view_area.min.y as f32,
                 camera.view_area.max.y as f32,
                 camera.view_area.min.z as f32,

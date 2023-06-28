@@ -33,7 +33,7 @@ impl Renderer {
             .unwrap();
         surface.configure(&device, &config);
 
-        let camera_pipeline = camera::CameraResource::new(&device);
+        let camera_pipeline = camera::CameraResource::new(&device, &config);
         let unit_pipeline = unit::UnitPipeline::new(&device, &config, &camera_pipeline);
 
         Self {
