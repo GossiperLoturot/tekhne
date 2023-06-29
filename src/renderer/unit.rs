@@ -1,4 +1,4 @@
-use super::camera;
+use super::{camera, texture};
 use crate::service;
 use glam::*;
 
@@ -6,10 +6,12 @@ use glam::*;
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Instance {
     position: Vec3,
+    texcoord: Vec2,
 }
 
 impl Instance {
-    const ATTRIBUTES: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![0 => Float32x3];
+    const ATTRIBUTES: &[wgpu::VertexAttribute] =
+        &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
 
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
@@ -32,6 +34,7 @@ impl UnitPipeline {
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &camera::CameraResource,
+        texture_resource: &texture::TextureResource,
     ) -> Self {
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -45,7 +48,10 @@ impl UnitPipeline {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[camera_resource.bind_group_layout()],
+            bind_group_layouts: &[
+                camera_resource.bind_group_layout(),
+                texture_resource.bind_group_layout(),
+            ],
             push_constant_ranges: &[],
         });
 
@@ -91,7 +97,12 @@ impl UnitPipeline {
         }
     }
 
-    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &service::Service) {
+    pub fn pre_draw(
+        &mut self,
+        queue: &wgpu::Queue,
+        service: &service::Service,
+        texture_resource: &texture::TextureResource,
+    ) {
         let iunits = service
             .iunit_service
             .get_iunits(
@@ -104,6 +115,7 @@ impl UnitPipeline {
             .into_iter()
             .map(|iunit| Instance {
                 position: iunit.pos.as_vec3(),
+                texcoord: texture_resource.texcoord(iunit.resource_kind).as_vec2(),
             });
 
         let units = service
@@ -118,6 +130,7 @@ impl UnitPipeline {
             .into_iter()
             .map(|unit| Instance {
                 position: unit.pos.into(),
+                texcoord: texture_resource.texcoord(unit.resource_kind).as_vec2(),
             });
 
         let instance_data = iunits.chain(units).collect::<Vec<_>>();
@@ -134,9 +147,11 @@ impl UnitPipeline {
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         camera_resouce: &'a camera::CameraResource,
+        texture_resource: &'a texture::TextureResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
+        render_pass.set_bind_group(1, texture_resource.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
         render_pass.draw(0..6, 0..self.instance_count);
     }

@@ -1,6 +1,7 @@
 use crate::service;
 
 mod camera;
+mod texture;
 mod unit;
 
 pub struct Renderer {
@@ -8,6 +9,7 @@ pub struct Renderer {
     queue: wgpu::Queue,
     surface: wgpu::Surface,
     camera_resource: camera::CameraResource,
+    texture_resource: texture::TextureResource,
     unit_pipeline: unit::UnitPipeline,
 }
 
@@ -33,14 +35,17 @@ impl Renderer {
             .unwrap();
         surface.configure(&device, &config);
 
-        let camera_pipeline = camera::CameraResource::new(&device, &config);
-        let unit_pipeline = unit::UnitPipeline::new(&device, &config, &camera_pipeline);
+        let camera_resource = camera::CameraResource::new(&device, &config);
+        let texture_resource = texture::TextureResource::new(&device, &queue);
+        let unit_pipeline =
+            unit::UnitPipeline::new(&device, &config, &camera_resource, &texture_resource);
 
         Self {
             device,
             queue,
             surface,
-            camera_resource: camera_pipeline,
+            camera_resource,
+            texture_resource,
             unit_pipeline,
         }
     }
@@ -64,10 +69,14 @@ impl Renderer {
         });
 
         self.camera_resource.pre_draw(&self.queue, &service);
-        self.unit_pipeline.pre_draw(&self.queue, &service);
-
         self.unit_pipeline
-            .draw(&mut render_pass, &self.camera_resource);
+            .pre_draw(&self.queue, &service, &self.texture_resource);
+
+        self.unit_pipeline.draw(
+            &mut render_pass,
+            &self.camera_resource,
+            &self.texture_resource,
+        );
 
         drop(render_pass);
         self.queue.submit([encoder.finish()]);

@@ -15,7 +15,8 @@ impl GenerationService {
                 if !self.init_flags.contains(&pos) {
                     // generation rules start
 
-                    iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 0), "Surface".to_string()));
+                    iunit_service
+                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), ResourceKind::SurfaceDirt));
 
                     // generation rules end
 

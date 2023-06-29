@@ -52,23 +52,17 @@ mod tests {
     #[test]
     fn add_iunit() {
         let mut service = IUnitService::default();
-        service.add_iunit(IUnit::new(
-            IVec3::new(0, 0, 0),
-            "TEST_RESOURCE_NAME".to_string(),
-        ));
+        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), ResourceKind::SurfaceDirt));
 
         let iunit = service.get_iunit(IVec3::new(0, 0, 0)).unwrap();
         assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
-        assert_eq!(iunit.resource_name, "TEST_RESOURCE_NAME");
+        assert_eq!(iunit.resource_kind, ResourceKind::SurfaceDirt);
     }
 
     #[test]
     fn remove_iunit() {
         let mut service = IUnitService::default();
-        service.add_iunit(IUnit::new(
-            IVec3::new(0, 0, 0),
-            "TEST_RESOURCE_NAME".to_string(),
-        ));
+        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), ResourceKind::SurfaceDirt));
         service.remove_iunit(IVec3::new(0, 0, 0));
 
         let is_none = service.get_iunit(IVec3::new(0, 0, 0)).is_none();
@@ -78,19 +72,16 @@ mod tests {
     #[test]
     fn set_bounds_before_fill_data() {
         let mut service = IUnitService::default();
-        service.add_iunit(IUnit::new(
-            IVec3::new(0, 0, 0),
-            "TEST_RESOURCE_NAME".to_string(),
-        ));
+        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), ResourceKind::SurfaceDirt));
         service.add_iunit(IUnit::new(
             IVec3::new(-1, -1, -1),
-            "TEST_OTHER_RESOURCE_NAME".to_string(),
+            ResourceKind::SurfaceGrass,
         ));
 
         let iunits = service.get_iunits(Bounds::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
         assert_eq!(iunits.len(), 1);
         let iunit = iunits.get(0).unwrap();
         assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
-        assert_eq!(iunit.resource_name, "TEST_RESOURCE_NAME".to_string());
+        assert_eq!(iunit.resource_kind, ResourceKind::SurfaceDirt);
     }
 }

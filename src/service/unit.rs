@@ -51,12 +51,12 @@ mod tests {
         service.add_unit(Unit::new(
             "TEST_UNIT_ID".to_string(),
             Vec3A::new(0.0, 0.0, 0.0),
-            "TEST_RESOURCE_NAME".to_string(),
+            ResourceKind::SurfaceDirt,
         ));
 
         let unit = service.get_unit("TEST_UNIT_ID").unwrap();
         assert_eq!(unit.pos, Vec3A::new(0.0, 0.0, 0.0));
-        assert_eq!(unit.resource_name, "TEST_RESOURCE_NAME");
+        assert_eq!(unit.resource_kind, ResourceKind::SurfaceDirt);
     }
 
     #[test]
@@ -65,7 +65,7 @@ mod tests {
         service.add_unit(Unit::new(
             "TEST_UNIT_ID".to_string(),
             Vec3A::new(0.0, 0.0, 0.0),
-            "TEST_RESOURCE_NAME".to_string(),
+            ResourceKind::SurfaceDirt,
         ));
         service.remove_unit("TEST_UNIT_ID");
 
@@ -79,12 +79,12 @@ mod tests {
         service.add_unit(Unit::new(
             "TEST_UNIT_ID".to_string(),
             Vec3A::new(0.0, 0.0, 0.0),
-            "TEST_RESOURCE_NAME".to_string(),
+            ResourceKind::SurfaceDirt,
         ));
         service.add_unit(Unit::new(
             "TEST_OTHER_UNIT_ID".to_string(),
             Vec3A::new(-1.0, -1.0, -1.0),
-            "TEST_OTHER_RESOURCE_NAME".to_string(),
+            ResourceKind::SurfaceGrass,
         ));
 
         let units = service.get_units(Bounds::new(
@@ -95,6 +95,6 @@ mod tests {
         let unit = units.get(0).unwrap();
         assert_eq!(unit.id, "TEST_UNIT_ID".to_string());
         assert_eq!(unit.pos, Vec3A::new(0.0, 0.0, 0.0));
-        assert_eq!(unit.resource_name, "TEST_RESOURCE_NAME".to_string());
+        assert_eq!(unit.resource_kind, ResourceKind::SurfaceDirt);
     }
 }
