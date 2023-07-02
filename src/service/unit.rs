@@ -1,10 +1,10 @@
 use crate::model::*;
+use ahash::AHashMap;
 use glam::*;
-use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub struct UnitService {
-    units: HashMap<String, Unit>,
+    units: AHashMap<String, Unit>,
 }
 
 impl UnitService {

@@ -1,10 +1,10 @@
 use crate::{model::*, service::IUnitService};
+use ahash::AHashSet;
 use glam::*;
-use std::collections::HashSet;
 
 #[derive(Debug, Default)]
 pub struct GenerationService {
-    init_flags: HashSet<IVec2>,
+    init_flags: AHashSet<IVec2>,
 }
 
 impl GenerationService {

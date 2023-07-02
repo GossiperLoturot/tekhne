@@ -1,10 +1,10 @@
 use crate::model::*;
+use ahash::AHashMap;
 use glam::*;
-use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub struct IUnitService {
-    iunits: HashMap<IVec3, IUnit>,
+    iunits: AHashMap<IVec3, IUnit>,
 }
 
 impl IUnitService {
