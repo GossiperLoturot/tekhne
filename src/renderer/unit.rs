@@ -109,7 +109,7 @@ impl UnitPipeline {
                 service
                     .camera_service
                     .get_camera()
-                    .map(|camera| camera.view_area.into())
+                    .map(|camera| camera.view_area().into())
                     .unwrap_or_default(),
             )
             .into_iter()
@@ -124,7 +124,7 @@ impl UnitPipeline {
                 service
                     .camera_service
                     .get_camera()
-                    .map(|camera| camera.view_area)
+                    .map(|camera| camera.view_area())
                     .unwrap_or_default(),
             )
             .into_iter()

@@ -13,6 +13,7 @@ pub struct Service {
     pub iunit_service: IUnitService,
     pub unit_service: UnitService,
     pub generation_service: GenerationService,
+    time_instance: std::time::Instant,
 }
 
 impl Service {
@@ -22,19 +23,26 @@ impl Service {
             iunit_service: IUnitService::default(),
             unit_service: UnitService::default(),
             generation_service: GenerationService::default(),
+            time_instance: std::time::Instant::now(),
         }
     }
 
     pub fn update(&mut self) {
+        let elapsed = self.time_instance.elapsed();
+
         if self.camera_service.get_camera().is_none() {
             self.camera_service.spawn_camera();
         }
 
+        self.camera_service.update(elapsed);
+
         if let Some(camera) = self.camera_service.get_camera() {
-            let bounds = camera.view_area;
+            let bounds = camera.view_area();
 
             self.generation_service
                 .generate(bounds.into(), &mut self.iunit_service);
         }
+
+        self.time_instance = std::time::Instant::now();
     }
 }

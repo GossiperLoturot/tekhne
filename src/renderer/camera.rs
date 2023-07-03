@@ -52,14 +52,15 @@ impl CameraResource {
 
     pub fn pre_draw(&self, queue: &wgpu::Queue, service: &service::Service) {
         if let Some(camera) = service.camera_service.get_camera() {
+            let view_area = camera.view_area();
             let matrix = Mat4::orthographic_lh(
-                camera.view_area.min.x as f32 * self.aspect_ratio,
-                camera.view_area.max.x as f32 * self.aspect_ratio,
-                camera.view_area.min.y as f32,
-                camera.view_area.max.y as f32,
-                camera.view_area.min.z as f32,
-                camera.view_area.max.z as f32,
-            );
+                view_area.min.x as f32,
+                view_area.max.x as f32,
+                view_area.min.y as f32,
+                view_area.max.y as f32,
+                view_area.min.z as f32,
+                view_area.max.z as f32,
+            ) * Mat4::from_scale(Vec3::new(1.0, self.aspect_ratio, 1.0));
 
             queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[matrix]));
         }

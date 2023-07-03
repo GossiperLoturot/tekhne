@@ -26,6 +26,9 @@ fn main() {
             WindowEvent::CloseRequested => {
                 *control_flow = winit::event_loop::ControlFlow::Exit;
             }
+            WindowEvent::KeyboardInput { input, .. } => {
+                service.camera_service.control_camera(input);
+            }
             _ => {}
         },
         _ => {}
