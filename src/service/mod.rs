@@ -8,6 +8,8 @@ pub use generation::GenerationService;
 pub use iunit::IUnitService;
 pub use unit::UnitService;
 
+use glam::*;
+
 pub struct Service {
     pub camera_service: CameraService,
     pub iunit_service: IUnitService,
@@ -37,7 +39,11 @@ impl Service {
         self.camera_service.update(elapsed);
 
         if let Some(camera) = self.camera_service.get_camera() {
-            let bounds = camera.view_area();
+            let mut bounds = camera.view_area();
+
+            const MARGIN: f32 = 2.0;
+            bounds.min -= Vec3A::splat(MARGIN);
+            bounds.max += Vec3A::splat(MARGIN);
 
             self.generation_service
                 .generate(bounds.into(), &mut self.iunit_service);

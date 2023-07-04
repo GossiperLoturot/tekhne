@@ -103,44 +103,40 @@ impl UnitPipeline {
         service: &service::Service,
         texture_resource: &texture::TextureResource,
     ) {
-        let iunits = service
-            .iunit_service
-            .get_iunits(
-                service
-                    .camera_service
-                    .get_camera()
-                    .map(|camera| camera.view_area().into())
-                    .unwrap_or_default(),
-            )
-            .into_iter()
-            .map(|iunit| Instance {
-                position: iunit.pos.as_vec3(),
-                texcoord: texture_resource.texcoord(iunit.resource_kind).as_vec2(),
-            });
+        if let Some(camera) = service.camera_service.get_camera() {
+            let mut bounds = camera.view_area();
 
-        let units = service
-            .unit_service
-            .get_units(
-                service
-                    .camera_service
-                    .get_camera()
-                    .map(|camera| camera.view_area())
-                    .unwrap_or_default(),
-            )
-            .into_iter()
-            .map(|unit| Instance {
-                position: unit.pos.into(),
-                texcoord: texture_resource.texcoord(unit.resource_kind).as_vec2(),
-            });
+            const MARGIN: f32 = 2.0;
+            bounds.min -= Vec3A::splat(MARGIN);
+            bounds.max += Vec3A::splat(MARGIN);
 
-        let instance_data = iunits.chain(units).collect::<Vec<_>>();
+            let iunits = service
+                .iunit_service
+                .get_iunits(bounds.into())
+                .into_iter()
+                .map(|iunit| Instance {
+                    position: iunit.pos.as_vec3(),
+                    texcoord: texture_resource.texcoord(iunit.resource_kind).as_vec2(),
+                });
 
-        queue.write_buffer(
-            &self.instance_buffer,
-            0,
-            bytemuck::cast_slice(&instance_data),
-        );
-        self.instance_count = instance_data.len() as u32;
+            let units = service
+                .unit_service
+                .get_units(bounds)
+                .into_iter()
+                .map(|unit| Instance {
+                    position: unit.pos.into(),
+                    texcoord: texture_resource.texcoord(unit.resource_kind).as_vec2(),
+                });
+
+            let instance_data = iunits.chain(units).collect::<Vec<_>>();
+
+            queue.write_buffer(
+                &self.instance_buffer,
+                0,
+                bytemuck::cast_slice(&instance_data),
+            );
+            self.instance_count = instance_data.len() as u32;
+        }
     }
 
     pub fn draw<'a>(
