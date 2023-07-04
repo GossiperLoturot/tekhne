@@ -11,3 +11,4 @@ image = { version = "0.24", default-features = false, features = ["jpeg"] }
 pollster = "0.3"
 wgpu = "0.16"
 winit = { version = "0.28", default-features = false, features = ["x11", "wayland"] }
+winit_input_helper = "0.14"

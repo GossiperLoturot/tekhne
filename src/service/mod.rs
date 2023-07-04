@@ -29,14 +29,14 @@ impl Service {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, input: &winit_input_helper::WinitInputHelper) {
         let elapsed = self.time_instance.elapsed();
 
         if self.camera_service.get_camera().is_none() {
             self.camera_service.spawn_camera();
         }
 
-        self.camera_service.update(elapsed);
+        self.camera_service.update(input, elapsed);
 
         if let Some(camera) = self.camera_service.get_camera() {
             let mut bounds = camera.view_area();

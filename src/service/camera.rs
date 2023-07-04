@@ -2,19 +2,8 @@ use crate::model::Camera;
 use glam::*;
 
 #[derive(Debug, Default)]
-enum Control {
-    #[default]
-    None,
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
-}
-
-#[derive(Debug, Default)]
 pub struct CameraService {
     camera: Option<Camera>,
-    control: Control,
 }
 
 impl CameraService {
@@ -26,44 +15,24 @@ impl CameraService {
         self.camera = Some(Camera::new(Vec3A::ZERO, 16.0));
     }
 
-    pub fn control_camera(&mut self, keyboard: winit::event::KeyboardInput) {
-        self.control = Control::None;
-
-        if keyboard.state == winit::event::ElementState::Pressed {
-            match keyboard.virtual_keycode {
-                Some(winit::event::VirtualKeyCode::W) => {
-                    self.control = Control::UP;
-                }
-                Some(winit::event::VirtualKeyCode::S) => {
-                    self.control = Control::DOWN;
-                }
-                Some(winit::event::VirtualKeyCode::A) => {
-                    self.control = Control::LEFT;
-                }
-                Some(winit::event::VirtualKeyCode::D) => {
-                    self.control = Control::RIGHT;
-                }
-                _ => {}
-            }
-        }
-    }
-
-    pub fn update(&mut self, elased: std::time::Duration) {
+    pub fn update(
+        &mut self,
+        input: &winit_input_helper::WinitInputHelper,
+        elased: std::time::Duration,
+    ) {
+        const SPEED: f32 = 1.0;
         if let Some(camera) = &mut self.camera {
-            match self.control {
-                Control::UP => {
-                    camera.position.y += elased.as_secs_f32();
-                }
-                Control::DOWN => {
-                    camera.position.y -= elased.as_secs_f32();
-                }
-                Control::LEFT => {
-                    camera.position.x -= elased.as_secs_f32();
-                }
-                Control::RIGHT => {
-                    camera.position.x += elased.as_secs_f32();
-                }
-                _ => {}
+            if input.key_held(winit::event::VirtualKeyCode::W) {
+                camera.position.y += SPEED * elased.as_secs_f32();
+            }
+            if input.key_held(winit::event::VirtualKeyCode::S) {
+                camera.position.y -= SPEED * elased.as_secs_f32();
+            }
+            if input.key_held(winit::event::VirtualKeyCode::A) {
+                camera.position.x -= SPEED * elased.as_secs_f32();
+            }
+            if input.key_held(winit::event::VirtualKeyCode::D) {
+                camera.position.x += SPEED * elased.as_secs_f32();
             }
         }
     }
