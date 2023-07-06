@@ -8,20 +8,22 @@ pub struct UnitService {
 }
 
 impl UnitService {
-    pub fn add_unit(&mut self, unit: Unit) {
+    pub fn add_unit(&mut self, unit: Unit) -> Option<()> {
         if self.units.contains_key(&unit.id) {
-            panic!("unit is already existed at id {:?}", unit.id);
+            return None;
         }
 
         self.units.insert(unit.id.clone(), unit);
+        Some(())
     }
 
-    pub fn remove_unit(&mut self, id: &str) {
+    pub fn remove_unit(&mut self, id: &str) -> Option<()> {
         if !self.units.contains_key(id) {
-            panic!("unit is not found at id {:?}", id);
+            return None;
         }
 
         self.units.remove(id);
+        Some(())
     }
 
     pub fn get_unit(&self, id: &str) -> Option<&Unit> {

@@ -8,20 +8,22 @@ pub struct IUnitService {
 }
 
 impl IUnitService {
-    pub fn add_iunit(&mut self, iunit: IUnit) {
+    pub fn add_iunit(&mut self, iunit: IUnit) -> Option<()> {
         if self.iunits.contains_key(&iunit.pos) {
-            panic!("iunit is already existed at pos {:?}.", iunit.pos);
+            return None;
         }
 
         self.iunits.insert(iunit.pos, iunit);
+        Some(())
     }
 
-    pub fn remove_iunit(&mut self, pos: IVec3) {
+    pub fn remove_iunit(&mut self, pos: IVec3) -> Option<()> {
         if !self.iunits.contains_key(&pos) {
-            panic!("iunit is not found at pos {:?}", pos);
+            return None;
         }
 
         self.iunits.remove(&pos);
+        Some(())
     }
 
     pub fn get_iunit(&self, pos: IVec3) -> Option<&IUnit> {

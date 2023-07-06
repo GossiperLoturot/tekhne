@@ -15,8 +15,13 @@ impl GenerationService {
                 if !self.init_flags.contains(&pos) {
                     // generation rules start
 
-                    iunit_service
-                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), ResourceKind::SurfaceDirt));
+                    if (x ^ y) & 1 == 1 {
+                        iunit_service
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 0), ResourceKind::SurfaceDirt));
+                    } else {
+                        iunit_service
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 0), ResourceKind::SurfaceGrass));
+                    }
 
                     // generation rules end
 

@@ -50,7 +50,7 @@ impl Renderer {
         }
     }
 
-    pub fn draw(&mut self, service: &service::Service) {
+    pub fn draw(&mut self, service: &service::Service) -> service::ReadBack {
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame
             .texture
@@ -81,5 +81,9 @@ impl Renderer {
         drop(render_pass);
         self.queue.submit([encoder.finish()]);
         frame.present();
+
+        let screen_to_world = self.camera_resource.screen_to_world();
+
+        service::ReadBack { screen_to_world }
     }
 }
