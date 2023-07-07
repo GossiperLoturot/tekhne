@@ -1,3 +1,5 @@
+// TODO: improve performance by grid space partitioning
+
 use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
@@ -9,11 +11,11 @@ pub struct IUnitService {
 
 impl IUnitService {
     pub fn add_iunit(&mut self, iunit: IUnit) -> Option<()> {
-        if self.iunits.contains_key(&iunit.pos) {
+        if self.iunits.contains_key(&iunit.position) {
             return None;
         }
 
-        self.iunits.insert(iunit.pos, iunit);
+        self.iunits.insert(iunit.position, iunit);
         Some(())
     }
 
@@ -57,7 +59,7 @@ mod tests {
         service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), ResourceKind::SurfaceDirt));
 
         let iunit = service.get_iunit(IVec3::new(0, 0, 0)).unwrap();
-        assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
+        assert_eq!(iunit.position, IVec3::new(0, 0, 0));
         assert_eq!(iunit.resource_kind, ResourceKind::SurfaceDirt);
     }
 
@@ -83,7 +85,7 @@ mod tests {
         let iunits = service.get_iunits(Bounds::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
         assert_eq!(iunits.len(), 1);
         let iunit = iunits.get(0).unwrap();
-        assert_eq!(iunit.pos, IVec3::new(0, 0, 0));
+        assert_eq!(iunit.position, IVec3::new(0, 0, 0));
         assert_eq!(iunit.resource_kind, ResourceKind::SurfaceDirt);
     }
 }

@@ -1,5 +1,5 @@
 mod model;
-mod renderer;
+mod render;
 mod service;
 
 fn main() {
@@ -10,7 +10,7 @@ fn main() {
         .unwrap();
 
     let mut service = service::Service::new();
-    let mut renderer = pollster::block_on(renderer::Renderer::new_async(&window));
+    let mut render = pollster::block_on(render::Render::new_async(&window));
     let mut input = winit_input_helper::WinitInputHelper::new();
     let mut read_back = None;
 
@@ -22,7 +22,7 @@ fn main() {
         match event {
             Event::RedrawRequested(window_id) if window_id == window.id() => {
                 service.update(&input, read_back.as_ref());
-                read_back = Some(renderer.draw(&service));
+                read_back = Some(render.draw(&service));
             }
             Event::RedrawEventsCleared => {
                 window.request_redraw();

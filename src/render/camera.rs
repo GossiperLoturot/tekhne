@@ -55,7 +55,7 @@ impl CameraResource {
     pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &service::Service) {
         self.screen_to_world = None;
 
-        if let Some(camera) = service.camera_service.get_camera() {
+        if let Some(camera) = service.camera.get_camera() {
             let view_area = camera.view_area();
             let matrix = Mat4::from_scale(Vec3::new(
                 (self.height as f32 / self.width as f32).max(1.0),

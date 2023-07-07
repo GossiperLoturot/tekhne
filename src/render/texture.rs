@@ -1,10 +1,10 @@
-use crate::model::ResourceKind;
+use crate::model;
 use ahash::AHashMap;
 use glam::*;
 
 #[derive(Debug)]
 pub struct TextureResource {
-    texcoords: AHashMap<ResourceKind, IVec2>,
+    texcoords: AHashMap<model::ResourceKind, IVec2>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -15,11 +15,11 @@ impl TextureResource {
 
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         let resource_kinds = [
-            ResourceKind::SurfaceDirt,
-            ResourceKind::SurfaceGrass,
-            ResourceKind::SurfaceGravel,
-            ResourceKind::SurfaceSand,
-            ResourceKind::SurfaceStone,
+            model::ResourceKind::SurfaceDirt,
+            model::ResourceKind::SurfaceGrass,
+            model::ResourceKind::SurfaceGravel,
+            model::ResourceKind::SurfaceSand,
+            model::ResourceKind::SurfaceStone,
         ];
 
         let size_per_grid = Self::SIZE / Self::GRID;
@@ -138,7 +138,7 @@ impl TextureResource {
         }
     }
 
-    pub fn texcoord(&self, resource_kind: ResourceKind) -> IVec2 {
+    pub fn texcoord(&self, resource_kind: model::ResourceKind) -> IVec2 {
         self.texcoords
             .get(&resource_kind)
             .expect(&format!(

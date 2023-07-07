@@ -4,7 +4,7 @@ mod camera;
 mod texture;
 mod unit;
 
-pub struct Renderer {
+pub struct Render {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface,
@@ -13,7 +13,7 @@ pub struct Renderer {
     unit_pipeline: unit::UnitPipeline,
 }
 
-impl Renderer {
+impl Render {
     pub async fn new_async(window: &winit::window::Window) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
         let surface = unsafe { instance.create_surface(window) }.unwrap();

@@ -1,4 +1,4 @@
-use crate::model::Camera;
+use crate::model::*;
 use glam::*;
 
 #[derive(Debug, Default)]

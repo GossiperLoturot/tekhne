@@ -1,5 +1,5 @@
 use super::{IUnitService, ReadBack};
-use crate::model::{IUnit, ResourceKind};
+use crate::model::*;
 use glam::*;
 
 #[derive(Debug, Default)]

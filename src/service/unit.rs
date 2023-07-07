@@ -1,3 +1,5 @@
+// TODO: improve performance by grid space partitioning
+
 use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
@@ -34,7 +36,7 @@ impl UnitService {
         let mut units = vec![];
 
         for unit in self.units.values() {
-            if bounds.inclusive_contains(&unit.pos) {
+            if bounds.inclusive_contains(&unit.position) {
                 units.push(unit);
             }
         }
@@ -57,7 +59,7 @@ mod tests {
         ));
 
         let unit = service.get_unit("TEST_UNIT_ID").unwrap();
-        assert_eq!(unit.pos, Vec3A::new(0.0, 0.0, 0.0));
+        assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
         assert_eq!(unit.resource_kind, ResourceKind::SurfaceDirt);
     }
 
@@ -96,7 +98,7 @@ mod tests {
         assert_eq!(units.len(), 1);
         let unit = units.get(0).unwrap();
         assert_eq!(unit.id, "TEST_UNIT_ID".to_string());
-        assert_eq!(unit.pos, Vec3A::new(0.0, 0.0, 0.0));
+        assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
         assert_eq!(unit.resource_kind, ResourceKind::SurfaceDirt);
     }
 }

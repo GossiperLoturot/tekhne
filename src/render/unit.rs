@@ -103,7 +103,7 @@ impl UnitPipeline {
         service: &service::Service,
         texture_resource: &texture::TextureResource,
     ) {
-        if let Some(camera) = service.camera_service.get_camera() {
+        if let Some(camera) = service.camera.get_camera() {
             let mut bounds = camera.view_area();
 
             const MARGIN: f32 = 2.0;
@@ -111,20 +111,20 @@ impl UnitPipeline {
             bounds.max += Vec3A::splat(MARGIN);
 
             let iunits = service
-                .iunit_service
+                .iunit
                 .get_iunits(bounds.into())
                 .into_iter()
                 .map(|iunit| Instance {
-                    position: iunit.pos.as_vec3(),
+                    position: iunit.position.as_vec3(),
                     texcoord: texture_resource.texcoord(iunit.resource_kind).as_vec2(),
                 });
 
             let units = service
-                .unit_service
+                .unit
                 .get_units(bounds)
                 .into_iter()
                 .map(|unit| Instance {
-                    position: unit.pos.into(),
+                    position: unit.position.into(),
                     texcoord: texture_resource.texcoord(unit.resource_kind).as_vec2(),
                 });
 
