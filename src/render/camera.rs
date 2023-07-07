@@ -61,7 +61,7 @@ impl CameraResource {
                 (self.height as f32 / self.width as f32).max(1.0),
                 (self.width as f32 / self.height as f32).max(1.0),
                 1.0,
-            )) * Mat4::orthographic_lh(
+            )) * Mat4::orthographic_rh(
                 view_area.min.x as f32,
                 view_area.max.x as f32,
                 view_area.min.y as f32,
