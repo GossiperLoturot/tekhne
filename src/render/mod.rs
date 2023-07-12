@@ -1,6 +1,7 @@
 use crate::service;
 
 mod camera;
+mod player;
 mod texture;
 mod unit;
 
@@ -11,6 +12,7 @@ pub struct Render {
     camera_resource: camera::CameraResource,
     texture_resource: texture::TextureResource,
     unit_pipeline: unit::UnitPipeline,
+    player_pipeline: player::PlayerPipeline,
 }
 
 impl Render {
@@ -39,6 +41,8 @@ impl Render {
         let texture_resource = texture::TextureResource::new(&device, &queue);
         let unit_pipeline =
             unit::UnitPipeline::new(&device, &config, &camera_resource, &texture_resource);
+        let player_pipeline =
+            player::PlayerPipeline::new(&device, &queue, &config, &camera_resource);
 
         Self {
             device,
@@ -47,6 +51,7 @@ impl Render {
             camera_resource,
             texture_resource,
             unit_pipeline,
+            player_pipeline,
         }
     }
 
@@ -71,12 +76,15 @@ impl Render {
         self.camera_resource.pre_draw(&self.queue, &service);
         self.unit_pipeline
             .pre_draw(&self.queue, &service, &self.texture_resource);
+        self.player_pipeline.pre_draw(&self.queue, &service);
 
         self.unit_pipeline.draw(
             &mut render_pass,
             &self.camera_resource,
             &self.texture_resource,
         );
+        self.player_pipeline
+            .draw(&mut render_pass, &self.camera_resource);
 
         drop(render_pass);
         self.queue.submit([encoder.finish()]);

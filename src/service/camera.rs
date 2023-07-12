@@ -1,3 +1,4 @@
+use super::PlayerService;
 use crate::model::*;
 use glam::*;
 
@@ -15,24 +16,10 @@ impl CameraService {
         self.camera = Some(Camera::new(Vec3A::ZERO, 16.0));
     }
 
-    pub fn update(
-        &mut self,
-        input: &winit_input_helper::WinitInputHelper,
-        elased: std::time::Duration,
-    ) {
-        const SPEED: f32 = 1.0;
+    pub fn update(&mut self, player_service: &PlayerService) {
         if let Some(camera) = &mut self.camera {
-            if input.key_held(winit::event::VirtualKeyCode::W) {
-                camera.position.y += SPEED * elased.as_secs_f32();
-            }
-            if input.key_held(winit::event::VirtualKeyCode::S) {
-                camera.position.y -= SPEED * elased.as_secs_f32();
-            }
-            if input.key_held(winit::event::VirtualKeyCode::A) {
-                camera.position.x -= SPEED * elased.as_secs_f32();
-            }
-            if input.key_held(winit::event::VirtualKeyCode::D) {
-                camera.position.x += SPEED * elased.as_secs_f32();
+            if let Some(player) = player_service.get_player() {
+                camera.position = player.position;
             }
         }
     }
