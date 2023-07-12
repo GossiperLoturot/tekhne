@@ -1,4 +1,4 @@
-use super::camera;
+use super::camera::CameraResource;
 use crate::service::Service;
 use glam::*;
 
@@ -33,7 +33,7 @@ impl PlayerPipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
-        camera_resource: &camera::CameraResource,
+        camera_resource: &CameraResource,
     ) -> Self {
         let image_data =
             image::load_from_memory(include_bytes!("../../assets/textures/Player.jpg"))
@@ -172,7 +172,7 @@ impl PlayerPipeline {
     pub fn draw<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
-        camera_resouce: &'a camera::CameraResource,
+        camera_resouce: &'a CameraResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);

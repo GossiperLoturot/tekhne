@@ -1,5 +1,5 @@
-use super::{camera, texture};
-use crate::service;
+use super::{CameraResource, TextureResource};
+use crate::service::Service;
 use glam::*;
 
 #[repr(C)]
@@ -33,8 +33,8 @@ impl UnitPipeline {
     pub fn new(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-        camera_resource: &camera::CameraResource,
-        texture_resource: &texture::TextureResource,
+        camera_resource: &CameraResource,
+        texture_resource: &TextureResource,
     ) -> Self {
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -100,8 +100,8 @@ impl UnitPipeline {
     pub fn pre_draw(
         &mut self,
         queue: &wgpu::Queue,
-        service: &service::Service,
-        texture_resource: &texture::TextureResource,
+        service: &Service,
+        texture_resource: &TextureResource,
     ) {
         if let Some(camera) = service.camera.get_camera() {
             let mut bounds = camera.view_area();
@@ -142,8 +142,8 @@ impl UnitPipeline {
     pub fn draw<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
-        camera_resouce: &'a camera::CameraResource,
-        texture_resource: &'a texture::TextureResource,
+        camera_resouce: &'a CameraResource,
+        texture_resource: &'a TextureResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);

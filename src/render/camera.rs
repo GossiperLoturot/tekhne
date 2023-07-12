@@ -1,4 +1,4 @@
-use crate::service;
+use crate::service::Service;
 use glam::*;
 
 pub struct CameraResource {
@@ -52,7 +52,7 @@ impl CameraResource {
         }
     }
 
-    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &service::Service) {
+    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &Service) {
         self.screen_to_world = None;
 
         if let Some(camera) = service.camera.get_camera() {

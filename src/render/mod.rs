@@ -1,3 +1,8 @@
+pub use camera::CameraResource;
+pub use player::PlayerPipeline;
+pub use texture::TextureResource;
+pub use unit::UnitPipeline;
+
 use crate::service;
 
 mod camera;

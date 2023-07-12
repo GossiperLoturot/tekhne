@@ -8,6 +8,16 @@ pub enum ResourceKind {
 }
 
 impl ResourceKind {
+    pub fn entry() -> &'static [ResourceKind] {
+        &[
+            ResourceKind::SurfaceDirt,
+            ResourceKind::SurfaceGrass,
+            ResourceKind::SurfaceGravel,
+            ResourceKind::SurfaceSand,
+            ResourceKind::SurfaceStone,
+        ]
+    }
+
     pub fn load_dynamic_image(&self) -> Option<image::DynamicImage> {
         #[rustfmt::skip]
         let bytes: &[u8] = match self {

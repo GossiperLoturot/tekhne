@@ -1,10 +1,10 @@
-use crate::model;
+use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
 
 #[derive(Debug)]
 pub struct TextureResource {
-    texcoords: AHashMap<model::ResourceKind, IVec2>,
+    texcoords: AHashMap<ResourceKind, IVec2>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -14,19 +14,11 @@ impl TextureResource {
     const GRID: u32 = 32;
 
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let resource_kinds = [
-            model::ResourceKind::SurfaceDirt,
-            model::ResourceKind::SurfaceGrass,
-            model::ResourceKind::SurfaceGravel,
-            model::ResourceKind::SurfaceSand,
-            model::ResourceKind::SurfaceStone,
-        ];
-
         let size_per_grid = Self::SIZE / Self::GRID;
         let mut atlas = image::DynamicImage::new_rgba8(Self::SIZE, Self::SIZE);
         let mut texcoords = AHashMap::new();
 
-        for (i, resource_kind) in resource_kinds.into_iter().enumerate() {
+        for (i, &resource_kind) in ResourceKind::entry().into_iter().enumerate() {
             if Self::GRID * Self::GRID < i as u32 {
                 panic!("Atlas texture size is too small!")
             }
@@ -35,7 +27,7 @@ impl TextureResource {
 
             let texture = resource_kind
                 .load_dynamic_image()
-                .expect(&format!("failed to loading a image {:?}", resource_kind))
+                .expect(&format!("Failed to load an image {:?}", resource_kind))
                 .resize(
                     size_per_grid,
                     size_per_grid,
@@ -51,14 +43,16 @@ impl TextureResource {
             texcoords.insert(resource_kind, IVec2::new(x as i32, y as i32));
         }
 
+        let atlas_data = atlas.to_rgba8();
+
         use wgpu::util::DeviceExt;
         let texture = device.create_texture_with_data(
             &queue,
             &wgpu::TextureDescriptor {
                 label: None,
                 size: wgpu::Extent3d {
-                    width: Self::SIZE,
-                    height: Self::SIZE,
+                    width: atlas_data.width(),
+                    height: atlas_data.height(),
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
@@ -68,9 +62,7 @@ impl TextureResource {
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                 view_formats: &[],
             },
-            atlas
-                .as_rgba8()
-                .expect("failet to format atlas map to rgba8"),
+            &atlas_data,
         );
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
@@ -138,7 +130,7 @@ impl TextureResource {
         }
     }
 
-    pub fn texcoord(&self, resource_kind: model::ResourceKind) -> IVec2 {
+    pub fn texcoord(&self, resource_kind: ResourceKind) -> IVec2 {
         self.texcoords
             .get(&resource_kind)
             .expect(&format!(
