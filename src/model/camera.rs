@@ -12,7 +12,20 @@ impl Camera {
         Self { position, zoom }
     }
 
-    pub fn view_area(&self) -> Bounds<Vec3A> {
+    pub fn view_matrix(&self) -> Mat4 {
+        let bounds = self.view_bounds();
+
+        Mat4::orthographic_rh(
+            bounds.min.x,
+            bounds.max.x,
+            bounds.min.y,
+            bounds.max.y,
+            bounds.min.z,
+            bounds.max.z,
+        )
+    }
+
+    pub fn view_bounds(&self) -> Bounds<Vec3A> {
         Bounds::new(
             self.position - Vec3A::splat(self.zoom),
             self.position + Vec3A::splat(self.zoom),

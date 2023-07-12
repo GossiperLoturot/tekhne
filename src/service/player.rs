@@ -12,7 +12,7 @@ impl PlayerService {
             panic!("camera already exists");
         }
 
-        self.player = Some(Player::new(Vec3A::ZERO));
+        self.player = Some(Player::new(Vec3A::Z));
     }
 
     pub fn update(

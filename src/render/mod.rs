@@ -1,11 +1,13 @@
 pub use camera::CameraResource;
+pub use depth::DepthResource;
 pub use player::PlayerPipeline;
 pub use texture::TextureResource;
 pub use unit::UnitPipeline;
 
-use crate::service;
+use crate::service::{ReadBack, Service};
 
 mod camera;
+mod depth;
 mod player;
 mod texture;
 mod unit;
@@ -14,10 +16,11 @@ pub struct Render {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface,
-    camera_resource: camera::CameraResource,
-    texture_resource: texture::TextureResource,
-    unit_pipeline: unit::UnitPipeline,
-    player_pipeline: player::PlayerPipeline,
+    camera_resource: CameraResource,
+    texture_resource: TextureResource,
+    depth_resource: DepthResource,
+    unit_pipeline: UnitPipeline,
+    player_pipeline: PlayerPipeline,
 }
 
 impl Render {
@@ -42,12 +45,12 @@ impl Render {
             .unwrap();
         surface.configure(&device, &config);
 
-        let camera_resource = camera::CameraResource::new(&device, &config);
-        let texture_resource = texture::TextureResource::new(&device, &queue);
+        let camera_resource = CameraResource::new(&device, &config);
+        let texture_resource = TextureResource::new(&device, &queue);
+        let depth_resource = DepthResource::new(&device, &config);
         let unit_pipeline =
-            unit::UnitPipeline::new(&device, &config, &camera_resource, &texture_resource);
-        let player_pipeline =
-            player::PlayerPipeline::new(&device, &queue, &config, &camera_resource);
+            UnitPipeline::new(&device, &config, &camera_resource, &texture_resource);
+        let player_pipeline = PlayerPipeline::new(&device, &queue, &config, &camera_resource);
 
         Self {
             device,
@@ -55,12 +58,13 @@ impl Render {
             surface,
             camera_resource,
             texture_resource,
+            depth_resource,
             unit_pipeline,
             player_pipeline,
         }
     }
 
-    pub fn draw(&mut self, service: &service::Service) -> service::ReadBack {
+    pub fn draw(&mut self, service: &Service) -> ReadBack {
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame
             .texture
@@ -73,9 +77,19 @@ impl Render {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &view,
                 resolve_target: None,
-                ops: wgpu::Operations::default(),
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: true,
+                },
             })],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: self.depth_resource.view(),
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: true,
+                }),
+                stencil_ops: None,
+            }),
         });
 
         self.camera_resource.pre_draw(&self.queue, &service);
@@ -95,8 +109,10 @@ impl Render {
         self.queue.submit([encoder.finish()]);
         frame.present();
 
-        let screen_to_world = self.camera_resource.screen_to_world();
+        let screen_to_world_matrix = self.camera_resource.screen_to_world_matrix();
 
-        service::ReadBack { screen_to_world }
+        ReadBack {
+            screen_to_world_matrix,
+        }
     }
 }

@@ -4,9 +4,14 @@ var<uniform> vp_matrix: mat4x4<f32>;
 @group(1) @binding(2)
 var<uniform> grid_size: f32;
 
-struct InstanceInput {
+struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) texcoord: vec2<f32>,
+};
+
+struct InstanceInput {
+    @location(2) position: vec3<f32>,
+    @location(3) texcoord: vec2<f32>,
 };
 
 struct VertexOutput {
@@ -16,34 +21,11 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(
-    @builtin(vertex_index) in_vertex_index: u32,
+    vertex: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
-    var position: vec3<f32>;
-    var texcoord: vec2<f32>;
-
-    if in_vertex_index == u32(0) {
-        position = vec3<f32>(0.0, 0.0, 0.0);
-        texcoord = vec2<f32>(0.0, 0.0);
-    } else if in_vertex_index == u32(1) {
-        position = vec3<f32>(1.0, 0.0, 0.0);
-        texcoord = vec2<f32>(1.0, 0.0);
-    } else if in_vertex_index == u32(2) {
-        position = vec3<f32>(1.0, 1.0, 0.0);
-        texcoord = vec2<f32>(1.0, 1.0);
-    } else if in_vertex_index == u32(3) {
-        position = vec3<f32>(1.0, 1.0, 0.0);
-        texcoord = vec2<f32>(1.0, 1.0);
-    } else if in_vertex_index == u32(4) {
-        position = vec3<f32>(0.0, 1.0, 0.0);
-        texcoord = vec2<f32>(0.0, 1.0);
-    } else if in_vertex_index == u32(5) {
-        position = vec3<f32>(0.0, 0.0, 0.0);
-        texcoord = vec2<f32>(0.0, 0.0);
-    }
-
-    position = position + instance.position;
-    texcoord = (texcoord + instance.texcoord) / grid_size;
+    var position = vertex.position + instance.position;
+    var texcoord = (vertex.texcoord + instance.texcoord) / grid_size;
 
     var out: VertexOutput;
     out.clip_position = vp_matrix * vec4<f32>(position, 1.0);

@@ -1,6 +1,26 @@
 use super::camera::CameraResource;
-use crate::service::Service;
+use crate::{render::DepthResource, service::Service};
 use glam::*;
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: Vec3,
+    texcoord: Vec2,
+}
+
+impl Vertex {
+    const ATTRIBUTES: &[wgpu::VertexAttribute] =
+        &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
+
+    fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as u64,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: Self::ATTRIBUTES,
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -9,11 +29,11 @@ struct Instance {
 }
 
 impl Instance {
-    const ATTRIBUTES: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![0 => Float32x3];
+    const ATTRIBUTES: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![2 => Float32x3];
 
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Instance>() as u64,
+            array_stride: std::mem::size_of::<Self>() as u64,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: Self::ATTRIBUTES,
         }
@@ -22,6 +42,8 @@ impl Instance {
 
 #[derive(Debug)]
 pub struct PlayerPipeline {
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     bind_group: wgpu::BindGroup,
@@ -29,6 +51,17 @@ pub struct PlayerPipeline {
 }
 
 impl PlayerPipeline {
+    #[rustfmt::skip]
+    const VERTICES: [Vertex; 4] = [
+        Vertex { position: Vec3::new(-0.5, -0.5, 0.0), texcoord: Vec2::new(0.0, 0.0) },
+        Vertex { position: Vec3::new( 0.5, -0.5, 0.0), texcoord: Vec2::new(1.0, 0.0) },
+        Vertex { position: Vec3::new( 0.5,  0.5, 0.0), texcoord: Vec2::new(1.0, 1.0) },
+        Vertex { position: Vec3::new(-0.5,  0.5, 0.0), texcoord: Vec2::new(0.0, 1.0) },
+    ];
+
+    #[rustfmt::skip]
+    const INDICES: [u16; 6 ] = [0, 1, 2, 2, 3, 0];
+
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -54,7 +87,7 @@ impl PlayerPipeline {
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             },
             &image_data,
@@ -98,9 +131,21 @@ impl PlayerPipeline {
             ],
         });
 
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&Self::VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&Self::INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: device.limits().max_buffer_size,
+            size: std::mem::size_of::<Instance>() as u64,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -120,7 +165,7 @@ impl PlayerPipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[Instance::layout()],
+                buffers: &[Vertex::layout(), Instance::layout()],
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -131,7 +176,13 @@ impl PlayerPipeline {
                 polygon_mode: wgpu::PolygonMode::Fill,
                 conservative: false,
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: DepthResource::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
@@ -150,6 +201,8 @@ impl PlayerPipeline {
         });
 
         Self {
+            vertex_buffer,
+            index_buffer,
             instance_buffer,
             instance_count: 0,
             bind_group,
@@ -177,7 +230,9 @@ impl PlayerPipeline {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
         render_pass.set_bind_group(1, &self.bind_group, &[]);
-        render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
-        render_pass.draw(0..6, 0..self.instance_count);
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        render_pass.draw_indexed(0..Self::INDICES.len() as u32, 0, 0..self.instance_count);
     }
 }

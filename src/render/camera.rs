@@ -2,17 +2,17 @@ use crate::service::Service;
 use glam::*;
 
 pub struct CameraResource {
-    buffer: wgpu::Buffer,
+    matrix_buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
     width: u32,
     height: u32,
-    screen_to_world: Option<Mat4>,
+    screen_to_world_matrix: Option<Mat4>,
 }
 
 impl CameraResource {
     pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let matrix_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: std::mem::size_of::<Mat4>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
@@ -38,47 +38,42 @@ impl CameraResource {
             layout: &bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: buffer.as_entire_binding(),
+                resource: matrix_buffer.as_entire_binding(),
             }],
         });
 
         Self {
-            buffer,
+            matrix_buffer,
             bind_group_layout,
             bind_group,
             width: config.width,
             height: config.height,
-            screen_to_world: None,
+            screen_to_world_matrix: None,
         }
     }
 
     pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &Service) {
-        self.screen_to_world = None;
+        self.screen_to_world_matrix = None;
 
         if let Some(camera) = service.camera.get_camera() {
-            let view_area = camera.view_area();
-            let matrix = Mat4::from_scale(Vec3::new(
+            // transform to coordinates considering aspect ratio (shrink)
+            let correction_matrix = Mat4::from_scale(Vec3::new(
                 (self.height as f32 / self.width as f32).max(1.0),
                 (self.width as f32 / self.height as f32).max(1.0),
                 1.0,
-            )) * Mat4::orthographic_rh(
-                view_area.min.x as f32,
-                view_area.max.x as f32,
-                view_area.min.y as f32,
-                view_area.max.y as f32,
-                view_area.min.z as f32,
-                view_area.max.z as f32,
-            );
+            ));
+            let matrix = correction_matrix * camera.view_matrix();
 
-            queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[matrix]));
+            queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&[matrix]));
 
-            let screen_to_view = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+            // transform from actually screen coordinates to 0-1 screen coordinates
+            let correction_matrix = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
                 * Mat4::from_scale(Vec3::new(
                     (self.width as f32).recip() * 2.0,
                     -(self.height as f32).recip() * 2.0,
                     1.0,
                 ));
-            self.screen_to_world = Some(matrix.inverse() * screen_to_view);
+            self.screen_to_world_matrix = Some(matrix.inverse() * correction_matrix);
         }
     }
 
@@ -90,7 +85,7 @@ impl CameraResource {
         &self.bind_group
     }
 
-    pub fn screen_to_world(&self) -> Option<Mat4> {
-        self.screen_to_world
+    pub fn screen_to_world_matrix(&self) -> Option<Mat4> {
+        self.screen_to_world_matrix
     }
 }
