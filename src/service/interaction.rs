@@ -4,8 +4,8 @@ use glam::*;
 
 #[derive(Debug)]
 pub struct IUnitRayHit {
-    inside_point: IVec3,
-    outside_point: IVec3,
+    point: IVec3,
+    iunit: IUnit,
 }
 
 #[derive(Debug, Default)]
@@ -26,16 +26,16 @@ impl InteractionService {
                 let end = (matrix * Vec4::new(x as f32, y as f32, 1.0, 1.0))
                     .xyz()
                     .into();
-                let hit_info = Self::iunit_ray(start, end, iunit_service);
+                let ray_hit = Self::iunit_ray(start, end, iunit_service);
 
-                if let Some(hit_info) = hit_info {
-                    if input.mouse_pressed(0) {
-                        let position = hit_info.inside_point;
+                if let Some(ray_hit) = ray_hit {
+                    if input.mouse_pressed(0) && !ray_hit.iunit.resource_kind.unbreakable() {
+                        let position = ray_hit.point;
                         iunit_service.remove_iunit(position);
                     }
 
                     if input.mouse_pressed(1) {
-                        let position = hit_info.outside_point;
+                        let position = ray_hit.point + IVec3::Z;
                         iunit_service.add_iunit(IUnit::new(position, ResourceKind::SurfaceStone));
                     }
                 }
@@ -44,16 +44,15 @@ impl InteractionService {
     }
 
     fn iunit_ray(start: Vec3A, end: Vec3A, iunit_service: &IUnitService) -> Option<IUnitRayHit> {
-        let length = (end - start).length();
-        let delta = (end - start).normalize();
+        const FORWARD_STEP: f32 = 0.01;
+
+        let length = (end - start).length() / FORWARD_STEP;
+        let delta = (end - start).normalize() * FORWARD_STEP;
 
         for i in 0..length as usize {
             let point = (start + delta * i as f32).round().as_ivec3();
-            if iunit_service.get_iunit(point).is_some() {
-                return Some(IUnitRayHit {
-                    inside_point: point,
-                    outside_point: (start + delta * (i - 1) as f32).round().as_ivec3(),
-                });
+            if let Some(iunit) = iunit_service.get_iunit(point).cloned() {
+                return Some(IUnitRayHit { point, iunit });
             }
         }
 

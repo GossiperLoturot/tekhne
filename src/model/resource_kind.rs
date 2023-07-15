@@ -30,4 +30,10 @@ impl ResourceKind {
 
         image::load_from_memory(bytes).map(|image| image).ok()
     }
+
+    pub fn unbreakable(&self) -> bool {
+        match self {
+            _ => true,
+        }
+    }
 }
