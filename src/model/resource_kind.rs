@@ -5,6 +5,8 @@ pub enum ResourceKind {
     SurfaceGravel,
     SurfaceSand,
     SurfaceStone,
+    Tree,
+    Rock,
 }
 
 impl ResourceKind {
@@ -15,6 +17,8 @@ impl ResourceKind {
             ResourceKind::SurfaceGravel,
             ResourceKind::SurfaceSand,
             ResourceKind::SurfaceStone,
+            ResourceKind::Tree,
+            ResourceKind::Rock,
         ]
     }
 
@@ -26,14 +30,25 @@ impl ResourceKind {
             ResourceKind::SurfaceGravel => include_bytes!("../../assets/textures/SurfaceGravel.jpg"),
             ResourceKind::SurfaceSand => include_bytes!("../../assets/textures/SurfaceSand.jpg"),
             ResourceKind::SurfaceStone => include_bytes!("../../assets/textures/SurfaceStone.jpg"),
+            ResourceKind::Tree => include_bytes!("../../assets/textures/Frame.png"),
+            ResourceKind::Rock => include_bytes!("../../assets/textures/Frame.png"),
         };
 
         image::load_from_memory(bytes).map(|image| image).ok()
     }
 
-    pub fn unbreakable(&self) -> bool {
+    pub fn scale(&self) -> f32 {
         match self {
-            _ => true,
+            ResourceKind::Tree => 4.0,
+            _ => 1.0,
+        }
+    }
+
+    pub fn breakable(&self) -> bool {
+        match self {
+            ResourceKind::Tree => true,
+            ResourceKind::Rock => true,
+            _ => false,
         }
     }
 }

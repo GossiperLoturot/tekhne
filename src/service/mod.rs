@@ -60,12 +60,16 @@ impl Service {
         self.camera.update(&self.player, input);
 
         if let Some(read_back) = read_back {
-            self.interaction.update(input, read_back, &mut self.iunit);
+            self.interaction
+                .update(input, read_back, &mut self.iunit, &mut self.unit);
         }
 
         if let Some(camera) = self.camera.get_camera() {
-            self.generation
-                .generate(camera.view_bounds().into(), &mut self.iunit);
+            self.generation.generate(
+                camera.view_aabb().as_iaabb3(),
+                &mut self.iunit,
+                &mut self.unit,
+            );
         }
 
         self.time_instant = std::time::Instant::now();

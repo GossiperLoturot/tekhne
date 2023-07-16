@@ -28,7 +28,7 @@ impl TextureResource {
             let texture = resource_kind
                 .load_dynamic_image()
                 .expect(&format!("Failed to load an image {:?}", resource_kind))
-                .resize(
+                .resize_exact(
                     size_per_grid,
                     size_per_grid,
                     image::imageops::FilterType::Triangle,

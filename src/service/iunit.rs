@@ -32,12 +32,12 @@ impl IUnitService {
         self.iunits.get(&pos)
     }
 
-    pub fn get_iunits(&self, bounds: Bounds<IVec3>) -> Vec<&IUnit> {
+    pub fn get_iunits(&self, aabb: IAabb3) -> Vec<&IUnit> {
         let mut iunits = vec![];
 
-        for x in bounds.min.x..=bounds.max.x {
-            for y in bounds.min.y..=bounds.max.y {
-                for z in bounds.min.z..=bounds.max.z {
+        for x in aabb.min.x..=aabb.max.x {
+            for y in aabb.min.y..=aabb.max.y {
+                for z in aabb.min.z..=aabb.max.z {
                     if let Some(iunit) = self.iunits.get(&IVec3::new(x, y, z)) {
                         iunits.push(iunit);
                     }
@@ -74,7 +74,7 @@ mod tests {
     }
 
     #[test]
-    fn set_bounds_before_fill_data() {
+    fn set_aabb_before_fill_data() {
         let mut service = IUnitService::default();
         service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), ResourceKind::SurfaceDirt));
         service.add_iunit(IUnit::new(
@@ -82,7 +82,7 @@ mod tests {
             ResourceKind::SurfaceGrass,
         ));
 
-        let iunits = service.get_iunits(Bounds::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
+        let iunits = service.get_iunits(IAabb3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
         assert_eq!(iunits.len(), 1);
         let iunit = iunits.get(0).unwrap();
         assert_eq!(iunit.position, IVec3::new(0, 0, 0));

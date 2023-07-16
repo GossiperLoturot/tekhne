@@ -27,11 +27,12 @@ impl Vertex {
 struct Instance {
     position: Vec3,
     texcoord: Vec2,
+    scale: f32,
 }
 
 impl Instance {
     const ATTRIBUTES: &[wgpu::VertexAttribute] =
-        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x2];
+        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x2, 4 => Float32];
 
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
@@ -158,24 +159,26 @@ impl UnitPipeline {
         texture_resource: &TextureResource,
     ) {
         if let Some(camera) = service.camera.get_camera() {
-            let bounds = camera.view_bounds();
+            let aabb = camera.view_aabb();
 
             let iunits = service
                 .iunit
-                .get_iunits(bounds.into())
+                .get_iunits(aabb.as_iaabb3())
                 .into_iter()
                 .map(|iunit| Instance {
                     position: iunit.position.as_vec3(),
                     texcoord: texture_resource.texcoord(iunit.resource_kind).as_vec2(),
+                    scale: iunit.resource_kind.scale(),
                 });
 
             let units = service
                 .unit
-                .get_units(bounds)
+                .get_units(aabb)
                 .into_iter()
                 .map(|unit| Instance {
                     position: unit.position.into(),
                     texcoord: texture_resource.texcoord(unit.resource_kind).as_vec2(),
+                    scale: unit.resource_kind.scale(),
                 });
 
             let instances = iunits.chain(units).collect::<Vec<_>>();

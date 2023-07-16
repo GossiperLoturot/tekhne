@@ -69,7 +69,7 @@ impl PlayerPipeline {
         camera_resource: &CameraResource,
     ) -> Self {
         let image_data =
-            image::load_from_memory(include_bytes!("../../assets/textures/Player.jpg"))
+            image::load_from_memory(include_bytes!("../../assets/textures/Frame.png"))
                 .expect("failed to load image")
                 .to_rgba8();
 

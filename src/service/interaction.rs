@@ -1,11 +1,17 @@
-use super::{IUnitService, ReadBack};
+use super::{IUnitService, ReadBack, UnitService};
 use crate::model::*;
 use glam::*;
 
 #[derive(Debug)]
-pub struct IUnitRayHit {
+pub struct IUnitRayHit<'a> {
     point: IVec3,
-    iunit: IUnit,
+    iunit: &'a IUnit,
+}
+
+#[derive(Debug)]
+pub struct UnitRayHit<'a> {
+    aabb: Aabb3A,
+    units: Vec<&'a Unit>,
 }
 
 #[derive(Debug, Default)]
@@ -17,6 +23,7 @@ impl InteractionService {
         input: &winit_input_helper::WinitInputHelper,
         read_back: &ReadBack,
         iunit_service: &mut IUnitService,
+        unit_service: &mut UnitService,
     ) {
         if let Some(matrix) = read_back.screen_to_world_matrix {
             if let Some((x, y)) = input.mouse() {
@@ -26,17 +33,19 @@ impl InteractionService {
                 let end = (matrix * Vec4::new(x as f32, y as f32, 1.0, 1.0))
                     .xyz()
                     .into();
+
                 let ray_hit = Self::iunit_ray(start, end, iunit_service);
-
                 if let Some(ray_hit) = ray_hit {
-                    if input.mouse_pressed(0) && !ray_hit.iunit.resource_kind.unbreakable() {
-                        let position = ray_hit.point;
-                        iunit_service.remove_iunit(position);
+                    if input.mouse_pressed(0) && ray_hit.iunit.resource_kind.breakable() {
+                        iunit_service.remove_iunit(ray_hit.point);
                     }
+                }
 
-                    if input.mouse_pressed(1) {
-                        let position = ray_hit.point + IVec3::Z;
-                        iunit_service.add_iunit(IUnit::new(position, ResourceKind::SurfaceStone));
+                let ray_hit = Self::unit_ray(start, end, &unit_service);
+                if let Some(ray_hit) = ray_hit {
+                    if input.mouse_pressed(0) {
+                        let id = ray_hit.units[0].id;
+                        unit_service.remove_unit(&id);
                     }
                 }
             }
@@ -51,8 +60,26 @@ impl InteractionService {
 
         for i in 0..length as usize {
             let point = (start + delta * i as f32).round().as_ivec3();
-            if let Some(iunit) = iunit_service.get_iunit(point).cloned() {
+            if let Some(iunit) = iunit_service.get_iunit(point) {
                 return Some(IUnitRayHit { point, iunit });
+            }
+        }
+
+        None
+    }
+
+    fn unit_ray(start: Vec3A, end: Vec3A, unit_service: &UnitService) -> Option<UnitRayHit> {
+        const FORWARD_STEP: f32 = 0.01;
+
+        let length = (end - start).length() / FORWARD_STEP;
+        let delta = (end - start).normalize() * FORWARD_STEP;
+
+        for i in 1..length as usize {
+            let aabb = Aabb3A::new(start + delta * i as f32, start + delta * (i - 1) as f32);
+            let units = unit_service.get_units(aabb);
+
+            if !units.is_empty() {
+                return Some(UnitRayHit { aabb, units });
             }
         }
 

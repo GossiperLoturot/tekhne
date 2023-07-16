@@ -12,6 +12,7 @@ struct VertexInput {
 struct InstanceInput {
     @location(2) position: vec3<f32>,
     @location(3) texcoord: vec2<f32>,
+    @location(4) scale: f32,
 };
 
 struct VertexOutput {
@@ -24,7 +25,7 @@ fn vs_main(
     vertex: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
-    var position = vertex.position + instance.position;
+    var position = vertex.position * instance.scale + instance.position;
     var texcoord = (vertex.texcoord + instance.texcoord) / grid_size;
 
     var out: VertexOutput;
@@ -40,5 +41,11 @@ var texture_sampler: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(texture, texture_sampler, in.texcoord);
+    var color = textureSample(texture, texture_sampler, in.texcoord);
+
+    if color.a < 0.5 {
+        discard;
+    }
+
+    return color;
 }
