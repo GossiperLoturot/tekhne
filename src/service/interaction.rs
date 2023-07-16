@@ -36,7 +36,7 @@ impl InteractionService {
 
                 let ray_hit = Self::iunit_ray(start, end, iunit_service);
                 if let Some(ray_hit) = ray_hit {
-                    if input.mouse_pressed(0) && ray_hit.iunit.resource_kind.breakable() {
+                    if input.mouse_pressed(0) && ray_hit.iunit.breakable() {
                         iunit_service.remove_iunit(ray_hit.point);
                     }
                 }

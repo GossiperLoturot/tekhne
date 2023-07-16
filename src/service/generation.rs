@@ -23,13 +23,13 @@ impl GenerationService {
                     // generation rules start
 
                     iunit_service
-                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), ResourceKind::SurfaceGrass));
+                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), IUnitKind::SurfaceGrass));
 
                     if rand::random::<f32>() < 0.01 {
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
                             Vec3A::new(x as f32, y as f32, 1.0),
-                            ResourceKind::Tree,
+                            UnitKind::UnitTree,
                         ));
                     }
 
@@ -37,7 +37,7 @@ impl GenerationService {
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
                             Vec3A::new(x as f32, y as f32, 1.0),
-                            ResourceKind::Rock,
+                            UnitKind::UnitStone,
                         ));
                     }
 

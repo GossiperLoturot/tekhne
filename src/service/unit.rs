@@ -37,9 +37,7 @@ impl UnitService {
         let mut units = vec![];
 
         for unit in self.units.values() {
-            let unit_aabb = Aabb3A::splat(unit.position, unit.resource_kind.scale() * 0.5);
-
-            if aabb.intersects(&unit_aabb) {
+            if aabb.intersects(&unit.aabb()) {
                 units.push(unit);
             }
         }
@@ -57,15 +55,11 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(
-            id,
-            Vec3A::new(0.0, 0.0, 0.0),
-            ResourceKind::SurfaceDirt,
-        ));
+        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::UnitTree));
 
         let unit = service.get_unit(&id).unwrap();
         assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
-        assert_eq!(unit.resource_kind, ResourceKind::SurfaceDirt);
+        assert_eq!(unit.kind, UnitKind::UnitTree);
     }
 
     #[test]
@@ -73,11 +67,7 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(
-            id,
-            Vec3A::new(0.0, 0.0, 0.0),
-            ResourceKind::SurfaceDirt,
-        ));
+        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::UnitTree));
         service.remove_unit(&id);
 
         let is_none = service.get_unit(&id).is_none();
@@ -89,17 +79,13 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(
-            id,
-            Vec3A::new(0.0, 0.0, 0.0),
-            ResourceKind::SurfaceDirt,
-        ));
+        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::UnitTree));
 
         let other_id = Uuid::new_v4();
         service.add_unit(Unit::new(
             other_id,
             Vec3A::new(-2.0, -2.0, -2.0),
-            ResourceKind::SurfaceGrass,
+            UnitKind::UnitTree,
         ));
 
         let units = service.get_units(Aabb3A::new(
@@ -110,6 +96,6 @@ mod tests {
         let unit = units.get(0).unwrap();
         assert_eq!(unit.id, id);
         assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
-        assert_eq!(unit.resource_kind, ResourceKind::SurfaceDirt);
+        assert_eq!(unit.kind, UnitKind::UnitTree);
     }
 }

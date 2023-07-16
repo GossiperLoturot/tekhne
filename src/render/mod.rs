@@ -1,24 +1,30 @@
 pub use camera::CameraResource;
 pub use depth::DepthResource;
+pub use iunit::IUnitPipeline;
+pub use iunit_texture::IUnitTextureResource;
 pub use player::PlayerPipeline;
-pub use texture::TextureResource;
 pub use unit::UnitPipeline;
+pub use unit_texture::UnitTextureResource;
 
 use crate::service::{ReadBack, Service};
 
 mod camera;
 mod depth;
+mod iunit;
+mod iunit_texture;
 mod player;
-mod texture;
 mod unit;
+mod unit_texture;
 
 pub struct Render {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface,
     camera_resource: CameraResource,
-    texture_resource: TextureResource,
+    iunit_texture_resource: IUnitTextureResource,
+    unit_texture_resource: UnitTextureResource,
     depth_resource: DepthResource,
+    iunit_pipeline: IUnitPipeline,
     unit_pipeline: UnitPipeline,
     player_pipeline: PlayerPipeline,
 }
@@ -46,10 +52,13 @@ impl Render {
         surface.configure(&device, &config);
 
         let camera_resource = CameraResource::new(&device, &config);
-        let texture_resource = TextureResource::new(&device, &queue);
+        let iunit_texture_resource = IUnitTextureResource::new(&device, &queue);
+        let unit_texture_resource = UnitTextureResource::new(&device, &queue);
         let depth_resource = DepthResource::new(&device, &config);
+        let iunit_pipeline =
+            IUnitPipeline::new(&device, &config, &camera_resource, &iunit_texture_resource);
         let unit_pipeline =
-            UnitPipeline::new(&device, &config, &camera_resource, &texture_resource);
+            UnitPipeline::new(&device, &config, &camera_resource, &unit_texture_resource);
         let player_pipeline = PlayerPipeline::new(&device, &queue, &config, &camera_resource);
 
         Self {
@@ -57,8 +66,10 @@ impl Render {
             queue,
             surface,
             camera_resource,
-            texture_resource,
+            iunit_texture_resource,
+            unit_texture_resource,
             depth_resource,
+            iunit_pipeline,
             unit_pipeline,
             player_pipeline,
         }
@@ -93,14 +104,21 @@ impl Render {
         });
 
         self.camera_resource.pre_draw(&self.queue, &service);
+        self.iunit_pipeline
+            .pre_draw(&self.queue, &service, &self.iunit_texture_resource);
         self.unit_pipeline
-            .pre_draw(&self.queue, &service, &self.texture_resource);
+            .pre_draw(&self.queue, &service, &self.unit_texture_resource);
         self.player_pipeline.pre_draw(&self.queue, &service);
 
+        self.iunit_pipeline.draw(
+            &mut render_pass,
+            &self.camera_resource,
+            &self.iunit_texture_resource,
+        );
         self.unit_pipeline.draw(
             &mut render_pass,
             &self.camera_resource,
-            &self.texture_resource,
+            &self.unit_texture_resource,
         );
         self.player_pipeline
             .draw(&mut render_pass, &self.camera_resource);

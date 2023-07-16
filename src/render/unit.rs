@@ -1,4 +1,4 @@
-use super::{CameraResource, DepthResource, TextureResource};
+use super::{CameraResource, DepthResource, UnitTextureResource};
 use crate::service::Service;
 use glam::*;
 
@@ -26,13 +26,14 @@ impl Vertex {
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Instance {
     position: Vec3,
-    texcoord: Vec2,
-    scale: f32,
+    scale: Vec3,
+    texcoord_min: Vec2,
+    texcoord_max: Vec2,
 }
 
 impl Instance {
     const ATTRIBUTES: &[wgpu::VertexAttribute] =
-        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x2, 4 => Float32];
+        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x3, 4 => Float32x2, 5 => Float32x2];
 
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
@@ -68,7 +69,7 @@ impl UnitPipeline {
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &CameraResource,
-        texture_resource: &TextureResource,
+        texture_resource: &UnitTextureResource,
     ) -> Self {
         use wgpu::util::DeviceExt;
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -156,32 +157,34 @@ impl UnitPipeline {
         &mut self,
         queue: &wgpu::Queue,
         service: &Service,
-        texture_resource: &TextureResource,
+        texture_resource: &UnitTextureResource,
     ) {
         if let Some(camera) = service.camera.get_camera() {
-            let aabb = camera.view_aabb();
+            let view_aabb = camera.view_aabb();
 
-            let iunits = service
-                .iunit
-                .get_iunits(aabb.as_iaabb3())
-                .into_iter()
-                .map(|iunit| Instance {
-                    position: iunit.position.as_vec3(),
-                    texcoord: texture_resource.texcoord(iunit.resource_kind).as_vec2(),
-                    scale: iunit.resource_kind.scale(),
-                });
-
-            let units = service
+            let instances = service
                 .unit
-                .get_units(aabb)
+                .get_units(view_aabb)
                 .into_iter()
-                .map(|unit| Instance {
-                    position: unit.position.into(),
-                    texcoord: texture_resource.texcoord(unit.resource_kind).as_vec2(),
-                    scale: unit.resource_kind.scale(),
-                });
+                .map(|unit| {
+                    let aabb = unit.aabb();
+                    let texcoord = texture_resource
+                        .get_texcoord(&unit.kind)
+                        .expect(&format!("not registered unit kind {:?}", &unit.kind));
 
-            let instances = iunits.chain(units).collect::<Vec<_>>();
+                    let position = ((aabb.min + aabb.max) * 0.5).into();
+                    let scale = (aabb.max - aabb.min).into();
+                    let texcoord_min = texcoord.xy().as_vec2();
+                    let texcoord_max = texcoord.zw().as_vec2();
+
+                    Instance {
+                        position,
+                        scale,
+                        texcoord_min,
+                        texcoord_max,
+                    }
+                })
+                .collect::<Vec<_>>();
 
             queue.write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
             self.instance_count = instances.len() as u32;
@@ -192,7 +195,7 @@ impl UnitPipeline {
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         camera_resouce: &'a CameraResource,
-        texture_resource: &'a TextureResource,
+        texture_resource: &'a UnitTextureResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);

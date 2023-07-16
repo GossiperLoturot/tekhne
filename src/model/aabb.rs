@@ -11,8 +11,8 @@ impl IAabb3 {
         Self { min, max }
     }
 
-    pub fn splat(center: IVec3, v: i32) -> Self {
-        Self::new(center - IVec3::splat(v), center + IVec3::splat(v))
+    pub fn splat(center: IVec3, extents: IVec3) -> Self {
+        Self::new(center - extents, center + extents)
     }
 
     pub fn contains(&self, point: &IVec3) -> bool {
@@ -50,8 +50,8 @@ impl Aabb3A {
         Self { min, max }
     }
 
-    pub fn splat(center: Vec3A, v: f32) -> Self {
-        Self::new(center - Vec3A::splat(v), center + Vec3A::splat(v))
+    pub fn splat(origin: Vec3A, extents: Vec3A) -> Self {
+        Self::new(origin - extents, origin + extents)
     }
 
     pub fn contains(&self, point: &Vec3A) -> bool {

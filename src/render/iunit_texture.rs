@@ -3,47 +3,78 @@ use ahash::AHashMap;
 use glam::*;
 
 #[derive(Debug)]
-pub struct TextureResource {
-    texcoords: AHashMap<ResourceKind, IVec2>,
+pub struct IUnitTextureResource {
+    texcoords: AHashMap<IUnitKind, IVec2>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
 
-impl TextureResource {
+impl IUnitTextureResource {
     const SIZE: u32 = 1024;
-    const GRID: u32 = 32;
+    const UNIT_SIZE: u32 = 32;
 
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let size_per_grid = Self::SIZE / Self::GRID;
-        let mut atlas = image::DynamicImage::new_rgba8(Self::SIZE, Self::SIZE);
+        let grid_x = Self::SIZE / Self::UNIT_SIZE;
+        let grid_y = Self::SIZE / (Self::UNIT_SIZE * 2);
+        let mip_level_count = Self::UNIT_SIZE.ilog2();
+
+        let mut atlas = vec![];
         let mut texcoords = AHashMap::new();
 
-        for (i, &resource_kind) in ResourceKind::entry().into_iter().enumerate() {
-            if Self::GRID * Self::GRID < i as u32 {
-                panic!("Atlas texture size is too small!")
-            }
-
-            let (x, y) = ((i as u32 % Self::GRID), i as u32 / Self::GRID);
-
-            let texture = resource_kind
-                .load_dynamic_image()
-                .expect(&format!("Failed to load an image {:?}", resource_kind))
-                .resize_exact(
-                    size_per_grid,
-                    size_per_grid,
-                    image::imageops::FilterType::Triangle,
-                );
-            image::imageops::replace(
-                &mut atlas,
-                &texture,
-                (x * size_per_grid) as i64,
-                (y * size_per_grid) as i64,
-            );
-
-            texcoords.insert(resource_kind, IVec2::new(x as i32, y as i32));
+        for mip_level in 0..mip_level_count {
+            let size = Self::SIZE >> mip_level;
+            atlas.push(image::DynamicImage::new_rgba8(size, size));
         }
 
-        let atlas_data = atlas.to_rgba8();
+        for (i, kind) in IUnitKind::entry().into_iter().enumerate() {
+            if grid_x * grid_y < i as u32 {
+                panic!("Atlas texture size is too small!");
+            }
+
+            let (x, y) = (i as u32 % grid_x, i as u32 / grid_x);
+
+            if let Some(texture) = kind.top_texture() {
+                for mip_level in 0..mip_level_count {
+                    let unit_size = Self::UNIT_SIZE >> mip_level;
+                    let texture = texture.resize_exact(
+                        unit_size,
+                        unit_size,
+                        image::imageops::FilterType::Triangle,
+                    );
+                    image::imageops::replace(
+                        &mut atlas[mip_level as usize],
+                        &texture,
+                        (unit_size * x) as i64,
+                        (unit_size * y) as i64,
+                    );
+                }
+            }
+
+            if let Some(texture) = kind.side_texture() {
+                for mip_level in 0..mip_level_count {
+                    let unit_size = Self::UNIT_SIZE >> mip_level;
+                    let texture = texture.resize_exact(
+                        unit_size,
+                        unit_size,
+                        image::imageops::FilterType::Triangle,
+                    );
+                    image::imageops::replace(
+                        &mut atlas[mip_level as usize],
+                        &texture,
+                        (unit_size * x) as i64,
+                        (unit_size * y + unit_size) as i64,
+                    );
+                }
+            }
+
+            texcoords.insert(kind, IVec2::new(x as i32, y as i32));
+        }
+
+        let atlas_data = atlas
+            .into_iter()
+            .map(|atlas| atlas.to_rgba8().to_vec())
+            .flatten()
+            .collect::<Vec<_>>();
 
         use wgpu::util::DeviceExt;
         let texture = device.create_texture_with_data(
@@ -51,11 +82,11 @@ impl TextureResource {
             &wgpu::TextureDescriptor {
                 label: None,
                 size: wgpu::Extent3d {
-                    width: atlas_data.width(),
-                    height: atlas_data.height(),
+                    width: Self::SIZE,
+                    height: Self::SIZE,
                     depth_or_array_layers: 1,
                 },
-                mip_level_count: 1,
+                mip_level_count,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format: wgpu::TextureFormat::Rgba8UnormSrgb,
@@ -65,11 +96,15 @@ impl TextureResource {
             &atlas_data,
         );
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
+        let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
 
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(&[Self::GRID as f32]),
+            contents: bytemuck::cast_slice(&[grid_x as f32, grid_y as f32]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -130,14 +165,8 @@ impl TextureResource {
         }
     }
 
-    pub fn texcoord(&self, resource_kind: ResourceKind) -> IVec2 {
-        self.texcoords
-            .get(&resource_kind)
-            .expect(&format!(
-                "not registered a resource kind {:?}",
-                resource_kind
-            ))
-            .clone()
+    pub fn get_texcoord(&self, kind: &IUnitKind) -> Option<IVec2> {
+        self.texcoords.get(kind).cloned()
     }
 
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
