@@ -7,6 +7,9 @@ pub struct PlayerService {
 }
 
 impl PlayerService {
+    const DEFAULT_SPEED: f32 = 2.0;
+    const SPRINT_SPEED: f32 = 4.0;
+
     pub fn spawn_player(&mut self) {
         if self.player.is_some() {
             panic!("camera already exists");
@@ -20,19 +23,24 @@ impl PlayerService {
         input: &winit_input_helper::WinitInputHelper,
         elased: std::time::Duration,
     ) {
-        const SPEED: f32 = 1.0;
+        let speed = if input.key_held(winit::event::VirtualKeyCode::LShift) {
+            Self::SPRINT_SPEED
+        } else {
+            Self::DEFAULT_SPEED
+        };
+
         if let Some(player) = &mut self.player {
             if input.key_held(winit::event::VirtualKeyCode::W) {
-                player.position.y += SPEED * elased.as_secs_f32();
+                player.position.y += speed * elased.as_secs_f32();
             }
             if input.key_held(winit::event::VirtualKeyCode::S) {
-                player.position.y -= SPEED * elased.as_secs_f32();
+                player.position.y -= speed * elased.as_secs_f32();
             }
             if input.key_held(winit::event::VirtualKeyCode::A) {
-                player.position.x -= SPEED * elased.as_secs_f32();
+                player.position.x -= speed * elased.as_secs_f32();
             }
             if input.key_held(winit::event::VirtualKeyCode::D) {
-                player.position.x += SPEED * elased.as_secs_f32();
+                player.position.x += speed * elased.as_secs_f32();
             }
         }
     }

@@ -47,6 +47,7 @@ impl Service {
         read_back: Option<&ReadBack>,
     ) {
         let elapsed = self.time_instant.elapsed();
+        self.time_instant = std::time::Instant::now();
 
         if self.player.get_player().is_none() {
             self.player.spawn_player();
@@ -71,7 +72,5 @@ impl Service {
                 &mut self.unit,
             );
         }
-
-        self.time_instant = std::time::Instant::now();
     }
 }
