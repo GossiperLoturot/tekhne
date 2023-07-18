@@ -1,32 +1,57 @@
-// TODO: improve performance by grid space partitioning
-
 use crate::model::*;
-use ahash::AHashMap;
+use ahash::{AHashMap, HashSet};
 use glam::*;
 use uuid::Uuid;
 
 #[derive(Debug, Default)]
 pub struct UnitService {
     units: AHashMap<Uuid, Unit>,
+    index_table: AHashMap<IVec3, HashSet<Uuid>>,
 }
 
 impl UnitService {
-    pub fn add_unit(&mut self, unit: Unit) -> Option<()> {
-        if self.units.contains_key(&unit.id) {
-            return None;
-        }
+    const GRID_SIZE: f32 = 32.0;
 
-        self.units.insert(unit.id.clone(), unit);
-        Some(())
+    pub fn add_unit(&mut self, unit: Unit) -> Option<()> {
+        if !self.units.contains_key(&unit.id) {
+            let aabb = unit.aabb().grid_partition(Self::GRID_SIZE);
+            for x in aabb.min.x..=aabb.max.x {
+                for y in aabb.min.y..=aabb.max.y {
+                    for z in aabb.min.z..=aabb.max.z {
+                        self.index_table
+                            .entry(IVec3::new(x, y, z))
+                            .or_default()
+                            .insert(unit.id);
+                    }
+                }
+            }
+
+            self.units.insert(unit.id.clone(), unit);
+            Some(())
+        } else {
+            None
+        }
     }
 
     pub fn remove_unit(&mut self, id: &Uuid) -> Option<()> {
-        if !self.units.contains_key(id) {
-            return None;
-        }
+        if let Some(unit) = self.units.get(id) {
+            let aabb = unit.aabb().grid_partition(Self::GRID_SIZE);
+            for x in aabb.min.x..=aabb.max.x {
+                for y in aabb.min.y..=aabb.max.y {
+                    for z in aabb.min.z..=aabb.max.z {
+                        self.index_table
+                            .entry(IVec3::new(x, y, z))
+                            .or_default()
+                            .remove(&unit.id);
+                    }
+                }
+            }
 
-        self.units.remove(id);
-        Some(())
+            self.units.remove(id);
+            Some(())
+        } else {
+            None
+        }
     }
 
     pub fn get_unit(&self, id: &Uuid) -> Option<&Unit> {
@@ -36,9 +61,17 @@ impl UnitService {
     pub fn get_units(&self, aabb: Aabb3A) -> Vec<&Unit> {
         let mut units = vec![];
 
-        for unit in self.units.values() {
-            if aabb.intersects(&unit.aabb()) {
-                units.push(unit);
+        let grid_aabb = aabb.grid_partition(Self::GRID_SIZE);
+        for x in grid_aabb.min.x..=grid_aabb.max.x {
+            for y in grid_aabb.min.y..=grid_aabb.max.y {
+                for z in grid_aabb.min.z..=grid_aabb.max.z {
+                    if let Some(ids) = self.index_table.get(&IVec3::new(x, y, z)) {
+                        ids.into_iter()
+                            .filter_map(|id| self.units.get(id))
+                            .filter(|unit| aabb.intersects(&unit.aabb()))
+                            .for_each(|unit| units.push(unit));
+                    }
+                }
             }
         }
 
@@ -84,7 +117,7 @@ mod tests {
         let other_id = Uuid::new_v4();
         service.add_unit(Unit::new(
             other_id,
-            Vec3A::new(-2.0, -2.0, -2.0),
+            Vec3A::new(-4.0, -4.0, -4.0),
             UnitKind::UnitTree,
         ));
 

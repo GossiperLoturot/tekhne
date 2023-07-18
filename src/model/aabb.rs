@@ -77,6 +77,12 @@ impl Aabb3A {
         !is_outside
     }
 
+    pub fn grid_partition(&self, grid_size: f32) -> IAabb3 {
+        let min = (self.min / grid_size).floor().as_ivec3();
+        let max = (self.max / grid_size).floor().as_ivec3();
+        IAabb3 { min, max }
+    }
+
     pub fn as_iaabb3(&self) -> IAabb3 {
         IAabb3 {
             min: self.min.as_ivec3(),
