@@ -2,7 +2,7 @@ use super::PlayerService;
 use crate::model::*;
 use glam::*;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct CameraService {
     camera: Option<Camera>,
 }

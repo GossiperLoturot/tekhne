@@ -3,7 +3,7 @@ use ahash::{AHashMap, HashSet};
 use glam::*;
 use uuid::Uuid;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct UnitService {
     units: AHashMap<Uuid, Unit>,
     index_table: AHashMap<IVec3, HashSet<Uuid>>,
@@ -26,7 +26,7 @@ impl UnitService {
                 }
             }
 
-            self.units.insert(unit.id.clone(), unit);
+            self.units.insert(unit.id, unit);
             Some(())
         } else {
             None
@@ -66,7 +66,7 @@ impl UnitService {
             for y in grid_aabb.min.y..=grid_aabb.max.y {
                 for z in grid_aabb.min.z..=grid_aabb.max.z {
                     if let Some(ids) = self.index_table.get(&IVec3::new(x, y, z)) {
-                        ids.into_iter()
+                        ids.iter()
                             .filter_map(|id| self.units.get(id))
                             .filter(|unit| aabb.intersects(&unit.aabb()))
                             .for_each(|unit| units.push(unit));

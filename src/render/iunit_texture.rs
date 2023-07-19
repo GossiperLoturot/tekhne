@@ -2,7 +2,6 @@ use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
 
-#[derive(Debug)]
 pub struct IUnitTextureResource {
     texcoords: AHashMap<IUnitKind, IVec2>,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -72,13 +71,12 @@ impl IUnitTextureResource {
 
         let atlas_data = atlas
             .into_iter()
-            .map(|atlas| atlas.to_rgba8().to_vec())
-            .flatten()
+            .flat_map(|atlas| atlas.to_rgba8().to_vec())
             .collect::<Vec<_>>();
 
         use wgpu::util::DeviceExt;
         let texture = device.create_texture_with_data(
-            &queue,
+            queue,
             &wgpu::TextureDescriptor {
                 label: None,
                 size: wgpu::Extent3d {

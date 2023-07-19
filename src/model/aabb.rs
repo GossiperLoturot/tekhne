@@ -11,8 +11,8 @@ impl IAabb3 {
         Self { min, max }
     }
 
-    pub fn splat(center: IVec3, extents: IVec3) -> Self {
-        Self::new(center - extents, center + extents)
+    pub fn splat(origin: IVec3, extents: IVec3) -> Self {
+        Self::new(origin - extents, origin + extents)
     }
 
     pub fn contains(&self, point: &IVec3) -> bool {
@@ -27,12 +27,12 @@ impl IAabb3 {
 
     pub fn intersects(&self, other: &Self) -> bool {
         let self_size = self.max - self.min;
-        let self_center = self.min + self.max;
+        let self_origin = self.min + self.max;
 
         let other_size = other.max - other.min;
-        let other_center = other.min + other.max;
+        let other_origin = other.min + other.max;
 
-        let norm = (other_center - self_center).abs();
+        let norm = (other_origin - self_origin).abs();
         let size = self_size + other_size;
         let is_outside = size.x < norm.x || size.y < norm.y || size.z < norm.z;
         !is_outside
@@ -66,12 +66,12 @@ impl Aabb3A {
 
     pub fn intersects(&self, other: &Self) -> bool {
         let self_size = self.max - self.min;
-        let self_center = self.min + self.max;
+        let self_origin = self.min + self.max;
 
         let other_size = other.max - other.min;
-        let other_center = other.min + other.max;
+        let other_origin = other.min + other.max;
 
-        let norm = (other_center - self_center).abs();
+        let norm = (other_origin - self_origin).abs();
         let size = self_size + other_size;
         let is_outside = size.x < norm.x || size.y < norm.y || size.z < norm.z;
         !is_outside

@@ -4,7 +4,7 @@ use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct IUnitService {
     iunits: AHashMap<IVec3, IUnit>,
 }

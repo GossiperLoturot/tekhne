@@ -3,7 +3,7 @@ use crate::service::Service;
 use glam::*;
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
     position: Vec3,
     texcoord: Vec2,
@@ -23,7 +23,7 @@ impl Vertex {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Instance {
     position: Vec3,
     texcoord: Vec2,
@@ -42,7 +42,6 @@ impl Instance {
     }
 }
 
-#[derive(Debug)]
 pub struct IUnitPipeline {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
@@ -53,7 +52,7 @@ pub struct IUnitPipeline {
 
 impl IUnitPipeline {
     #[rustfmt::skip]
-    const VERTICES: [Vertex; 4] = [
+    const VERTICES: &[Vertex] = &[
         Vertex { position: Vec3::new(-0.5, -0.5, -0.5), texcoord: Vec2::new(0.0, 0.0) },
         Vertex { position: Vec3::new( 0.5, -0.5, -0.5), texcoord: Vec2::new(1.0, 0.0) },
         Vertex { position: Vec3::new( 0.5,  0.5, 0.5), texcoord: Vec2::new(1.0, 1.0) },
@@ -61,7 +60,7 @@ impl IUnitPipeline {
     ];
 
     #[rustfmt::skip]
-    const INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
+    const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
     pub fn new(
         device: &wgpu::Device,
@@ -72,13 +71,13 @@ impl IUnitPipeline {
         use wgpu::util::DeviceExt;
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(&Self::VERTICES),
+            contents: bytemuck::cast_slice(Self::VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(&Self::INDICES),
+            contents: bytemuck::cast_slice(Self::INDICES),
             usage: wgpu::BufferUsages::INDEX,
         });
 
@@ -168,7 +167,7 @@ impl IUnitPipeline {
                     let position = iunit.position.as_vec3();
                     let texcoord = texture_resource
                         .get_texcoord(&iunit.kind)
-                        .expect(&format!("not registered a iunit kind {:?}", &iunit.kind))
+                        .unwrap_or_else(|| panic!("not registered a iunit kind {:?}", &iunit.kind))
                         .as_vec2();
 
                     Instance { position, texcoord }

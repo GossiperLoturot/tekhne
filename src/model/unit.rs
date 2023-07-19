@@ -2,7 +2,7 @@ use super::Aabb3A;
 use glam::*;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UnitKind {
     UnitTree,
     UnitStone,

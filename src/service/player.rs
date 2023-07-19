@@ -1,7 +1,7 @@
 use crate::model::*;
 use glam::*;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct PlayerService {
     player: Option<Player>,
 }

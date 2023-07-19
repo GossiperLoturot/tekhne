@@ -3,7 +3,7 @@ use crate::service::Service;
 use glam::*;
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
     position: Vec3,
     texcoord: Vec2,
@@ -23,7 +23,7 @@ impl Vertex {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Instance {
     position: Vec3,
     scale: Vec3,
@@ -44,7 +44,6 @@ impl Instance {
     }
 }
 
-#[derive(Debug)]
 pub struct UnitPipeline {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
@@ -55,7 +54,7 @@ pub struct UnitPipeline {
 
 impl UnitPipeline {
     #[rustfmt::skip]
-    const VERTICES: [Vertex; 4] = [
+    const VERTICES: &[Vertex] = &[
         Vertex { position: Vec3::new(-0.5, -0.5, -0.5), texcoord: Vec2::new(0.0, 0.0) },
         Vertex { position: Vec3::new( 0.5, -0.5, -0.5), texcoord: Vec2::new(1.0, 0.0) },
         Vertex { position: Vec3::new( 0.5,  0.5, 0.5), texcoord: Vec2::new(1.0, 1.0) },
@@ -63,7 +62,7 @@ impl UnitPipeline {
     ];
 
     #[rustfmt::skip]
-    const INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
+    const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
     pub fn new(
         device: &wgpu::Device,
@@ -74,13 +73,13 @@ impl UnitPipeline {
         use wgpu::util::DeviceExt;
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(&Self::VERTICES),
+            contents: bytemuck::cast_slice(Self::VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(&Self::INDICES),
+            contents: bytemuck::cast_slice(Self::INDICES),
             usage: wgpu::BufferUsages::INDEX,
         });
 
@@ -170,7 +169,7 @@ impl UnitPipeline {
                     let aabb = unit.aabb();
                     let texcoord = texture_resource
                         .get_texcoord(&unit.kind)
-                        .expect(&format!("not registered unit kind {:?}", &unit.kind));
+                        .unwrap_or_else(|| panic!("not registered unit kind {:?}", &unit.kind));
 
                     let position = ((aabb.min + aabb.max) * 0.5).into();
                     let scale = (aabb.max - aabb.min).into();

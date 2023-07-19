@@ -2,7 +2,6 @@ use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
 
-#[derive(Debug)]
 pub struct UnitTextureResource {
     texcoords: AHashMap<UnitKind, IVec4>,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -29,55 +28,51 @@ impl UnitTextureResource {
         // allocate texture to atlas by strip packing algolithm
         let (mut x, mut y, mut y_upper_bounds) = (0, 0, 0);
         for kind in UnitKind::entry() {
-            match (kind.texture(), kind.texture_size()) {
-                (Some(texture), Some(texture_size)) => {
-                    if grid < x + texture_size.x as u32 && grid < y + texture_size.y as u32 {
-                        panic!("Atlas texture size is too small!");
-                    }
-
-                    for mip_level in 0..mip_level_count {
-                        let unit_size = Self::UNIT_SIZE >> mip_level;
-                        let texture = texture.resize_exact(
-                            unit_size * texture_size.x as u32,
-                            unit_size * texture_size.y as u32,
-                            image::imageops::FilterType::Triangle,
-                        );
-                        image::imageops::replace(
-                            &mut atlas[mip_level as usize],
-                            &texture,
-                            (unit_size * x) as i64,
-                            (unit_size * y) as i64,
-                        );
-                    }
-                    texcoords.insert(
-                        kind,
-                        IVec4::new(
-                            x as i32,
-                            y as i32,
-                            x as i32 + texture_size.x,
-                            y as i32 + texture_size.y,
-                        ),
-                    );
-
-                    x += texture_size.x as u32;
-                    y_upper_bounds = y_upper_bounds.max(texture_size.y as u32);
-                    if grid <= x {
-                        (x, y, y_upper_bounds) = (0, y_upper_bounds, 0);
-                    }
+            if let (Some(texture), Some(texture_size)) = (kind.texture(), kind.texture_size()) {
+                if grid < x + texture_size.x as u32 && grid < y + texture_size.y as u32 {
+                    panic!("Atlas texture size is too small!");
                 }
-                _ => {}
+
+                for mip_level in 0..mip_level_count {
+                    let unit_size = Self::UNIT_SIZE >> mip_level;
+                    let texture = texture.resize_exact(
+                        unit_size * texture_size.x as u32,
+                        unit_size * texture_size.y as u32,
+                        image::imageops::FilterType::Triangle,
+                    );
+                    image::imageops::replace(
+                        &mut atlas[mip_level as usize],
+                        &texture,
+                        (unit_size * x) as i64,
+                        (unit_size * y) as i64,
+                    );
+                }
+                texcoords.insert(
+                    kind,
+                    IVec4::new(
+                        x as i32,
+                        y as i32,
+                        x as i32 + texture_size.x,
+                        y as i32 + texture_size.y,
+                    ),
+                );
+
+                x += texture_size.x as u32;
+                y_upper_bounds = y_upper_bounds.max(texture_size.y as u32);
+                if grid <= x {
+                    (x, y, y_upper_bounds) = (0, y_upper_bounds, 0);
+                }
             }
         }
 
         let atlas_data = atlas
             .into_iter()
-            .map(|atlas| atlas.to_rgba8().to_vec())
-            .flatten()
+            .flat_map(|atlas| atlas.to_rgba8().to_vec())
             .collect::<Vec<_>>();
 
         use wgpu::util::DeviceExt;
         let texture = device.create_texture_with_data(
-            &queue,
+            queue,
             &wgpu::TextureDescriptor {
                 label: None,
                 size: wgpu::Extent3d {

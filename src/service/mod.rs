@@ -3,6 +3,7 @@ pub use generation::GenerationService;
 pub use interaction::InteractionService;
 pub use iunit::IUnitService;
 pub use player::PlayerService;
+pub use ui::UIService;
 pub use unit::UnitService;
 
 use glam::*;
@@ -12,10 +13,12 @@ mod generation;
 mod interaction;
 mod iunit;
 mod player;
+mod ui;
 mod unit;
 
 pub struct ReadBack {
     pub screen_to_world_matrix: Option<Mat4>,
+    pub screen_to_ui_matrix: Option<Mat4>,
 }
 
 pub struct Service {
@@ -25,6 +28,7 @@ pub struct Service {
     pub generation: GenerationService,
     pub interaction: InteractionService,
     pub player: PlayerService,
+    pub ui: UIService,
     time_instant: std::time::Instant,
 }
 
@@ -37,6 +41,7 @@ impl Service {
             generation: GenerationService::default(),
             interaction: InteractionService::default(),
             player: PlayerService::default(),
+            ui: UIService::default(),
             time_instant: std::time::Instant::now(),
         }
     }
@@ -59,6 +64,7 @@ impl Service {
 
         self.player.update(input, elapsed);
         self.camera.update(&self.player, input);
+        self.ui.update(input);
 
         if let Some(read_back) = read_back {
             self.interaction

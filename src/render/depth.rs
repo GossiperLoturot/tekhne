@@ -1,4 +1,3 @@
-#[derive(Debug)]
 pub struct DepthResource {
     view: wgpu::TextureView,
 }

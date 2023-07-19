@@ -14,7 +14,7 @@ pub struct UnitRayHit<'a> {
     units: Vec<&'a Unit>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct InteractionService;
 
 impl InteractionService {
@@ -27,12 +27,8 @@ impl InteractionService {
     ) {
         if let Some(matrix) = read_back.screen_to_world_matrix {
             if let Some((x, y)) = input.mouse() {
-                let start = (matrix * Vec4::new(x as f32, y as f32, 0.0, 1.0))
-                    .xyz()
-                    .into();
-                let end = (matrix * Vec4::new(x as f32, y as f32, 1.0, 1.0))
-                    .xyz()
-                    .into();
+                let start = (matrix * Vec4::new(x, y, 0.0, 1.0)).xyz().into();
+                let end = (matrix * Vec4::new(x, y, 1.0, 1.0)).xyz().into();
 
                 let ray_hit = Self::iunit_ray(start, end, iunit_service);
                 if let Some(ray_hit) = ray_hit {
@@ -41,7 +37,7 @@ impl InteractionService {
                     }
                 }
 
-                let ray_hit = Self::unit_ray(start, end, &unit_service);
+                let ray_hit = Self::unit_ray(start, end, unit_service);
                 if let Some(ray_hit) = ray_hit {
                     if input.mouse_pressed(0) {
                         let id = ray_hit.units[0].id;

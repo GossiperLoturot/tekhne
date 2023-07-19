@@ -4,7 +4,7 @@ use ahash::AHashSet;
 use glam::*;
 use uuid::Uuid;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct GenerationService {
     init_flags: AHashSet<IVec2>,
 }
