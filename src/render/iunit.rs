@@ -1,4 +1,4 @@
-use super::{CameraResource, DepthResource, IUnitTextureResource};
+use super::{texture::IUnitTextureResource, CameraResource, DepthResource};
 use crate::service::Service;
 use glam::*;
 
@@ -47,6 +47,7 @@ pub struct IUnitPipeline {
     index_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
+    texture_resource: IUnitTextureResource,
     pipeline: wgpu::RenderPipeline,
 }
 
@@ -64,9 +65,9 @@ impl IUnitPipeline {
 
     pub fn new(
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &CameraResource,
-        texture_resource: &IUnitTextureResource,
     ) -> Self {
         use wgpu::util::DeviceExt;
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -90,6 +91,8 @@ impl IUnitPipeline {
 
         let shader =
             device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/iunit.wgsl"));
+
+        let texture_resource = IUnitTextureResource::new(device, queue);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -146,16 +149,12 @@ impl IUnitPipeline {
             index_buffer,
             instance_buffer,
             instance_count: 0,
+            texture_resource,
             pipeline,
         }
     }
 
-    pub fn pre_draw(
-        &mut self,
-        queue: &wgpu::Queue,
-        service: &Service,
-        texture_resource: &IUnitTextureResource,
-    ) {
+    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &Service) {
         if let Some(camera) = service.camera.get_camera() {
             let view_aabb = camera.view_aabb();
 
@@ -165,7 +164,8 @@ impl IUnitPipeline {
                 .into_iter()
                 .map(|iunit| {
                     let position = iunit.position.as_vec3();
-                    let texcoord = texture_resource
+                    let texcoord = self
+                        .texture_resource
                         .get_texcoord(&iunit.kind)
                         .unwrap_or_else(|| panic!("not registered a iunit kind {:?}", &iunit.kind))
                         .as_vec2();
@@ -183,11 +183,10 @@ impl IUnitPipeline {
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         camera_resouce: &'a CameraResource,
-        texture_resource: &'a IUnitTextureResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
-        render_pass.set_bind_group(1, texture_resource.bind_group(), &[]);
+        render_pass.set_bind_group(1, self.texture_resource.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

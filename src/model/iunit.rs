@@ -12,31 +12,21 @@ pub enum IUnitKind {
 impl IUnitKind {
     pub fn entry() -> [IUnitKind; 5] {
         [
-            IUnitKind::SurfaceDirt,
-            IUnitKind::SurfaceGrass,
-            IUnitKind::SurfaceGrass,
-            IUnitKind::SurfaceSand,
-            IUnitKind::SurfaceStone,
+            Self::SurfaceDirt,
+            Self::SurfaceGrass,
+            Self::SurfaceGrass,
+            Self::SurfaceSand,
+            Self::SurfaceStone,
         ]
     }
 
     pub fn top_texture(&self) -> Option<image::DynamicImage> {
         let bytes: Option<&[u8]> = match self {
-            IUnitKind::SurfaceDirt => {
-                Some(include_bytes!("../../assets/textures/surface_dirt.png"))
-            }
-            IUnitKind::SurfaceGrass => {
-                Some(include_bytes!("../../assets/textures/surface_grass.png"))
-            }
-            IUnitKind::SurfaceGravel => {
-                Some(include_bytes!("../../assets/textures/surface_gravel.png"))
-            }
-            IUnitKind::SurfaceSand => {
-                Some(include_bytes!("../../assets/textures/surface_sand.png"))
-            }
-            IUnitKind::SurfaceStone => {
-                Some(include_bytes!("../../assets/textures/surface_stone.png"))
-            }
+            Self::SurfaceDirt => Some(include_bytes!("../../assets/textures/surface_dirt.png")),
+            Self::SurfaceGrass => Some(include_bytes!("../../assets/textures/surface_grass.png")),
+            Self::SurfaceGravel => Some(include_bytes!("../../assets/textures/surface_gravel.png")),
+            Self::SurfaceSand => Some(include_bytes!("../../assets/textures/surface_sand.png")),
+            Self::SurfaceStone => Some(include_bytes!("../../assets/textures/surface_stone.png")),
         };
 
         bytes.and_then(|bytes| image::load_from_memory(bytes).ok())
@@ -44,11 +34,11 @@ impl IUnitKind {
 
     pub fn side_texture(&self) -> Option<image::DynamicImage> {
         let bytes: Option<&[u8]> = match self {
-            IUnitKind::SurfaceDirt => None,
-            IUnitKind::SurfaceGrass => None,
-            IUnitKind::SurfaceGravel => None,
-            IUnitKind::SurfaceSand => None,
-            IUnitKind::SurfaceStone => None,
+            Self::SurfaceDirt => None,
+            Self::SurfaceGrass => None,
+            Self::SurfaceGravel => None,
+            Self::SurfaceSand => None,
+            Self::SurfaceStone => None,
         };
 
         bytes.and_then(|bytes| image::load_from_memory(bytes).ok())

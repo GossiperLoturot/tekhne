@@ -1,4 +1,4 @@
-use super::{CameraResource, DepthResource, UnitTextureResource};
+use super::{texture::UnitTextureResource, CameraResource, DepthResource};
 use crate::service::Service;
 use glam::*;
 
@@ -49,6 +49,7 @@ pub struct UnitPipeline {
     index_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
+    texture_resource: UnitTextureResource,
     pipeline: wgpu::RenderPipeline,
 }
 
@@ -66,9 +67,9 @@ impl UnitPipeline {
 
     pub fn new(
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &CameraResource,
-        texture_resource: &UnitTextureResource,
     ) -> Self {
         use wgpu::util::DeviceExt;
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -92,6 +93,8 @@ impl UnitPipeline {
 
         let shader =
             device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/unit.wgsl"));
+
+        let texture_resource = UnitTextureResource::new(device, queue);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -148,16 +151,12 @@ impl UnitPipeline {
             index_buffer,
             instance_buffer,
             instance_count: 0,
+            texture_resource,
             pipeline,
         }
     }
 
-    pub fn pre_draw(
-        &mut self,
-        queue: &wgpu::Queue,
-        service: &Service,
-        texture_resource: &UnitTextureResource,
-    ) {
+    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &Service) {
         if let Some(camera) = service.camera.get_camera() {
             let view_aabb = camera.view_aabb();
 
@@ -167,7 +166,8 @@ impl UnitPipeline {
                 .into_iter()
                 .map(|unit| {
                     let aabb = unit.aabb();
-                    let texcoord = texture_resource
+                    let texcoord = self
+                        .texture_resource
                         .get_texcoord(&unit.kind)
                         .unwrap_or_else(|| panic!("not registered unit kind {:?}", &unit.kind));
 
@@ -194,11 +194,10 @@ impl UnitPipeline {
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         camera_resouce: &'a CameraResource,
-        texture_resource: &'a UnitTextureResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
-        render_pass.set_bind_group(1, texture_resource.bind_group(), &[]);
+        render_pass.set_bind_group(1, self.texture_resource.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

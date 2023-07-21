@@ -9,14 +9,14 @@ pub enum UnitKind {
 }
 
 impl UnitKind {
-    pub fn entry() -> [UnitKind; 2] {
-        [UnitKind::UnitTree, UnitKind::UnitStone]
+    pub fn entry() -> [Self; 2] {
+        [Self::UnitTree, Self::UnitStone]
     }
 
     pub fn texture(&self) -> Option<image::DynamicImage> {
         let bytes: Option<&[u8]> = match self {
-            UnitKind::UnitTree => Some(include_bytes!("../../assets/textures/frame.png")),
-            UnitKind::UnitStone => Some(include_bytes!("../../assets/textures/frame.png")),
+            Self::UnitTree => Some(include_bytes!("../../assets/textures/frame.png")),
+            Self::UnitStone => Some(include_bytes!("../../assets/textures/frame.png")),
         };
 
         bytes.and_then(|bytes| image::load_from_memory(bytes).ok())
@@ -24,8 +24,8 @@ impl UnitKind {
 
     pub fn texture_size(&self) -> Option<IVec2> {
         match self {
-            UnitKind::UnitTree => Some(IVec2::new(4, 8)),
-            UnitKind::UnitStone => Some(IVec2::new(1, 2)),
+            Self::UnitTree => Some(IVec2::new(4, 8)),
+            Self::UnitStone => Some(IVec2::new(1, 2)),
         }
     }
 }

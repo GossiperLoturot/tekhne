@@ -22,14 +22,14 @@ impl Vertex {
     }
 }
 
-pub struct UIPipeline {
+pub struct UIInventoryPipeline {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl UIPipeline {
+impl UIInventoryPipeline {
     #[rustfmt::skip]
     const VERTICES: &[Vertex] = &[
         Vertex { position: Vec3::new(-1.0, -1.0, 0.0), texcoord: Vec2::new(0.0, 0.0) },
@@ -44,12 +44,13 @@ impl UIPipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
-        ui_camera_resource: &UICameraResource,
+        camera_resource: &UICameraResource,
     ) -> Self {
         use wgpu::util::DeviceExt;
-        let image_data = image::load_from_memory(include_bytes!("../../assets/textures/frame.png"))
-            .expect("failed to load image")
-            .to_rgba8();
+        let image_data =
+            image::load_from_memory(include_bytes!("../../../assets/textures/frame.png"))
+                .expect("failed to load image")
+                .to_rgba8();
 
         let texture = device.create_texture_with_data(
             queue,
@@ -121,11 +122,11 @@ impl UIPipeline {
         });
 
         let shader =
-            device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/ui.wgsl"));
+            device.create_shader_module(wgpu::include_wgsl!("../../../assets/shaders/ui.wgsl"));
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[ui_camera_resource.bind_group_layout(), &bind_group_layout],
+            bind_group_layouts: &[camera_resource.bind_group_layout(), &bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -185,10 +186,10 @@ impl UIPipeline {
     pub fn draw<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
-        ui_camera_resource: &'a UICameraResource,
+        camera_resource: &'a UICameraResource,
     ) {
         render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_bind_group(0, ui_camera_resource.bind_group(), &[]);
+        render_pass.set_bind_group(0, camera_resource.bind_group(), &[]);
         render_pass.set_bind_group(1, &self.bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
