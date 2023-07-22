@@ -7,16 +7,26 @@ pub enum IUnitKind {
     SurfaceGravel,
     SurfaceSand,
     SurfaceStone,
+    MixGrass,
+    Dandelion,
+    FallenBranch,
+    FallenLeaves,
+    MixPebbles,
 }
 
 impl IUnitKind {
-    pub fn entry() -> [IUnitKind; 5] {
+    pub fn entry() -> [IUnitKind; 10] {
         [
             Self::SurfaceDirt,
             Self::SurfaceGrass,
-            Self::SurfaceGrass,
+            Self::SurfaceGravel,
             Self::SurfaceSand,
             Self::SurfaceStone,
+            Self::MixGrass,
+            Self::Dandelion,
+            Self::FallenBranch,
+            Self::FallenLeaves,
+            Self::MixPebbles,
         ]
     }
 
@@ -27,6 +37,11 @@ impl IUnitKind {
             Self::SurfaceGravel => Some(include_bytes!("../../assets/textures/surface_gravel.png")),
             Self::SurfaceSand => Some(include_bytes!("../../assets/textures/surface_sand.png")),
             Self::SurfaceStone => Some(include_bytes!("../../assets/textures/surface_stone.png")),
+            Self::MixGrass => None,
+            Self::Dandelion => None,
+            Self::FallenBranch => None,
+            Self::FallenLeaves => None,
+            Self::MixPebbles => None,
         };
 
         bytes.and_then(|bytes| image::load_from_memory(bytes).ok())
@@ -39,6 +54,11 @@ impl IUnitKind {
             Self::SurfaceGravel => None,
             Self::SurfaceSand => None,
             Self::SurfaceStone => None,
+            Self::MixGrass => Some(include_bytes!("../../assets/textures/mix_grass.png")),
+            Self::Dandelion => Some(include_bytes!("../../assets/textures/dandelion.png")),
+            Self::FallenBranch => Some(include_bytes!("../../assets/textures/fallen_branch.png")),
+            Self::FallenLeaves => Some(include_bytes!("../../assets/textures/fallen_leaves.png")),
+            Self::MixPebbles => Some(include_bytes!("../../assets/textures/mix_pebbles.png")),
         };
 
         bytes.and_then(|bytes| image::load_from_memory(bytes).ok())
@@ -63,6 +83,7 @@ impl IUnit {
             IUnitKind::SurfaceGravel => false,
             IUnitKind::SurfaceSand => false,
             IUnitKind::SurfaceStone => false,
+            _ => true,
         }
     }
 }

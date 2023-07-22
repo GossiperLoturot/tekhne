@@ -4,19 +4,31 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UnitKind {
-    UnitTree,
-    UnitStone,
+    OakTree,
+    BirchTree,
+    DyingTree,
+    FallenTree,
+    MixRock,
 }
 
 impl UnitKind {
-    pub fn entry() -> [Self; 2] {
-        [Self::UnitTree, Self::UnitStone]
+    pub fn entry() -> [Self; 5] {
+        [
+            Self::OakTree,
+            Self::BirchTree,
+            Self::DyingTree,
+            Self::FallenTree,
+            Self::MixRock,
+        ]
     }
 
     pub fn texture(&self) -> Option<image::DynamicImage> {
         let bytes: Option<&[u8]> = match self {
-            Self::UnitTree => Some(include_bytes!("../../assets/textures/frame.png")),
-            Self::UnitStone => Some(include_bytes!("../../assets/textures/frame.png")),
+            Self::OakTree => Some(include_bytes!("../../assets/textures/oak_tree.png")),
+            Self::BirchTree => Some(include_bytes!("../../assets/textures/birch_tree.png")),
+            Self::DyingTree => Some(include_bytes!("../../assets/textures/dying_tree.png")),
+            Self::FallenTree => Some(include_bytes!("../../assets/textures/fallen_tree.png")),
+            Self::MixRock => Some(include_bytes!("../../assets/textures/mix_rock.png")),
         };
 
         bytes.and_then(|bytes| image::load_from_memory(bytes).ok())
@@ -24,8 +36,11 @@ impl UnitKind {
 
     pub fn texture_size(&self) -> Option<IVec2> {
         match self {
-            Self::UnitTree => Some(IVec2::new(4, 8)),
-            Self::UnitStone => Some(IVec2::new(1, 2)),
+            Self::OakTree => Some(IVec2::new(4, 8)),
+            Self::BirchTree => Some(IVec2::new(4, 8)),
+            Self::DyingTree => Some(IVec2::new(4, 8)),
+            Self::FallenTree => Some(IVec2::new(4, 8)),
+            Self::MixRock => Some(IVec2::new(2, 4)),
         }
     }
 }
@@ -43,16 +58,26 @@ impl Unit {
     }
 
     pub fn breakable(&self) -> bool {
-        match self.kind {
-            UnitKind::UnitTree => true,
-            UnitKind::UnitStone => true,
-        }
+        true
     }
 
     pub fn aabb(&self) -> Aabb3A {
         match self.kind {
-            UnitKind::UnitTree => Aabb3A::splat(self.position, Vec3A::splat(2.0)),
-            UnitKind::UnitStone => Aabb3A::splat(self.position, Vec3A::splat(0.5)),
+            UnitKind::OakTree => {
+                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
+            }
+            UnitKind::BirchTree => {
+                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
+            }
+            UnitKind::DyingTree => {
+                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
+            }
+            UnitKind::FallenTree => {
+                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
+            }
+            UnitKind::MixRock => {
+                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 1.0), Vec3A::splat(1.0))
+            }
         }
     }
 }
