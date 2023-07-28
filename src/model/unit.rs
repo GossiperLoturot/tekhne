@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UnitKind {
+    Player,
     OakTree,
     BirchTree,
     DyingTree,
@@ -12,8 +13,9 @@ pub enum UnitKind {
 }
 
 impl UnitKind {
-    pub fn entry() -> [Self; 5] {
+    pub fn entry() -> [Self; 6] {
         [
+            Self::Player,
             Self::OakTree,
             Self::BirchTree,
             Self::DyingTree,
@@ -24,6 +26,7 @@ impl UnitKind {
 
     pub fn texture(&self) -> Option<image::DynamicImage> {
         let bytes: Option<&[u8]> = match self {
+            Self::Player => Some(include_bytes!("../../assets/textures/frame.png")),
             Self::OakTree => Some(include_bytes!("../../assets/textures/oak_tree.png")),
             Self::BirchTree => Some(include_bytes!("../../assets/textures/birch_tree.png")),
             Self::DyingTree => Some(include_bytes!("../../assets/textures/dying_tree.png")),
@@ -36,6 +39,7 @@ impl UnitKind {
 
     pub fn texture_size(&self) -> Option<IVec2> {
         match self {
+            Self::Player => Some(IVec2::new(1, 2)),
             Self::OakTree => Some(IVec2::new(4, 8)),
             Self::BirchTree => Some(IVec2::new(4, 8)),
             Self::DyingTree => Some(IVec2::new(4, 8)),
@@ -58,11 +62,17 @@ impl Unit {
     }
 
     pub fn breakable(&self) -> bool {
-        true
+        match self.kind {
+            UnitKind::Player => false,
+            _ => true,
+        }
     }
 
     pub fn aabb(&self) -> Aabb3A {
         match self.kind {
+            UnitKind::Player => {
+                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 0.5), Vec3A::splat(0.5))
+            }
             UnitKind::OakTree => {
                 Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
             }

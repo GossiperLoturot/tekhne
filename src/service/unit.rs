@@ -12,7 +12,7 @@ pub struct UnitService {
 impl UnitService {
     const GRID_SIZE: f32 = 32.0;
 
-    pub fn add_unit(&mut self, unit: Unit) -> Option<()> {
+    pub fn add_unit(&mut self, unit: Unit) -> Option<Unit> {
         if !self.units.contains_key(&unit.id) {
             let aabb = unit.aabb().grid_partition(Self::GRID_SIZE);
             for x in aabb.min.x..=aabb.max.x {
@@ -26,14 +26,13 @@ impl UnitService {
                 }
             }
 
-            self.units.insert(unit.id, unit);
-            Some(())
+            self.units.insert(unit.id, unit)
         } else {
             None
         }
     }
 
-    pub fn remove_unit(&mut self, id: &Uuid) -> Option<()> {
+    pub fn remove_unit(&mut self, id: &Uuid) -> Option<Unit> {
         if let Some(unit) = self.units.get(id) {
             let aabb = unit.aabb().grid_partition(Self::GRID_SIZE);
             for x in aabb.min.x..=aabb.max.x {
@@ -47,8 +46,7 @@ impl UnitService {
                 }
             }
 
-            self.units.remove(id);
-            Some(())
+            self.units.remove(id)
         } else {
             None
         }

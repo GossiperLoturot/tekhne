@@ -54,16 +54,16 @@ impl Service {
         let elapsed = self.time_instant.elapsed();
         self.time_instant = std::time::Instant::now();
 
-        if self.player.get_player().is_none() {
-            self.player.spawn_player();
+        if self.player.get_player(&self.unit).is_none() {
+            self.player.spawn_player(&mut self.unit);
         }
 
         if self.camera.get_camera().is_none() {
             self.camera.spawn_camera();
         }
 
-        self.player.update(input, elapsed);
-        self.camera.update(&self.player, input);
+        self.player.update(&mut self.unit, input, elapsed);
+        self.camera.update(&self.unit, &self.player, input);
         self.ui.update(input);
 
         if let Some(read_back) = read_back {

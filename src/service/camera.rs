@@ -1,4 +1,4 @@
-use super::PlayerService;
+use super::{PlayerService, UnitService};
 use crate::model::*;
 use glam::*;
 
@@ -13,20 +13,21 @@ impl CameraService {
     const ZOOM_MAX: f32 = 128.0;
 
     pub fn spawn_camera(&mut self) {
-        if self.camera.is_some() {
-            panic!("camera already exists");
+        if let Some(camera) = &self.camera {
+            panic!("camera {:?} already exists", camera);
+        } else {
+            self.camera = Some(Camera::new(Vec3A::ZERO, Self::ZOOM_INIT));
         }
-
-        self.camera = Some(Camera::new(Vec3A::ZERO, Self::ZOOM_INIT));
     }
 
     pub fn update(
         &mut self,
+        unit_service: &UnitService,
         player_service: &PlayerService,
         input: &winit_input_helper::WinitInputHelper,
     ) {
         if let Some(camera) = &mut self.camera {
-            if let Some(player) = player_service.get_player() {
+            if let Some(player) = player_service.get_player(unit_service) {
                 camera.position = player.position;
             }
 

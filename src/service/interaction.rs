@@ -39,7 +39,7 @@ impl InteractionService {
 
                 let ray_hit = Self::unit_ray(start, end, unit_service);
                 if let Some(ray_hit) = ray_hit {
-                    if input.mouse_pressed(0) {
+                    if input.mouse_pressed(0) && ray_hit.units[0].breakable() {
                         let id = ray_hit.units[0].id;
                         unit_service.remove_unit(&id);
                     }

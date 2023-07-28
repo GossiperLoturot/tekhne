@@ -10,22 +10,20 @@ pub struct IUnitService {
 }
 
 impl IUnitService {
-    pub fn add_iunit(&mut self, iunit: IUnit) -> Option<()> {
-        if self.iunits.contains_key(&iunit.position) {
-            return None;
+    pub fn add_iunit(&mut self, iunit: IUnit) -> Option<IUnit> {
+        if !self.iunits.contains_key(&iunit.position) {
+            self.iunits.insert(iunit.position, iunit)
+        } else {
+            None
         }
-
-        self.iunits.insert(iunit.position, iunit);
-        Some(())
     }
 
-    pub fn remove_iunit(&mut self, pos: IVec3) -> Option<()> {
-        if !self.iunits.contains_key(&pos) {
-            return None;
+    pub fn remove_iunit(&mut self, position: IVec3) -> Option<IUnit> {
+        if self.iunits.contains_key(&position) {
+            self.iunits.remove(&position)
+        } else {
+            None
         }
-
-        self.iunits.remove(&pos);
-        Some(())
     }
 
     pub fn get_iunit(&self, pos: IVec3) -> Option<&IUnit> {
