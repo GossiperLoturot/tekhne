@@ -1,12 +1,12 @@
 use crate::model::*;
-use ahash::{AHashMap, HashSet};
+use ahash::{AHashMap, AHashSet};
 use glam::*;
 use uuid::Uuid;
 
 #[derive(Default)]
 pub struct UnitService {
     units: AHashMap<Uuid, Unit>,
-    index_table: AHashMap<IVec3, HashSet<Uuid>>,
+    index_table: AHashMap<IVec3, AHashSet<Uuid>>,
 }
 
 impl UnitService {
@@ -57,21 +57,26 @@ impl UnitService {
     }
 
     pub fn get_units(&self, aabb: Aabb3A) -> Vec<&Unit> {
-        let mut units = vec![];
+        let mut uniques = AHashSet::new();
 
         let grid_aabb = aabb.grid_partition(Self::GRID_SIZE);
         for x in grid_aabb.min.x..=grid_aabb.max.x {
             for y in grid_aabb.min.y..=grid_aabb.max.y {
                 for z in grid_aabb.min.z..=grid_aabb.max.z {
                     if let Some(ids) = self.index_table.get(&IVec3::new(x, y, z)) {
-                        ids.iter()
-                            .filter_map(|id| self.units.get(id))
-                            .filter(|unit| aabb.intersects(&unit.aabb()))
-                            .for_each(|unit| units.push(unit));
+                        for id in ids {
+                            uniques.insert(id);
+                        }
                     }
                 }
             }
         }
+
+        let units = uniques
+            .into_iter()
+            .filter_map(|id| self.units.get(id))
+            .filter(|unit| aabb.intersects(&unit.aabb()))
+            .collect::<Vec<_>>();
 
         units
     }
