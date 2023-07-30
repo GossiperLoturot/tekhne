@@ -51,41 +51,51 @@ impl GenerationService {
                     }
 
                     if rand::random::<f32>() < 0.02 {
+                        let x = x as f32 + rand::random::<f32>() - 0.5;
+                        let y = y as f32 + rand::random::<f32>() - 0.5;
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
-                            Vec3A::new(x as f32, y as f32, 0.5),
+                            Vec3A::new(x, y, 0.5),
                             UnitKind::OakTree,
                         ));
                     }
 
                     if rand::random::<f32>() < 0.02 {
+                        let x = x as f32 + rand::random::<f32>() - 0.5;
+                        let y = y as f32 + rand::random::<f32>() - 0.5;
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
-                            Vec3A::new(x as f32, y as f32, 0.5),
+                            Vec3A::new(x, y, 0.5),
                             UnitKind::BirchTree,
                         ));
                     }
 
                     if rand::random::<f32>() < 0.001 {
+                        let x = x as f32 + rand::random::<f32>() - 0.5;
+                        let y = y as f32 + rand::random::<f32>() - 0.5;
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
-                            Vec3A::new(x as f32, y as f32, 0.5),
+                            Vec3A::new(x, y, 0.5),
                             UnitKind::DyingTree,
                         ));
                     }
 
                     if rand::random::<f32>() < 0.001 {
+                        let x = x as f32 + rand::random::<f32>() - 0.5;
+                        let y = y as f32 + rand::random::<f32>() - 0.5;
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
-                            Vec3A::new(x as f32, y as f32, 0.5),
+                            Vec3A::new(x, y, 0.5),
                             UnitKind::FallenTree,
                         ));
                     }
 
                     if rand::random::<f32>() < 0.01 {
+                        let x = x as f32 + rand::random::<f32>() - 0.5;
+                        let y = y as f32 + rand::random::<f32>() - 0.5;
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
-                            Vec3A::new(x as f32, y as f32, 0.5),
+                            Vec3A::new(x, y, 0.5),
                             UnitKind::MixRock,
                         ));
                     }

@@ -11,10 +11,6 @@ impl IAabb3 {
         Self { min, max }
     }
 
-    pub fn splat(origin: IVec3, extents: IVec3) -> Self {
-        Self::new(origin - extents, origin + extents)
-    }
-
     pub fn contains(&self, point: &IVec3) -> bool {
         let is_outside = point.x < self.min.x
             || self.max.x < point.x
@@ -48,10 +44,6 @@ pub struct Aabb3A {
 impl Aabb3A {
     pub fn new(min: Vec3A, max: Vec3A) -> Self {
         Self { min, max }
-    }
-
-    pub fn splat(origin: Vec3A, extents: Vec3A) -> Self {
-        Self::new(origin - extents, origin + extents)
     }
 
     pub fn contains(&self, point: &Vec3A) -> bool {

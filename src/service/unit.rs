@@ -1,7 +1,7 @@
 use crate::model::*;
 use ahash::{AHashMap, AHashSet};
 use glam::*;
-use uuid::Uuid;
+use uuid::*;
 
 #[derive(Default)]
 pub struct UnitService {
@@ -14,17 +14,11 @@ impl UnitService {
 
     pub fn add_unit(&mut self, unit: Unit) -> Option<Unit> {
         if !self.units.contains_key(&unit.id) {
-            let aabb = unit.aabb().grid_partition(Self::GRID_SIZE);
-            for x in aabb.min.x..=aabb.max.x {
-                for y in aabb.min.y..=aabb.max.y {
-                    for z in aabb.min.z..=aabb.max.z {
-                        self.index_table
-                            .entry(IVec3::new(x, y, z))
-                            .or_default()
-                            .insert(unit.id);
-                    }
-                }
-            }
+            let grid_index = (unit.position / Self::GRID_SIZE).floor().as_ivec3();
+            self.index_table
+                .entry(grid_index)
+                .or_default()
+                .insert(unit.id);
 
             self.units.insert(unit.id, unit)
         } else {
@@ -34,17 +28,11 @@ impl UnitService {
 
     pub fn remove_unit(&mut self, id: &Uuid) -> Option<Unit> {
         if let Some(unit) = self.units.get(id) {
-            let aabb = unit.aabb().grid_partition(Self::GRID_SIZE);
-            for x in aabb.min.x..=aabb.max.x {
-                for y in aabb.min.y..=aabb.max.y {
-                    for z in aabb.min.z..=aabb.max.z {
-                        self.index_table
-                            .entry(IVec3::new(x, y, z))
-                            .or_default()
-                            .remove(&unit.id);
-                    }
-                }
-            }
+            let grid_index = (unit.position / Self::GRID_SIZE).floor().as_ivec3();
+            self.index_table
+                .entry(grid_index)
+                .or_default()
+                .remove(&unit.id);
 
             self.units.remove(id)
         } else {
@@ -57,26 +45,22 @@ impl UnitService {
     }
 
     pub fn get_units(&self, aabb: Aabb3A) -> Vec<&Unit> {
-        let mut uniques = AHashSet::new();
+        let mut units = vec![];
 
         let grid_aabb = aabb.grid_partition(Self::GRID_SIZE);
         for x in grid_aabb.min.x..=grid_aabb.max.x {
             for y in grid_aabb.min.y..=grid_aabb.max.y {
                 for z in grid_aabb.min.z..=grid_aabb.max.z {
-                    if let Some(ids) = self.index_table.get(&IVec3::new(x, y, z)) {
-                        for id in ids {
-                            uniques.insert(id);
-                        }
+                    let grid_index = IVec3::new(x, y, z);
+                    if let Some(ids) = self.index_table.get(&grid_index) {
+                        ids.into_iter()
+                            .filter_map(|id| self.units.get(id))
+                            .filter(|unit| aabb.contains(&unit.position))
+                            .for_each(|unit| units.push(unit));
                     }
                 }
             }
         }
-
-        let units = uniques
-            .into_iter()
-            .filter_map(|id| self.units.get(id))
-            .filter(|unit| aabb.intersects(&unit.aabb()))
-            .collect::<Vec<_>>();
 
         units
     }

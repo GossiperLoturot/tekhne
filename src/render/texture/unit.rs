@@ -1,6 +1,7 @@
 use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
+use strum::IntoEnumIterator;
 
 pub struct UnitTextureResource {
     texcoords: AHashMap<UnitKind, IVec4>,
@@ -27,8 +28,10 @@ impl UnitTextureResource {
         // TODO: improve packing algorithm
         // allocate texture to atlas by strip packing algolithm
         let (mut x, mut y, mut y_upper_bounds) = (0, 0, 0);
-        for kind in UnitKind::entry() {
-            if let (Some(texture), Some(texture_size)) = (kind.texture(), kind.texture_size()) {
+        for kind in UnitKind::iter() {
+            if let Some(texture) = kind.texture() {
+                let texture_size = kind.texture_size();
+
                 if grid < x + texture_size.x as u32 && grid < y + texture_size.y as u32 {
                     panic!("Atlas texture size is too small!");
                 }

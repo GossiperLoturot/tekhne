@@ -1,8 +1,8 @@
-use super::Aabb3A;
 use glam::*;
-use uuid::Uuid;
+use strum::*;
+use uuid::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
 pub enum UnitKind {
     Player,
     OakTree,
@@ -13,38 +13,39 @@ pub enum UnitKind {
 }
 
 impl UnitKind {
-    pub fn entry() -> [Self; 6] {
-        [
-            Self::Player,
-            Self::OakTree,
-            Self::BirchTree,
-            Self::DyingTree,
-            Self::FallenTree,
-            Self::MixRock,
-        ]
+    // return Vec4 (xy: min, zw: max)
+    pub fn shape(&self) -> Vec4 {
+        match self {
+            Self::Player => Vec4::new(-0.5, 0.0, 0.5, 2.0),
+            Self::OakTree => Vec4::new(-2.0, 0.0, 2.0, 6.0),
+            Self::BirchTree => Vec4::new(-2.0, 0.0, 2.0, 6.0),
+            Self::DyingTree => Vec4::new(-2.0, 0.0, 2.0, 6.0),
+            Self::FallenTree => Vec4::new(-2.0, 0.0, 2.0, 2.0),
+            Self::MixRock => Vec4::new(-1.0, 0.0, 1.0, 2.0),
+        }
     }
 
     pub fn texture(&self) -> Option<image::DynamicImage> {
-        let bytes: Option<&[u8]> = match self {
-            Self::Player => Some(include_bytes!("../../assets/textures/frame.png")),
-            Self::OakTree => Some(include_bytes!("../../assets/textures/oak_tree.png")),
-            Self::BirchTree => Some(include_bytes!("../../assets/textures/birch_tree.png")),
-            Self::DyingTree => Some(include_bytes!("../../assets/textures/dying_tree.png")),
-            Self::FallenTree => Some(include_bytes!("../../assets/textures/fallen_tree.png")),
-            Self::MixRock => Some(include_bytes!("../../assets/textures/mix_rock.png")),
+        let bytes: &[u8] = match self {
+            Self::Player => include_bytes!("../../assets/textures/frame.png"),
+            Self::OakTree => include_bytes!("../../assets/textures/oak_tree.png"),
+            Self::BirchTree => include_bytes!("../../assets/textures/birch_tree.png"),
+            Self::DyingTree => include_bytes!("../../assets/textures/dying_tree.png"),
+            Self::FallenTree => include_bytes!("../../assets/textures/fallen_tree.png"),
+            Self::MixRock => include_bytes!("../../assets/textures/mix_rock.png"),
         };
 
-        bytes.and_then(|bytes| image::load_from_memory(bytes).ok())
+        image::load_from_memory(bytes).ok()
     }
 
-    pub fn texture_size(&self) -> Option<IVec2> {
+    pub fn texture_size(&self) -> IVec2 {
         match self {
-            Self::Player => Some(IVec2::new(1, 2)),
-            Self::OakTree => Some(IVec2::new(4, 8)),
-            Self::BirchTree => Some(IVec2::new(4, 8)),
-            Self::DyingTree => Some(IVec2::new(4, 8)),
-            Self::FallenTree => Some(IVec2::new(4, 8)),
-            Self::MixRock => Some(IVec2::new(2, 4)),
+            Self::Player => IVec2::new(1, 2),
+            Self::OakTree => IVec2::new(4, 6),
+            Self::BirchTree => IVec2::new(4, 6),
+            Self::DyingTree => IVec2::new(4, 6),
+            Self::FallenTree => IVec2::new(4, 2),
+            Self::MixRock => IVec2::new(2, 2),
         }
     }
 }
@@ -65,29 +66,6 @@ impl Unit {
         match self.kind {
             UnitKind::Player => false,
             _ => true,
-        }
-    }
-
-    pub fn aabb(&self) -> Aabb3A {
-        match self.kind {
-            UnitKind::Player => {
-                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 0.5), Vec3A::splat(0.5))
-            }
-            UnitKind::OakTree => {
-                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
-            }
-            UnitKind::BirchTree => {
-                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
-            }
-            UnitKind::DyingTree => {
-                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
-            }
-            UnitKind::FallenTree => {
-                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 2.0), Vec3A::splat(2.0))
-            }
-            UnitKind::MixRock => {
-                Aabb3A::splat(self.position + Vec3A::new(0.0, 0.0, 1.0), Vec3A::splat(1.0))
-            }
         }
     }
 }

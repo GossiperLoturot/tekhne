@@ -13,16 +13,21 @@ impl Camera {
     }
 
     pub fn view_matrix(&self) -> Mat4 {
-        let aabb = self.view_aabb();
+        let view_aabb = self.view_aabb();
 
         Mat4::orthographic_rh(
-            aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z,
-        ) * Mat4 {
-            x_axis: Vec4::new(1.0, 0.0, 0.0, 0.0),
-            y_axis: Vec4::new(0.0, 1.0, 0.0, 0.0),
-            z_axis: Vec4::new(0.0, 1.0, 1.0, 0.0),
-            w_axis: Vec4::new(0.0, 0.0, 0.0, 1.0),
-        }
+            view_aabb.min.x,
+            view_aabb.max.x,
+            view_aabb.min.y,
+            view_aabb.max.y,
+            view_aabb.min.z,
+            view_aabb.max.z,
+        ) * Mat4::from_cols(
+            Vec4::new(1.0, 0.0, 0.0, 0.0),
+            Vec4::new(0.0, 1.0, 0.0, 0.0),
+            Vec4::new(0.0, 1.0, 1.0, 0.0),
+            Vec4::new(0.0, 0.0, 0.0, 1.0),
+        )
     }
 
     pub fn view_aabb(&self) -> Aabb3A {

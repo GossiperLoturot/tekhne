@@ -1,19 +1,21 @@
 @group(0) @binding(0)
-var<uniform> vp_matrix: mat4x4<f32>;
+var<uniform> view_matrix: mat4x4<f32>;
 
 @group(1) @binding(2)
 var<uniform> grid_size: f32;
 
+@group(2) @binding(0)
+var<uniform> shape_matrix: mat4x4<f32>;
+
 struct VertexInput {
-    @location(0) position: vec3<f32>,
+    @location(0) position: vec2<f32>,
     @location(1) texcoord: vec2<f32>,
 };
 
 struct InstanceInput {
     @location(2) position: vec3<f32>,
-    @location(3) scale: vec3<f32>,
-    @location(4) texcoord_min: vec2<f32>,
-    @location(5) texcoord_max: vec2<f32>,
+    @location(3) shape: vec4<f32>,
+    @location(4) texcoord: vec4<f32>,
 };
 
 struct VertexOutput {
@@ -26,13 +28,15 @@ fn vs_main(
     vertex: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
-    var texcoord_size = instance.texcoord_max - instance.texcoord_min;
+    var shape_size = instance.shape.zw - instance.shape.xy;
+    var position = (vertex.position * shape_size + instance.shape.xy);
+    var world_position = (shape_matrix * vec4<f32>(position, 0.0, 1.0)).xyz + instance.position;
 
-    var position = vertex.position * instance.scale + instance.position;
-    var texcoord = (vertex.texcoord * texcoord_size + instance.texcoord_min) / grid_size;
+    var texcoord_size = instance.texcoord.zw - instance.texcoord.xy;
+    var texcoord = (vertex.texcoord * texcoord_size + instance.texcoord.xy) / grid_size;
 
     var out: VertexOutput;
-    out.clip_position = vp_matrix * vec4<f32>(position, 1.0);
+    out.clip_position = view_matrix * vec4<f32>(world_position, 1.0);
     out.texcoord = texcoord;
     return out;
 }

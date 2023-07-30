@@ -5,13 +5,13 @@ use glam::*;
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
-    position: Vec3,
-    texcoord: Vec2,
+    position: [f32; 2],
+    texcoord: [f32; 2],
 }
 
 impl Vertex {
     const ATTRIBUTES: &[wgpu::VertexAttribute] =
-        &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
+        &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2];
 
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
@@ -25,15 +25,14 @@ impl Vertex {
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Instance {
-    position: Vec3,
-    scale: Vec3,
-    texcoord_min: Vec2,
-    texcoord_max: Vec2,
+    position: [f32; 3],
+    shape: [f32; 4],
+    texcoord: [f32; 4],
 }
 
 impl Instance {
     const ATTRIBUTES: &[wgpu::VertexAttribute] =
-        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x3, 4 => Float32x2, 5 => Float32x2];
+        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x4, 4 => Float32x4];
 
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
@@ -46,20 +45,21 @@ impl Instance {
 
 pub struct UnitPipeline {
     vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
+    index_buffer: wgpu::Buffer,
     texture_resource: UnitTextureResource,
+    bind_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
 }
 
 impl UnitPipeline {
     #[rustfmt::skip]
     const VERTICES: &[Vertex] = &[
-        Vertex { position: Vec3::new(-0.5, -0.5, -0.5), texcoord: Vec2::new(0.0, 1.0) },
-        Vertex { position: Vec3::new( 0.5, -0.5, -0.5), texcoord: Vec2::new(1.0, 1.0) },
-        Vertex { position: Vec3::new( 0.5,  0.5,  0.5), texcoord: Vec2::new(1.0, 0.0) },
-        Vertex { position: Vec3::new(-0.5,  0.5,  0.5), texcoord: Vec2::new(0.0, 0.0) },
+        Vertex { position: [0.0, 0.0], texcoord: [0.0, 1.0] },
+        Vertex { position: [1.0, 0.0], texcoord: [1.0, 1.0] },
+        Vertex { position: [1.0, 1.0], texcoord: [1.0, 0.0] },
+        Vertex { position: [0.0, 1.0], texcoord: [0.0, 0.0] },
     ];
 
     #[rustfmt::skip]
@@ -78,12 +78,6 @@ impl UnitPipeline {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(Self::INDICES),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: device.limits().max_buffer_size,
@@ -91,19 +85,62 @@ impl UnitPipeline {
             mapped_at_creation: false,
         });
 
-        let shader =
-            device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/unit.wgsl"));
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(Self::INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        });
 
         let texture_resource = UnitTextureResource::new(device, queue);
+
+        let shape_matrix = Mat4::from_cols(
+            Vec4::new(1.0, 0.0, 0.0, 0.0),
+            Vec4::new(0.0, 0.0, 1.0, 0.0),
+            Vec4::new(0.0, 0.0, 0.0, 0.0),
+            Vec4::new(0.0, 0.0, 0.0, 0.0),
+        );
+
+        let shape_matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[shape_matrix]),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
+
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: shape_matrix_buffer.as_entire_binding(),
+            }],
+        });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[
                 camera_resource.bind_group_layout(),
                 texture_resource.bind_group_layout(),
+                &bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
+
+        let shader =
+            device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/unit.wgsl"));
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -148,9 +185,10 @@ impl UnitPipeline {
 
         Self {
             vertex_buffer,
-            index_buffer,
             instance_buffer,
             instance_count: 0,
+            index_buffer,
+            bind_group,
             texture_resource,
             pipeline,
         }
@@ -165,22 +203,19 @@ impl UnitPipeline {
                 .get_units(view_aabb)
                 .into_iter()
                 .map(|unit| {
-                    let aabb = unit.aabb();
                     let texcoord = self
                         .texture_resource
                         .get_texcoord(&unit.kind)
                         .unwrap_or_else(|| panic!("not registered unit kind {:?}", &unit.kind));
 
-                    let position = ((aabb.min + aabb.max) * 0.5).into();
-                    let scale = (aabb.max - aabb.min).into();
-                    let texcoord_min = texcoord.xy().as_vec2();
-                    let texcoord_max = texcoord.zw().as_vec2();
+                    let position = unit.position.into();
+                    let shape = unit.kind.shape().into();
+                    let texcoord = texcoord.as_vec4().into();
 
                     Instance {
                         position,
-                        scale,
-                        texcoord_min,
-                        texcoord_max,
+                        shape,
+                        texcoord,
                     }
                 })
                 .collect::<Vec<_>>();
@@ -198,6 +233,7 @@ impl UnitPipeline {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
         render_pass.set_bind_group(1, self.texture_resource.bind_group(), &[]);
+        render_pass.set_bind_group(2, &self.bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
