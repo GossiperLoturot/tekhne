@@ -1,6 +1,14 @@
 use glam::*;
+use strum::EnumIter;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy)]
+pub enum IUnitShape {
+    Block,
+    Top,
+    Bottom,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
 pub enum IUnitKind {
     SurfaceDirt,
     SurfaceGrass,
@@ -15,19 +23,19 @@ pub enum IUnitKind {
 }
 
 impl IUnitKind {
-    pub fn entry() -> [IUnitKind; 10] {
-        [
-            Self::SurfaceDirt,
-            Self::SurfaceGrass,
-            Self::SurfaceGravel,
-            Self::SurfaceSand,
-            Self::SurfaceStone,
-            Self::MixGrass,
-            Self::Dandelion,
-            Self::FallenBranch,
-            Self::FallenLeaves,
-            Self::MixPebbles,
-        ]
+    pub fn shape(&self) -> IUnitShape {
+        match self {
+            Self::SurfaceDirt
+            | Self::SurfaceGrass
+            | Self::SurfaceGravel
+            | Self::SurfaceSand
+            | Self::SurfaceStone => IUnitShape::Top,
+            Self::MixGrass
+            | Self::Dandelion
+            | Self::FallenBranch
+            | Self::FallenLeaves
+            | Self::MixPebbles => IUnitShape::Bottom,
+        }
     }
 
     pub fn top_texture(&self) -> Option<image::DynamicImage> {

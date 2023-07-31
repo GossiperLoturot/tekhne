@@ -1,9 +1,10 @@
 use crate::model::*;
 use ahash::AHashMap;
 use glam::*;
+use strum::IntoEnumIterator;
 
 pub struct IUnitTextureResource {
-    texcoords: AHashMap<IUnitKind, IVec2>,
+    texcoords: AHashMap<IUnitKind, Vec4>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -25,7 +26,7 @@ impl IUnitTextureResource {
             atlas.push(image::DynamicImage::new_rgba8(size, size));
         }
 
-        for (i, kind) in IUnitKind::entry().into_iter().enumerate() {
+        for (i, kind) in IUnitKind::iter().enumerate() {
             if grid_x * grid_y < i as u32 {
                 panic!("Atlas texture size is too small!");
             }
@@ -66,7 +67,15 @@ impl IUnitTextureResource {
                 }
             }
 
-            texcoords.insert(kind, IVec2::new(x as i32, y as i32));
+            texcoords.insert(
+                kind,
+                Vec4::new(
+                    x as f32 / grid_x as f32,
+                    y as f32 / grid_y as f32,
+                    (x + 1) as f32 / grid_x as f32,
+                    (y + 1) as f32 / grid_y as f32,
+                ),
+            );
         }
 
         let atlas_data = atlas
@@ -100,12 +109,6 @@ impl IUnitTextureResource {
             ..Default::default()
         });
 
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(&[grid_x as f32, grid_y as f32]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
@@ -125,16 +128,6 @@ impl IUnitTextureResource {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
             ],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -149,10 +142,6 @@ impl IUnitTextureResource {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&texture_sampler),
                 },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: buffer.as_entire_binding(),
-                },
             ],
         });
 
@@ -163,7 +152,7 @@ impl IUnitTextureResource {
         }
     }
 
-    pub fn get_texcoord(&self, kind: &IUnitKind) -> Option<IVec2> {
+    pub fn get_texcoord(&self, kind: &IUnitKind) -> Option<Vec4> {
         self.texcoords.get(kind).cloned()
     }
 

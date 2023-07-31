@@ -4,7 +4,7 @@ use glam::*;
 use strum::IntoEnumIterator;
 
 pub struct UnitTextureResource {
-    texcoords: AHashMap<UnitKind, IVec4>,
+    texcoords: AHashMap<UnitKind, Vec4>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -52,11 +52,11 @@ impl UnitTextureResource {
                 }
                 texcoords.insert(
                     kind,
-                    IVec4::new(
-                        x as i32,
-                        y as i32,
-                        x as i32 + texture_size.x,
-                        y as i32 + texture_size.y,
+                    Vec4::new(
+                        x as f32 / grid as f32,
+                        y as f32 / grid as f32,
+                        (x as i32 + texture_size.x) as f32 / grid as f32,
+                        (y as i32 + texture_size.y) as f32 / grid as f32,
                     ),
                 );
 
@@ -99,12 +99,6 @@ impl UnitTextureResource {
             ..Default::default()
         });
 
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(&[grid as f32]),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
@@ -124,16 +118,6 @@ impl UnitTextureResource {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
             ],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -148,10 +132,6 @@ impl UnitTextureResource {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&texture_sampler),
                 },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: buffer.as_entire_binding(),
-                },
             ],
         });
 
@@ -162,7 +142,7 @@ impl UnitTextureResource {
         }
     }
 
-    pub fn get_texcoord(&self, kind: &UnitKind) -> Option<IVec4> {
+    pub fn get_texcoord(&self, kind: &UnitKind) -> Option<Vec4> {
         self.texcoords.get(kind).cloned()
     }
 

@@ -5,8 +5,8 @@ use glam::*;
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
-    position: Vec3,
-    texcoord: Vec2,
+    position: [f32; 3],
+    texcoord: [f32; 2],
 }
 
 impl Vertex {
@@ -22,75 +22,35 @@ impl Vertex {
     }
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-struct Instance {
-    position: Vec3,
-    texcoord: Vec2,
-}
-
-impl Instance {
-    const ATTRIBUTES: &[wgpu::VertexAttribute] =
-        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x2];
-
-    fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as u64,
-            step_mode: wgpu::VertexStepMode::Instance,
-            attributes: Self::ATTRIBUTES,
-        }
-    }
-}
-
 pub struct IUnitPipeline {
     vertex_buffer: wgpu::Buffer,
+    vertex_count: u32,
     index_buffer: wgpu::Buffer,
-    instance_buffer: wgpu::Buffer,
-    instance_count: u32,
+    index_count: u32,
     texture_resource: IUnitTextureResource,
     pipeline: wgpu::RenderPipeline,
 }
 
 impl IUnitPipeline {
-    #[rustfmt::skip]
-    const VERTICES: &[Vertex] = &[
-        Vertex { position: Vec3::new(-0.5, -0.5, -0.5), texcoord: Vec2::new(0.0, 1.0) },
-        Vertex { position: Vec3::new( 0.5, -0.5, -0.5), texcoord: Vec2::new(1.0, 1.0) },
-        Vertex { position: Vec3::new( 0.5,  0.5, 0.5), texcoord: Vec2::new(1.0, 0.0) },
-        Vertex { position: Vec3::new(-0.5,  0.5, 0.5), texcoord: Vec2::new(0.0, 0.0) },
-    ];
-
-    #[rustfmt::skip]
-    const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
-
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &CameraResource,
     ) -> Self {
-        use wgpu::util::DeviceExt;
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(Self::VERTICES),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(Self::INDICES),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: device.limits().max_buffer_size,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let shader =
-            device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/iunit.wgsl"));
+        let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: device.limits().max_buffer_size,
+            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
 
         let texture_resource = IUnitTextureResource::new(device, queue);
 
@@ -103,13 +63,16 @@ impl IUnitPipeline {
             push_constant_ranges: &[],
         });
 
+        let shader =
+            device.create_shader_module(wgpu::include_wgsl!("../../assets/shaders/unit.wgsl"));
+
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[Vertex::layout(), Instance::layout()],
+                buffers: &[Vertex::layout()],
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -146,9 +109,9 @@ impl IUnitPipeline {
 
         Self {
             vertex_buffer,
+            vertex_count: 0,
             index_buffer,
-            instance_buffer,
-            instance_count: 0,
+            index_count: 0,
             texture_resource,
             pipeline,
         }
@@ -158,24 +121,50 @@ impl IUnitPipeline {
         if let Some(camera) = service.camera.get_camera() {
             let view_aabb = camera.view_aabb();
 
-            let instances = service
+            let mut vertices = vec![];
+            let mut indices = vec![];
+
+            service
                 .iunit
                 .get_iunits(view_aabb.as_iaabb3())
                 .into_iter()
-                .map(|iunit| {
-                    let position = iunit.position.as_vec3();
-                    let texcoord = self
+                .for_each(|iunit| {
+                    let origin = iunit.position.as_vec3a();
+                    let texcoord_aabb = self
                         .texture_resource
                         .get_texcoord(&iunit.kind)
-                        .unwrap_or_else(|| panic!("not registered a iunit kind {:?}", &iunit.kind))
-                        .as_vec2();
+                        .unwrap_or_else(|| panic!("not registered a iunit kind {:?}", &iunit.kind));
 
-                    Instance { position, texcoord }
-                })
-                .collect::<Vec<_>>();
+                    let vertex_count = vertices.len() as u32;
 
-            queue.write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
-            self.instance_count = instances.len() as u32;
+                    let position = (origin + Vec3A::new(-0.5, -0.5, -0.5)).into();
+                    let texcoord = texcoord_aabb.xw().into();
+                    vertices.push(Vertex { position, texcoord });
+
+                    let position = (origin + Vec3A::new(0.5, -0.5, -0.5)).into();
+                    let texcoord = texcoord_aabb.zw().into();
+                    vertices.push(Vertex { position, texcoord });
+
+                    let position = (origin + Vec3A::new(0.5, 0.5, 0.5)).into();
+                    let texcoord = texcoord_aabb.zy().into();
+                    vertices.push(Vertex { position, texcoord });
+
+                    let position = (origin + Vec3A::new(-0.5, 0.5, 0.5)).into();
+                    let texcoord = texcoord_aabb.xy().into();
+                    vertices.push(Vertex { position, texcoord });
+
+                    indices.push(vertex_count + 0);
+                    indices.push(vertex_count + 1);
+                    indices.push(vertex_count + 2);
+                    indices.push(vertex_count + 2);
+                    indices.push(vertex_count + 3);
+                    indices.push(vertex_count + 0);
+                });
+
+            self.vertex_count = vertices.len() as u32;
+            self.index_count = indices.len() as u32;
+            queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));
+            queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(&indices));
         }
     }
 
@@ -188,8 +177,7 @@ impl IUnitPipeline {
         render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
         render_pass.set_bind_group(1, self.texture_resource.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        render_pass.draw_indexed(0..Self::INDICES.len() as u32, 0, 0..self.instance_count);
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+        render_pass.draw_indexed(0..self.index_count, 0, 0..1);
     }
 }
