@@ -1,24 +1,5 @@
 use glam::*;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct Aabb2 {
-    pub min: Vec2,
-    pub max: Vec2,
-}
-
-impl Aabb2 {
-    pub fn new(min: Vec2, max: Vec2) -> Self {
-        Aabb2 { min, max }
-    }
-
-    pub fn from_element(min_x: f32, min_y: f32, max_x: f32, max_y: f32) -> Self {
-        Aabb2 {
-            min: Vec2::new(min_x, min_y),
-            max: Vec2::new(max_x, max_y),
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct IAabb3 {
     pub min: IVec3,

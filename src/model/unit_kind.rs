@@ -1,6 +1,6 @@
 use strum::EnumIter;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, EnumIter)]
 pub enum UnitKind {
     SurfaceDirt,
     SurfaceGrass,
