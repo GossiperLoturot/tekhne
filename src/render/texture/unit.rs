@@ -4,7 +4,7 @@ use glam::*;
 use strum::IntoEnumIterator;
 
 pub struct UnitTextureResource {
-    texcoords: AHashMap<UnitKind, Vec4>,
+    texcoords: AHashMap<Kind, Aabb2>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -28,43 +28,45 @@ impl UnitTextureResource {
         // TODO: improve packing algorithm
         // allocate texture to atlas by strip packing algolithm
         let (mut x, mut y, mut y_upper_bounds) = (0, 0, 0);
-        for kind in UnitKind::iter() {
-            if let Some(texture) = kind.texture() {
-                let texture_size = kind.texture_size();
+        for kind in Kind::iter() {
+            let texture = kind.texture();
+            let (size_x, size_y) = kind.texture_size();
 
-                if grid < x + texture_size.x as u32 && grid < y + texture_size.y as u32 {
-                    panic!("Atlas texture size is too small!");
-                }
+            if grid < x + size_x && grid < y + size_y {
+                panic!("Atlas texture size is too small!");
+            }
 
-                for mip_level in 0..mip_level_count {
-                    let unit_size = Self::UNIT_SIZE >> mip_level;
-                    let texture = texture.resize_exact(
-                        unit_size * texture_size.x as u32,
-                        unit_size * texture_size.y as u32,
-                        image::imageops::FilterType::Triangle,
-                    );
-                    image::imageops::replace(
-                        &mut atlas[mip_level as usize],
-                        &texture,
-                        (unit_size * x) as i64,
-                        (unit_size * y) as i64,
-                    );
-                }
-                texcoords.insert(
-                    kind,
-                    Vec4::new(
-                        x as f32 / grid as f32,
-                        y as f32 / grid as f32,
-                        (x as i32 + texture_size.x) as f32 / grid as f32,
-                        (y as i32 + texture_size.y) as f32 / grid as f32,
-                    ),
+            for mip_level in 0..mip_level_count {
+                let unit_size = Self::UNIT_SIZE >> mip_level;
+
+                let texture = texture.resize_exact(
+                    unit_size * size_x,
+                    unit_size * size_y,
+                    image::imageops::FilterType::Triangle,
                 );
 
-                x += texture_size.x as u32;
-                y_upper_bounds = y_upper_bounds.max(texture_size.y as u32);
-                if grid <= x {
-                    (x, y, y_upper_bounds) = (0, y_upper_bounds, 0);
-                }
+                image::imageops::replace(
+                    &mut atlas[mip_level as usize],
+                    &texture,
+                    (unit_size * x) as i64,
+                    (unit_size * y) as i64,
+                );
+            }
+
+            texcoords.insert(
+                kind,
+                Aabb2::from_element(
+                    x as f32 / grid as f32,
+                    y as f32 / grid as f32,
+                    (x + size_x) as f32 / grid as f32,
+                    (y + size_y) as f32 / grid as f32,
+                ),
+            );
+
+            x += size_x;
+            y_upper_bounds = y_upper_bounds.max(size_y);
+            if grid <= x {
+                (x, y, y_upper_bounds) = (0, y_upper_bounds, 0);
             }
         }
 
@@ -120,6 +122,7 @@ impl UnitTextureResource {
                 },
             ],
         });
+
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &bind_group_layout,
@@ -142,7 +145,7 @@ impl UnitTextureResource {
         }
     }
 
-    pub fn get_texcoord(&self, kind: &UnitKind) -> Option<Vec4> {
+    pub fn get_texcoord(&self, kind: &Kind) -> Option<Aabb2> {
         self.texcoords.get(kind).cloned()
     }
 

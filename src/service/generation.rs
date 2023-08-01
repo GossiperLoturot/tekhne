@@ -22,32 +22,28 @@ impl GenerationService {
                 if !self.init_flags.contains(&pos) {
                     // generation rules start
 
-                    iunit_service
-                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), IUnitKind::SurfaceGrass));
+                    iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 0), Kind::SurfaceGrass));
 
                     if rand::random::<f32>() < 0.08 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixGrass));
+                        iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 1), Kind::MixGrass));
                     }
 
                     if rand::random::<f32>() < 0.02 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::Dandelion));
+                        iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 1), Kind::Dandelion));
                     }
 
                     if rand::random::<f32>() < 0.01 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenLeaves));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), Kind::FallenLeaves));
                     }
 
                     if rand::random::<f32>() < 0.01 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenBranch));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), Kind::FallenBranch));
                     }
 
                     if rand::random::<f32>() < 0.04 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixPebbles));
+                        iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 1), Kind::MixPebbles));
                     }
 
                     if rand::random::<f32>() < 0.02 {
@@ -56,7 +52,7 @@ impl GenerationService {
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
                             Vec3A::new(x, y, 0.5),
-                            UnitKind::OakTree,
+                            Kind::OakTree,
                         ));
                     }
 
@@ -66,7 +62,7 @@ impl GenerationService {
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
                             Vec3A::new(x, y, 0.5),
-                            UnitKind::BirchTree,
+                            Kind::BirchTree,
                         ));
                     }
 
@@ -76,7 +72,7 @@ impl GenerationService {
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
                             Vec3A::new(x, y, 0.5),
-                            UnitKind::DyingTree,
+                            Kind::DyingTree,
                         ));
                     }
 
@@ -86,7 +82,7 @@ impl GenerationService {
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
                             Vec3A::new(x, y, 0.5),
-                            UnitKind::FallenTree,
+                            Kind::FallenTree,
                         ));
                     }
 
@@ -96,7 +92,7 @@ impl GenerationService {
                         unit_service.add_unit(Unit::new(
                             Uuid::new_v4(),
                             Vec3A::new(x, y, 0.5),
-                            UnitKind::MixRock,
+                            Kind::MixRock,
                         ));
                     }
 

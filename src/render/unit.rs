@@ -1,5 +1,5 @@
 use super::{texture::UnitTextureResource, CameraResource, DepthResource};
-use crate::service::Service;
+use crate::{model::Shape, service::Service};
 use glam::*;
 
 #[repr(C)]
@@ -124,42 +124,125 @@ impl UnitPipeline {
             let mut vertices = vec![];
             let mut indices = vec![];
 
-            service
+            let units = service
                 .unit
                 .get_units(view_aabb)
                 .into_iter()
-                .for_each(|unit| {
-                    let shape = unit.kind.shape();
-                    let texcoord_aabb = self
-                        .unit_texture
-                        .get_texcoord(&unit.kind)
-                        .unwrap_or_else(|| panic!("not registered unit kind {:?}", &unit.kind));
+                .map(|unit| (unit.position, unit.kind));
 
-                    let vertex_count = vertices.len() as u32;
+            let iunits = service
+                .iunit
+                .get_iunits(view_aabb.as_iaabb3())
+                .into_iter()
+                .map(|iunit| (iunit.position.as_vec3a(), iunit.kind));
 
-                    let position = (unit.position + Vec3A::new(shape.x, 0.0, shape.y)).into();
-                    let texcoord = texcoord_aabb.xw().into();
-                    vertices.push(Vertex { position, texcoord });
+            Iterator::chain(units, iunits).for_each(|(origin, kind)| {
+                let shape_aabb = kind.shape_size();
+                let texcoord_aabb = self
+                    .unit_texture
+                    .get_texcoord(&kind)
+                    .unwrap_or_else(|| panic!("not registered kind {:?}", &kind));
 
-                    let position = (unit.position + Vec3A::new(shape.z, 0.0, shape.y)).into();
-                    let texcoord = texcoord_aabb.zw().into();
-                    vertices.push(Vertex { position, texcoord });
+                let vertex_count = vertices.len() as u32;
 
-                    let position = (unit.position + Vec3A::new(shape.z, 0.0, shape.w)).into();
-                    let texcoord = texcoord_aabb.zy().into();
-                    vertices.push(Vertex { position, texcoord });
+                match kind.shape() {
+                    Shape::Block => {
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.min.x, shape_aabb.min.y, shape_aabb.min.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
 
-                    let position = (unit.position + Vec3A::new(shape.x, 0.0, shape.w)).into();
-                    let texcoord = texcoord_aabb.xy().into();
-                    vertices.push(Vertex { position, texcoord });
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.max.x, shape_aabb.min.y, shape_aabb.min.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
 
-                    indices.push(vertex_count + 0);
-                    indices.push(vertex_count + 1);
-                    indices.push(vertex_count + 2);
-                    indices.push(vertex_count + 2);
-                    indices.push(vertex_count + 3);
-                    indices.push(vertex_count + 0);
-                });
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.max.x, shape_aabb.max.y, shape_aabb.max.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.min.x, shape_aabb.max.y, shape_aabb.max.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
+                    Shape::Top => {
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.min.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.min.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.max.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.max.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
+                    Shape::Bottom => {
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.min.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.min.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.max.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.max.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
+                    Shape::Quad => {
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, 0.0, shape_aabb.min.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, 0.0, shape_aabb.min.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, 0.0, shape_aabb.max.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, 0.0, shape_aabb.max.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
+                }
+
+                indices.push(vertex_count + 0);
+                indices.push(vertex_count + 1);
+                indices.push(vertex_count + 2);
+                indices.push(vertex_count + 2);
+                indices.push(vertex_count + 3);
+                indices.push(vertex_count + 0);
+            });
 
             self.vertex_count = vertices.len() as u32;
             self.index_count = indices.len() as u32;

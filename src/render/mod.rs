@@ -1,6 +1,5 @@
 pub use camera::CameraResource;
 pub use depth::DepthResource;
-pub use iunit::IUnitPipeline;
 pub use ui::UIPipeline;
 pub use unit::UnitPipeline;
 
@@ -8,7 +7,6 @@ use crate::service::{ReadBack, Service};
 
 mod camera;
 mod depth;
-mod iunit;
 mod texture;
 mod ui;
 mod unit;
@@ -19,7 +17,6 @@ pub struct Render {
     surface: wgpu::Surface,
     camera_resource: CameraResource,
     depth_resource: DepthResource,
-    iunit_pipeline: IUnitPipeline,
     unit_pipeline: UnitPipeline,
     ui_pipeline: UIPipeline,
 }
@@ -48,7 +45,6 @@ impl Render {
 
         let camera_resource = CameraResource::new(&device, &config);
         let depth_resource = DepthResource::new(&device, &config);
-        let iunit_pipeline = IUnitPipeline::new(&device, &queue, &config, &camera_resource);
         let unit_pipeline = UnitPipeline::new(&device, &queue, &config, &camera_resource);
         let ui_pipeline = UIPipeline::new(&device, &queue, &config);
 
@@ -58,7 +54,6 @@ impl Render {
             surface,
             camera_resource,
             depth_resource,
-            iunit_pipeline,
             unit_pipeline,
             ui_pipeline,
         }
@@ -66,7 +61,6 @@ impl Render {
 
     pub fn draw(&mut self, service: &Service) -> ReadBack {
         self.camera_resource.pre_draw(&self.queue, service);
-        self.iunit_pipeline.pre_draw(&self.queue, service);
         self.unit_pipeline.pre_draw(&self.queue, service);
         self.ui_pipeline.pre_draw(&self.queue, service);
 
@@ -97,8 +91,6 @@ impl Render {
             }),
         });
 
-        self.iunit_pipeline
-            .draw(&mut render_pass, &self.camera_resource);
         self.unit_pipeline
             .draw(&mut render_pass, &self.camera_resource);
         self.ui_pipeline.draw(&mut render_pass);

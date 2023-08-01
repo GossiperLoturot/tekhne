@@ -54,17 +54,17 @@ mod tests {
     #[test]
     fn add_iunit() {
         let mut service = IUnitService::default();
-        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), IUnitKind::SurfaceDirt));
+        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), Kind::SurfaceDirt));
 
         let iunit = service.get_iunit(IVec3::new(0, 0, 0)).unwrap();
         assert_eq!(iunit.position, IVec3::new(0, 0, 0));
-        assert_eq!(iunit.kind, IUnitKind::SurfaceDirt);
+        assert_eq!(iunit.kind, Kind::SurfaceDirt);
     }
 
     #[test]
     fn remove_iunit() {
         let mut service = IUnitService::default();
-        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), IUnitKind::SurfaceDirt));
+        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), Kind::SurfaceDirt));
         service.remove_iunit(IVec3::new(0, 0, 0));
 
         let is_none = service.get_iunit(IVec3::new(0, 0, 0)).is_none();
@@ -74,13 +74,13 @@ mod tests {
     #[test]
     fn set_aabb_before_fill_data() {
         let mut service = IUnitService::default();
-        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), IUnitKind::SurfaceDirt));
-        service.add_iunit(IUnit::new(IVec3::new(-1, -1, -1), IUnitKind::SurfaceGrass));
+        service.add_iunit(IUnit::new(IVec3::new(0, 0, 0), Kind::SurfaceDirt));
+        service.add_iunit(IUnit::new(IVec3::new(-1, -1, -1), Kind::SurfaceGrass));
 
         let iunits = service.get_iunits(IAabb3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8)));
         assert_eq!(iunits.len(), 1);
         let iunit = iunits.get(0).unwrap();
         assert_eq!(iunit.position, IVec3::new(0, 0, 0));
-        assert_eq!(iunit.kind, IUnitKind::SurfaceDirt);
+        assert_eq!(iunit.kind, Kind::SurfaceDirt);
     }
 }
