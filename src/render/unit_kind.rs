@@ -1,66 +1,46 @@
-use super::Aabb2;
+use crate::model::*;
 use glam::*;
 use strum::EnumIter;
 
-#[derive(Debug, Clone, Copy)]
-pub enum Shape {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
+pub enum UnitShape {
     Block,
     Top,
     Bottom,
     Quad,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
-pub enum Kind {
-    SurfaceDirt,
-    SurfaceGrass,
-    SurfaceGravel,
-    SurfaceSand,
-    SurfaceStone,
-    MixGrass,
-    Dandelion,
-    FallenBranch,
-    FallenLeaves,
-    MixPebbles,
-    Player,
-    OakTree,
-    BirchTree,
-    DyingTree,
-    FallenTree,
-    MixRock,
-}
-
-impl Kind {
-    pub fn shape(&self) -> Shape {
+impl UnitKind {
+    pub fn shape(&self) -> UnitShape {
         match self {
             Self::SurfaceDirt
             | Self::SurfaceGrass
             | Self::SurfaceGravel
             | Self::SurfaceSand
-            | Self::SurfaceStone => Shape::Top,
+            | Self::SurfaceStone => UnitShape::Top,
             Self::MixGrass
             | Self::Dandelion
             | Self::FallenBranch
             | Self::FallenLeaves
-            | Self::MixPebbles => Shape::Bottom,
+            | Self::MixPebbles => UnitShape::Bottom,
             Self::Player
             | Self::OakTree
             | Self::BirchTree
             | Self::DyingTree
             | Self::FallenTree
-            | Self::MixRock => Shape::Quad,
+            | Self::MixRock => UnitShape::Quad,
         }
     }
 
-    pub fn shape_size(&self) -> Aabb2 {
+    pub fn shape_size(&self) -> Aabb3A {
         match self {
-            Self::Player => Aabb2::from_element(-0.5, 0.0, 0.5, 2.0),
-            Self::OakTree => Aabb2::from_element(-2.0, 0.0, 2.0, 6.0),
-            Self::BirchTree => Aabb2::from_element(-2.0, 0.0, 2.0, 6.0),
-            Self::DyingTree => Aabb2::from_element(-2.0, 0.0, 2.0, 6.0),
-            Self::FallenTree => Aabb2::from_element(-2.0, 0.0, 2.0, 2.0),
-            Self::MixRock => Aabb2::from_element(-1.0, 0.0, 1.0, 2.0),
-            _ => Aabb2::from_element(-0.5, -0.5, 0.5, 0.5),
+            Self::Player => Aabb3A::new(Vec3A::new(-0.5, 0.0, 0.0), Vec3A::new(0.5, 0.0, 2.0)),
+            Self::OakTree => Aabb3A::new(Vec3A::new(-2.0, 0.0, 0.0), Vec3A::new(2.0, 0.0, 6.0)),
+            Self::BirchTree => Aabb3A::new(Vec3A::new(-2.0, 0.0, 0.0), Vec3A::new(2.0, 0.0, 6.0)),
+            Self::DyingTree => Aabb3A::new(Vec3A::new(-2.0, 0.0, 0.0), Vec3A::new(2.0, 0.0, 6.0)),
+            Self::FallenTree => Aabb3A::new(Vec3A::new(-2.0, 0.0, 0.0), Vec3A::new(2.0, 0.0, 2.0)),
+            Self::MixRock => Aabb3A::new(Vec3A::new(-1.0, 0.0, 0.0), Vec3A::new(1.0, 0.0, 2.0)),
+            _ => Aabb3A::new(Vec3A::new(-0.5, -0.5, -0.5), Vec3A::new(0.5, 0.5, 0.5)),
         }
     }
 
