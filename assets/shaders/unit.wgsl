@@ -7,9 +7,8 @@ struct VertexInput {
 };
 
 struct InstanceInput {
-    @location(2) position_min: vec3<f32>,
-    @location(3) position_max: vec3<f32>,
-    @location(4) texcoord: vec4<f32>,
+    @location(2) position: vec3<f32>,
+    @location(3) texcoord: vec4<f32>,
 };
 
 struct VertexOutput {
@@ -22,9 +21,7 @@ fn vs_main(
     vertex: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
-    var shape_size = instance.position_max - instance.position_min;
-    var position = instance.position_min + vertex.position * shape_size;
-
+    var position = instance.position + vertex.position;
     var texcoord = instance.texcoord.xy + vertex.texcoord * instance.texcoord.zw;
 
     var out: VertexOutput;
