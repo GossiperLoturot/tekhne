@@ -1,9 +1,6 @@
-use super::{CameraResource, DepthResource, UnitShape, UnitTextureResource};
-use crate::service::Service;
-use ahash::AHashMap;
+use super::{texture::UnitTextureResource, CameraResource, DepthResource};
+use crate::{model::Shape, service::Service};
 use glam::*;
-use strum::IntoEnumIterator;
-use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -25,39 +22,12 @@ impl Vertex {
     }
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-struct Instance {
-    position_min: [f32; 3],
-    position_max: [f32; 3],
-    texcoord_min: [f32; 2],
-    texcoord_max: [f32; 2],
-}
-
-impl Instance {
-    const ATTRIBUTES: &[wgpu::VertexAttribute] =
-        &wgpu::vertex_attr_array![2 => Float32x3, 3 => Float32x3, 4 => Float32x2, 5 => Float32x2];
-
-    fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as u64,
-            step_mode: wgpu::VertexStepMode::Instance,
-            attributes: Self::ATTRIBUTES,
-        }
-    }
-}
-
-struct ShapeGroup {
+pub struct UnitPipeline {
     vertex_buffer: wgpu::Buffer,
+    vertex_count: u32,
     index_buffer: wgpu::Buffer,
     index_count: u32,
-    instance_buffer: wgpu::Buffer,
-    instance_count: u32,
-}
-
-pub struct UnitPipeline {
-    groups: AHashMap<UnitShape, ShapeGroup>,
-    texture_resource: UnitTextureResource,
+    unit_texture: UnitTextureResource,
     pipeline: wgpu::RenderPipeline,
 }
 
@@ -68,69 +38,19 @@ impl UnitPipeline {
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &CameraResource,
     ) -> Self {
-        let mut groups = AHashMap::new();
-        for shape in UnitShape::iter() {
-            #[rustfmt::skip]
-            let vertices: &[Vertex] = match shape {
-                UnitShape::Block => &[
-                    Vertex { position: [0.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                    Vertex { position: [1.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                    Vertex { position: [1.0, 1.0, 1.0], texcoord: [1.0, 0.0] },
-                    Vertex { position: [0.0, 1.0, 1.0], texcoord: [0.0, 0.0] },
-                ],
-                UnitShape::Top => &[
-                    Vertex { position: [0.0, 0.0, 1.0], texcoord: [0.0, 1.0] },
-                    Vertex { position: [1.0, 0.0, 1.0], texcoord: [1.0, 1.0] },
-                    Vertex { position: [1.0, 1.0, 1.0], texcoord: [1.0, 0.0] },
-                    Vertex { position: [0.0, 1.0, 1.0], texcoord: [0.0, 0.0] },
-                ],
-                UnitShape::Bottom => &[
-                    Vertex { position: [0.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                    Vertex { position: [1.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                    Vertex { position: [1.0, 1.0, 0.0], texcoord: [1.0, 0.0] },
-                    Vertex { position: [0.0, 1.0, 0.0], texcoord: [0.0, 0.0] },
-                ],
-                UnitShape::Quad => &[
-                    Vertex { position: [0.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                    Vertex { position: [1.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                    Vertex { position: [1.0, 0.0, 1.0], texcoord: [1.0, 0.0] },
-                    Vertex { position: [0.0, 0.0, 1.0], texcoord: [0.0, 0.0] },
-                ],
-            };
+        let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: device.limits().max_buffer_size,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
 
-            let indices: &[u16] = &[0, 1, 2, 2, 3, 0];
-            let index_count = indices.len() as u32;
-
-            let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(vertices),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-
-            let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(indices),
-                usage: wgpu::BufferUsages::INDEX,
-            });
-
-            let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-                label: None,
-                size: device.limits().max_buffer_size,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-
-            groups.insert(
-                shape,
-                ShapeGroup {
-                    vertex_buffer,
-                    index_buffer,
-                    index_count,
-                    instance_buffer,
-                    instance_count: 0,
-                },
-            );
-        }
+        let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: device.limits().max_buffer_size,
+            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
 
         let texture_resource = UnitTextureResource::new(device, queue);
 
@@ -152,7 +72,7 @@ impl UnitPipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[Vertex::layout(), Instance::layout()],
+                buffers: &[Vertex::layout()],
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -188,8 +108,11 @@ impl UnitPipeline {
         });
 
         Self {
-            groups,
-            texture_resource,
+            vertex_buffer,
+            vertex_count: 0,
+            index_buffer,
+            index_count: 0,
+            unit_texture: texture_resource,
             pipeline,
         }
     }
@@ -197,6 +120,9 @@ impl UnitPipeline {
     pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &Service) {
         if let Some(camera) = service.camera.get_camera() {
             let view_aabb = camera.view_aabb();
+
+            let mut vertices = vec![];
+            let mut indices = vec![];
 
             let units = service
                 .unit
@@ -210,38 +136,118 @@ impl UnitPipeline {
                 .into_iter()
                 .map(|iunit| (iunit.position.as_vec3a(), iunit.kind));
 
-            let mut group_instances = AHashMap::new();
-            for (origin, unit_kind) in Iterator::chain(units, iunits) {
-                let shape_aabb = unit_kind.shape_size();
+            Iterator::chain(units, iunits).for_each(|(origin, kind)| {
+                let shape_aabb = kind.shape_size();
                 let texcoord_aabb = self
-                    .texture_resource
-                    .get_texcoord(&unit_kind)
-                    .unwrap_or_else(|| panic!("not registered unit kind {:?}", &unit_kind));
+                    .unit_texture
+                    .get_texcoord(&kind)
+                    .unwrap_or_else(|| panic!("not registered kind {:?}", &kind));
 
-                let position_min = (origin + shape_aabb.min).into();
-                let position_max = (origin + shape_aabb.max).into();
-                let texcoord_min = texcoord_aabb.min.into();
-                let texcoord_max = texcoord_aabb.max.into();
+                let vertex_count = vertices.len() as u32;
 
-                group_instances
-                    .entry(unit_kind.shape())
-                    .or_insert(vec![])
-                    .push(Instance {
-                        position_min,
-                        position_max,
-                        texcoord_min,
-                        texcoord_max,
-                    });
-            }
+                match kind.shape() {
+                    Shape::Block => {
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.min.x, shape_aabb.min.y, shape_aabb.min.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
 
-            for shape in UnitShape::iter() {
-                if let (Some(group), Some(instances)) =
-                    (self.groups.get_mut(&shape), group_instances.get(&shape))
-                {
-                    group.instance_count = instances.len() as u32;
-                    queue.write_buffer(&group.instance_buffer, 0, bytemuck::cast_slice(instances));
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.max.x, shape_aabb.min.y, shape_aabb.min.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.max.x, shape_aabb.max.y, shape_aabb.max.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position = (origin
+                            + Vec3A::new(shape_aabb.min.x, shape_aabb.max.y, shape_aabb.max.y))
+                        .into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
+                    Shape::Top => {
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.min.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.min.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.max.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.max.y, 0.5)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
+                    Shape::Bottom => {
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.min.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.min.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, shape_aabb.max.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, shape_aabb.max.y, -0.49)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
+                    Shape::Quad => {
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, 0.0, shape_aabb.min.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, 0.0, shape_aabb.min.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.max.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.max.x, 0.0, shape_aabb.max.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.max.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+
+                        let position =
+                            (origin + Vec3A::new(shape_aabb.min.x, 0.0, shape_aabb.max.y)).into();
+                        let texcoord = Vec2::new(texcoord_aabb.min.x, texcoord_aabb.min.y).into();
+                        vertices.push(Vertex { position, texcoord });
+                    }
                 }
-            }
+
+                indices.push(vertex_count + 0);
+                indices.push(vertex_count + 1);
+                indices.push(vertex_count + 2);
+                indices.push(vertex_count + 2);
+                indices.push(vertex_count + 3);
+                indices.push(vertex_count + 0);
+            });
+
+            self.vertex_count = vertices.len() as u32;
+            self.index_count = indices.len() as u32;
+            queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));
+            queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(&indices));
         }
     }
 
@@ -250,14 +256,11 @@ impl UnitPipeline {
         render_pass: &mut wgpu::RenderPass<'a>,
         camera_resouce: &'a CameraResource,
     ) {
-        for group in self.groups.values() {
-            render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
-            render_pass.set_bind_group(1, self.texture_resource.bind_group(), &[]);
-            render_pass.set_vertex_buffer(0, group.vertex_buffer.slice(..));
-            render_pass.set_vertex_buffer(1, group.instance_buffer.slice(..));
-            render_pass.set_index_buffer(group.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..group.index_count, 0, 0..group.instance_count);
-        }
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_bind_group(0, camera_resouce.bind_group(), &[]);
+        render_pass.set_bind_group(1, self.unit_texture.bind_group(), &[]);
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+        render_pass.draw_indexed(0..self.index_count, 0, 0..1);
     }
 }

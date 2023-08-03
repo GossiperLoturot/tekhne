@@ -1,4 +1,4 @@
-use super::UnitKind;
+use super::Kind;
 use glam::*;
 use uuid::*;
 
@@ -6,17 +6,17 @@ use uuid::*;
 pub struct Unit {
     pub id: Uuid,
     pub position: Vec3A,
-    pub kind: UnitKind,
+    pub kind: Kind,
 }
 
 impl Unit {
-    pub fn new(id: Uuid, position: Vec3A, kind: UnitKind) -> Self {
+    pub fn new(id: Uuid, position: Vec3A, kind: Kind) -> Self {
         Self { id, position, kind }
     }
 
     pub fn breakable(&self) -> bool {
         match self.kind {
-            UnitKind::Player => false,
+            Kind::Player => false,
             _ => true,
         }
     }

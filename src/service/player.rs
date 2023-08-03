@@ -17,7 +17,7 @@ impl PlayerService {
             panic!("player {} already exists", id);
         } else {
             let id = Uuid::new_v4();
-            unit_service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.5), UnitKind::Player));
+            unit_service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.5), Kind::Player));
             self.player = Some(id);
         }
     }

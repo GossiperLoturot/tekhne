@@ -4,7 +4,7 @@ use glam::*;
 use strum::IntoEnumIterator;
 
 pub struct UnitTextureResource {
-    texcoords: AHashMap<UnitKind, Aabb2>,
+    texcoords: AHashMap<Kind, Aabb2>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -28,9 +28,9 @@ impl UnitTextureResource {
         // TODO: improve packing algorithm
         // allocate texture to atlas by strip packing algolithm
         let (mut x, mut y, mut y_upper_bounds) = (0, 0, 0);
-        for unit_kind in UnitKind::iter() {
-            let texture = unit_kind.texture();
-            let (size_x, size_y) = unit_kind.texture_size();
+        for kind in Kind::iter() {
+            let texture = kind.texture();
+            let (size_x, size_y) = kind.texture_size();
 
             if grid < x + size_x && grid < y + size_y {
                 panic!("Atlas texture size is too small!");
@@ -54,7 +54,7 @@ impl UnitTextureResource {
             }
 
             texcoords.insert(
-                unit_kind,
+                kind,
                 Aabb2::from_element(
                     x as f32 / grid as f32,
                     y as f32 / grid as f32,
@@ -145,8 +145,8 @@ impl UnitTextureResource {
         }
     }
 
-    pub fn get_texcoord(&self, unit_kind: &UnitKind) -> Option<Aabb2> {
-        self.texcoords.get(unit_kind).cloned()
+    pub fn get_texcoord(&self, kind: &Kind) -> Option<Aabb2> {
+        self.texcoords.get(kind).cloned()
     }
 
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {

@@ -6,13 +6,6 @@ struct VertexInput {
     @location(1) texcoord: vec2<f32>,
 };
 
-struct InstanceInput {
-    @location(2) position_min: vec3<f32>,
-    @location(3) position_max: vec3<f32>,
-    @location(4) texcoord_min: vec2<f32>,
-    @location(5) texcoord_max: vec2<f32>,
-};
-
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) texcoord: vec2<f32>,
@@ -21,17 +14,10 @@ struct VertexOutput {
 @vertex
 fn vs_main(
     vertex: VertexInput,
-    instance: InstanceInput,
 ) -> VertexOutput {
-    var shape_size = instance.position_max - instance.position_min;
-    var position = instance.position_min + vertex.position * shape_size;
-
-    var texcoord_size = instance.texcoord_max - instance.texcoord_min;
-    var texcoord = instance.texcoord_min + vertex.texcoord * texcoord_size;
-
     var out: VertexOutput;
-    out.clip_position = view_matrix * vec4<f32>(position, 1.0);
-    out.texcoord = texcoord;
+    out.clip_position = view_matrix * vec4<f32>(vertex.position, 1.0);
+    out.texcoord = vertex.texcoord;
     return out;
 }
 

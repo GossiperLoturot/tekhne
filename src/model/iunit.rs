@@ -1,24 +1,24 @@
-use super::UnitKind;
+use super::Kind;
 use glam::*;
 
 #[derive(Debug, Clone)]
 pub struct IUnit {
     pub position: IVec3,
-    pub kind: UnitKind,
+    pub kind: Kind,
 }
 
 impl IUnit {
-    pub fn new(position: IVec3, kind: UnitKind) -> Self {
+    pub fn new(position: IVec3, kind: Kind) -> Self {
         Self { position, kind }
     }
 
     pub fn breakable(&self) -> bool {
         match self.kind {
-            UnitKind::SurfaceDirt
-            | UnitKind::SurfaceGrass
-            | UnitKind::SurfaceGravel
-            | UnitKind::SurfaceSand
-            | UnitKind::SurfaceStone => false,
+            Kind::SurfaceDirt
+            | Kind::SurfaceGrass
+            | Kind::SurfaceGravel
+            | Kind::SurfaceSand
+            | Kind::SurfaceStone => false,
             _ => true,
         }
     }
