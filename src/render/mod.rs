@@ -2,6 +2,8 @@ pub use camera::CameraResource;
 pub use depth::DepthResource;
 pub use ui::UIPipeline;
 pub use unit::UnitPipeline;
+pub use unit_kind::UnitShape;
+pub use unit_texture::UnitTextureResource;
 
 use crate::service::{ReadBack, Service};
 
@@ -9,6 +11,8 @@ mod camera;
 mod depth;
 mod ui;
 mod unit;
+mod unit_kind;
+mod unit_texture;
 
 pub struct Render {
     device: wgpu::Device,

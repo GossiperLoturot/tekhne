@@ -10,7 +10,6 @@ glam = { version = "0.24", features = ["bytemuck"] }
 image = { version = "0.24", default-features = false, features = ["png"] }
 pollster = "0.3"
 rand = "0.8"
-rectangle-pack = "0.4"
 strum = { version = "0.25", features = ["derive"] }
 uuid = { version = "1.4", features = ["v4", "fast-rng"] }
 wgpu = "0.16"

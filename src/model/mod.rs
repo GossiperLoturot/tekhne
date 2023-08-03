@@ -1,4 +1,4 @@
-pub use aabb::{Aabb3A, IAabb3};
+pub use aabb::{Aabb2, Aabb3A, IAabb3};
 pub use camera::Camera;
 pub use iunit::IUnit;
 pub use unit::Unit;
