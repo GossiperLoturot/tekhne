@@ -7,7 +7,6 @@ use crate::service::{ReadBack, Service};
 
 mod camera;
 mod depth;
-mod texture;
 mod ui;
 mod unit;
 
