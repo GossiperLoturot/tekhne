@@ -2,7 +2,6 @@ use super::{IUnitService, UnitService};
 use crate::model::*;
 use ahash::AHashSet;
 use glam::*;
-use uuid::Uuid;
 
 #[derive(Default)]
 pub struct GenerationService {
@@ -51,53 +50,26 @@ impl GenerationService {
                     }
 
                     if rand::random::<f32>() < 0.02 {
-                        let x = x as f32 + rand::random::<f32>() - 0.5;
-                        let y = y as f32 + rand::random::<f32>() - 0.5;
-                        unit_service.add_unit(Unit::new(
-                            Uuid::new_v4(),
-                            Vec3A::new(x, y, 0.5),
-                            UnitKind::OakTree,
-                        ));
+                        iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::OakTree));
                     }
 
                     if rand::random::<f32>() < 0.02 {
-                        let x = x as f32 + rand::random::<f32>() - 0.5;
-                        let y = y as f32 + rand::random::<f32>() - 0.5;
-                        unit_service.add_unit(Unit::new(
-                            Uuid::new_v4(),
-                            Vec3A::new(x, y, 0.5),
-                            UnitKind::BirchTree,
-                        ));
+                        iunit_service
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::BirchTree));
                     }
 
                     if rand::random::<f32>() < 0.001 {
-                        let x = x as f32 + rand::random::<f32>() - 0.5;
-                        let y = y as f32 + rand::random::<f32>() - 0.5;
-                        unit_service.add_unit(Unit::new(
-                            Uuid::new_v4(),
-                            Vec3A::new(x, y, 0.5),
-                            UnitKind::DyingTree,
-                        ));
+                        iunit_service
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::DyingTree));
                     }
 
                     if rand::random::<f32>() < 0.001 {
-                        let x = x as f32 + rand::random::<f32>() - 0.5;
-                        let y = y as f32 + rand::random::<f32>() - 0.5;
-                        unit_service.add_unit(Unit::new(
-                            Uuid::new_v4(),
-                            Vec3A::new(x, y, 0.5),
-                            UnitKind::FallenTree,
-                        ));
+                        iunit_service
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::FallenTree));
                     }
 
                     if rand::random::<f32>() < 0.01 {
-                        let x = x as f32 + rand::random::<f32>() - 0.5;
-                        let y = y as f32 + rand::random::<f32>() - 0.5;
-                        unit_service.add_unit(Unit::new(
-                            Uuid::new_v4(),
-                            Vec3A::new(x, y, 0.5),
-                            UnitKind::MixRock,
-                        ));
+                        iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::MixRock));
                     }
 
                     // generation rules end
