@@ -5,6 +5,7 @@ use self::{
 use super::{CameraResource, DepthResource};
 use crate::service::Service;
 use glam::*;
+use std::num::NonZeroU64;
 
 mod model;
 mod texture;
@@ -140,7 +141,13 @@ impl UnitPipeline {
         }
     }
 
-    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &Service) {
+    pub fn pre_draw(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        staging_belt: &mut wgpu::util::StagingBelt,
+        service: &Service,
+    ) {
         if let Some(camera) = service.camera.get_camera() {
             let view_aabb = camera.view_aabb();
 
@@ -178,12 +185,18 @@ impl UnitPipeline {
                     indices.push(vertex_count as u32 + index);
                 }
 
-                for mut vertex in model.vertices() {
-                    vertex.position[0] += position.x;
-                    vertex.position[1] += position.y;
-                    vertex.position[2] += position.z;
-                    vertex.texcoord[0] = texcoord.x + vertex.texcoord[0] * texcoord.width;
-                    vertex.texcoord[1] = texcoord.y + vertex.texcoord[1] * texcoord.height;
+                for vertex in model.vertices() {
+                    let vertex = UnitVertex {
+                        position: [
+                            position.x + vertex.position[0],
+                            position.y + vertex.position[1],
+                            position.z + vertex.position[2],
+                        ],
+                        texcoord: [
+                            texcoord.x + vertex.texcoord[0] * texcoord.width,
+                            texcoord.y + vertex.texcoord[1] * texcoord.height,
+                        ],
+                    };
                     vertices.push(vertex)
                 }
             }
@@ -194,15 +207,21 @@ impl UnitPipeline {
                     .get_mut(page as usize)
                     .expect("not found available page batch");
 
-                let vertex_buffer = &page_batch.vertex_buffer;
-                let index_buffer = &page_batch.index_buffer;
-                let vertices = &page_batch.chache_vertices;
-                let indices = &page_batch.cache_indices;
+                let vertex_data = bytemuck::cast_slice(&page_batch.chache_vertices);
+                page_batch.vertex_count = page_batch.chache_vertices.len() as u32;
+                if let Some(size) = NonZeroU64::new(vertex_data.len() as u64) {
+                    staging_belt
+                        .write_buffer(encoder, &page_batch.vertex_buffer, 0, size, device)
+                        .copy_from_slice(vertex_data);
+                }
 
-                page_batch.vertex_count = vertices.len() as u32;
-                page_batch.index_count = indices.len() as u32;
-                queue.write_buffer(vertex_buffer, 0, bytemuck::cast_slice(vertices));
-                queue.write_buffer(index_buffer, 0, bytemuck::cast_slice(indices));
+                let index_data = bytemuck::cast_slice(&page_batch.cache_indices);
+                page_batch.index_count = page_batch.cache_indices.len() as u32;
+                if let Some(size) = NonZeroU64::new(index_data.len() as u64) {
+                    staging_belt
+                        .write_buffer(encoder, &page_batch.index_buffer, 0, size, device)
+                        .copy_from_slice(index_data);
+                }
 
                 page_batch.chache_vertices.clear();
                 page_batch.cache_indices.clear();

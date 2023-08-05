@@ -14,6 +14,7 @@ pub struct Render {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface,
+    staging_belt: wgpu::util::StagingBelt,
     camera_resource: CameraResource,
     depth_resource: DepthResource,
     unit_pipeline: UnitPipeline,
@@ -41,6 +42,7 @@ impl Render {
             .get_default_config(&adapter, inner_size.width, inner_size.height)
             .unwrap();
         surface.configure(&device, &config);
+        let staging_belt = wgpu::util::StagingBelt::new(1024);
 
         let camera_resource = CameraResource::new(&device, &config);
         let depth_resource = DepthResource::new(&device, &config);
@@ -51,6 +53,7 @@ impl Render {
             device,
             queue,
             surface,
+            staging_belt,
             camera_resource,
             depth_resource,
             unit_pipeline,
@@ -59,17 +62,20 @@ impl Render {
     }
 
     pub fn draw(&mut self, service: &Service) -> ReadBack {
+        self.staging_belt.recall();
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+
         self.camera_resource.pre_draw(&self.queue, service);
-        self.unit_pipeline.pre_draw(&self.queue, service);
+        self.unit_pipeline
+            .pre_draw(&self.device, &mut encoder, &mut self.staging_belt, service);
         self.ui_pipeline.pre_draw(&self.queue, service);
 
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -95,6 +101,7 @@ impl Render {
         self.ui_pipeline.draw(&mut render_pass);
 
         drop(render_pass);
+        self.staging_belt.finish();
         self.queue.submit([encoder.finish()]);
         frame.present();
 

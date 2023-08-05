@@ -33,6 +33,13 @@ impl IAabb3 {
         let is_outside = size.x < norm.x || size.y < norm.y || size.z < norm.z;
         !is_outside
     }
+
+    pub fn as_aabb3a(&self) -> Aabb3A {
+        Aabb3A {
+            min: self.min.as_vec3a(),
+            max: self.max.as_vec3a(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]

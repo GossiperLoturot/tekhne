@@ -3,49 +3,65 @@ use crate::model::*;
 use strum::EnumIter;
 
 pub enum UnitModelItem {
-    Block,
     TopPlane,
     BottomPlane,
-    Billboard(f32, f32),
+    Billboard1x2,
+    Billboard2x2,
+    Billboard4x2,
+    Billboard4x6,
 }
 
 impl UnitModelItem {
     #[rustfmt::skip]
-    pub fn vertices(&self) -> Vec<UnitVertex> {
+    pub fn vertices(&self) -> &[UnitVertex] {
         match self {
-            UnitModelItem::Block => vec![
-                UnitVertex { position: [-0.5, -0.5, -0.5], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [ 0.5, -0.5, -0.5], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [ 0.5,  0.5,  0.5], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [-0.5,  0.5,  0.5], texcoord: [0.0, 0.0] },
-            ],
-            UnitModelItem::TopPlane => vec![
+            UnitModelItem::TopPlane => &[
                 UnitVertex { position: [-0.5, -0.5,  0.5], texcoord: [0.0, 1.0] },
                 UnitVertex { position: [ 0.5, -0.5,  0.5], texcoord: [1.0, 1.0] },
                 UnitVertex { position: [ 0.5,  0.5,  0.5], texcoord: [1.0, 0.0] },
                 UnitVertex { position: [-0.5,  0.5,  0.5], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::BottomPlane => vec![
+            UnitModelItem::BottomPlane => &[
                 UnitVertex { position: [-0.5, -0.5, -0.49], texcoord: [0.0, 1.0] },
                 UnitVertex { position: [ 0.5, -0.5, -0.49], texcoord: [1.0, 1.0] },
                 UnitVertex { position: [ 0.5,  0.5, -0.49], texcoord: [1.0, 0.0] },
                 UnitVertex { position: [-0.5,  0.5, -0.49], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::Billboard(width, height) => vec![
-                UnitVertex { position: [-0.5 * width, 0.0, 0.0 * height], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [ 0.5 * width, 0.0, 0.0 * height], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [ 0.5 * width, 0.0, 1.0 * height], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [-0.5 * width, 0.0, 1.0 * height], texcoord: [0.0, 0.0] },
+            UnitModelItem::Billboard1x2 => &[
+                UnitVertex { position: [-0.5, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [ 0.5, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [ 0.5, 0.0, 2.0], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [-0.5, 0.0, 2.0], texcoord: [0.0, 0.0] },
+            ],
+            UnitModelItem::Billboard2x2 => &[
+                UnitVertex { position: [-1.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [ 1.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [ 1.0, 0.0, 2.0], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [-1.0, 0.0, 2.0], texcoord: [0.0, 0.0] },
+            ],
+            UnitModelItem::Billboard4x2 => &[
+                UnitVertex { position: [-2.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [ 2.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [ 2.0, 0.0, 2.0], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [-2.0, 0.0, 2.0], texcoord: [0.0, 0.0] },
+            ],
+            UnitModelItem::Billboard4x6 => &[
+                UnitVertex { position: [-2.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [ 2.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [ 2.0, 0.0, 6.0], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [-2.0, 0.0, 6.0], texcoord: [0.0, 0.0] },
             ],
         }
     }
 
-    pub fn indices(&self) -> Vec<u32> {
+    pub fn indices(&self) -> &[u32] {
         match self {
-            UnitModelItem::Block => vec![0, 1, 2, 2, 3, 0],
-            UnitModelItem::TopPlane => vec![0, 1, 2, 2, 3, 0],
-            UnitModelItem::BottomPlane => vec![0, 1, 2, 2, 3, 0],
-            UnitModelItem::Billboard(_, _) => vec![0, 1, 2, 2, 3, 0],
+            UnitModelItem::TopPlane => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::BottomPlane => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::Billboard1x2 => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::Billboard2x2 => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::Billboard4x2 => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::Billboard4x6 => &[0, 1, 2, 2, 3, 0],
         }
     }
 }
@@ -63,12 +79,12 @@ impl From<UnitKind> for UnitModelItem {
             UnitKind::FallenBranch => Self::BottomPlane,
             UnitKind::FallenLeaves => Self::BottomPlane,
             UnitKind::MixPebbles => Self::BottomPlane,
-            UnitKind::Player => Self::Billboard(1.0, 2.0),
-            UnitKind::OakTree => Self::Billboard(4.0, 6.0),
-            UnitKind::BirchTree => Self::Billboard(4.0, 6.0),
-            UnitKind::DyingTree => Self::Billboard(4.0, 6.0),
-            UnitKind::FallenTree => Self::Billboard(4.0, 2.0),
-            UnitKind::MixRock => Self::Billboard(2.0, 2.0),
+            UnitKind::Player => Self::Billboard1x2,
+            UnitKind::OakTree => Self::Billboard4x6,
+            UnitKind::BirchTree => Self::Billboard4x6,
+            UnitKind::DyingTree => Self::Billboard4x6,
+            UnitKind::FallenTree => Self::Billboard4x2,
+            UnitKind::MixRock => Self::Billboard2x2,
         }
     }
 }
