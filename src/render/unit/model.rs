@@ -1,4 +1,4 @@
-use super::UnitVertex;
+use super::{texture::UnitAtlasOption, UnitVertex};
 use crate::model::*;
 use strum::EnumIter;
 
@@ -174,6 +174,27 @@ impl UnitTextureItem {
             Self::DyingTree => (4, 6),
             Self::FallenTree => (4, 2),
             Self::MixRock => (2, 2),
+        }
+    }
+
+    pub fn atlas_option(&self) -> UnitAtlasOption {
+        match self {
+            Self::SurfaceDirt => UnitAtlasOption::Continuous,
+            Self::SurfaceGrass => UnitAtlasOption::Continuous,
+            Self::SurfaceGravel => UnitAtlasOption::Continuous,
+            Self::SurfaceSand => UnitAtlasOption::Continuous,
+            Self::SurfaceStone => UnitAtlasOption::Continuous,
+            Self::MixGrass => UnitAtlasOption::Single,
+            Self::Dandelion => UnitAtlasOption::Single,
+            Self::FallenBranch => UnitAtlasOption::Single,
+            Self::FallenLeaves => UnitAtlasOption::Single,
+            Self::MixPebbles => UnitAtlasOption::Single,
+            Self::Player => UnitAtlasOption::Single,
+            Self::OakTree => UnitAtlasOption::Single,
+            Self::BirchTree => UnitAtlasOption::Single,
+            Self::DyingTree => UnitAtlasOption::Single,
+            Self::FallenTree => UnitAtlasOption::Single,
+            Self::MixRock => UnitAtlasOption::Single,
         }
     }
 }

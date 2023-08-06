@@ -5,6 +5,11 @@ use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
 use wgpu::util::DeviceExt;
 
+pub enum UnitAtlasOption {
+    Single,
+    Continuous,
+}
+
 pub struct UnitAtlasTexcoord {
     pub page: u32,
     pub x: f32,
@@ -83,16 +88,28 @@ impl UnitTextureResource {
                 Self::SIZE_PER_BLOCK * (height + 1),
             );
 
-            for x in -1..=1 {
-                for y in -1..=1 {
+            match item.atlas_option() {
+                UnitAtlasOption::Single => {
                     image::imageops::replace(
                         &mut dilation,
                         &texture,
-                        (Self::SIZE_PER_BLOCK / 2) as i64
-                            + (Self::SIZE_PER_BLOCK * width) as i64 * x,
-                        (Self::SIZE_PER_BLOCK / 2) as i64
-                            + (Self::SIZE_PER_BLOCK * height) as i64 * y,
-                    )
+                        (Self::SIZE_PER_BLOCK / 2) as i64,
+                        (Self::SIZE_PER_BLOCK / 2) as i64,
+                    );
+                }
+                UnitAtlasOption::Continuous => {
+                    for x in -1..=1 {
+                        for y in -1..=1 {
+                            image::imageops::replace(
+                                &mut dilation,
+                                &texture,
+                                (Self::SIZE_PER_BLOCK / 2) as i64
+                                    + (Self::SIZE_PER_BLOCK * width) as i64 * x,
+                                (Self::SIZE_PER_BLOCK / 2) as i64
+                                    + (Self::SIZE_PER_BLOCK * height) as i64 * y,
+                            )
+                        }
+                    }
                 }
             }
 
