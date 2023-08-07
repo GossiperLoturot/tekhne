@@ -22,54 +22,56 @@ impl GenerationService {
                     // generation rules start
 
                     iunit_service
-                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), UnitKind::SurfaceGrass));
+                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), IUnitKind::SurfaceGrass));
 
                     if rand::random::<f32>() < 0.08 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::MixGrass));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixGrass));
                     }
 
                     if rand::random::<f32>() < 0.02 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::Dandelion));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::Dandelion));
                     }
 
                     if rand::random::<f32>() < 0.01 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::FallenLeaves));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenLeaves));
                     }
 
                     if rand::random::<f32>() < 0.01 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::FallenBranch));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenBranch));
                     }
 
                     if rand::random::<f32>() < 0.04 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::MixPebbles));
-                    }
-
-                    if rand::random::<f32>() < 0.02 {
-                        iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::OakTree));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixPebbles));
                     }
 
                     if rand::random::<f32>() < 0.02 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::BirchTree));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::OakTree));
+                    }
+
+                    if rand::random::<f32>() < 0.02 {
+                        iunit_service
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::BirchTree));
                     }
 
                     if rand::random::<f32>() < 0.001 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::DyingTree));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::DyingTree));
                     }
 
                     if rand::random::<f32>() < 0.001 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::FallenTree));
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenTree));
                     }
 
                     if rand::random::<f32>() < 0.01 {
-                        iunit_service.add_iunit(IUnit::new(IVec3::new(x, y, 1), UnitKind::MixRock));
+                        iunit_service
+                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixRock));
                     }
 
                     // generation rules end

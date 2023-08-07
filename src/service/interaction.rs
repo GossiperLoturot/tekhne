@@ -64,13 +64,13 @@ impl InteractionService {
                 let end = (matrix * Vec4::new(x, y, 1.0, 1.0)).xyz().into();
 
                 if let Some(hit) = iunit_ray(start, end, iunit_service) {
-                    if input.mouse_pressed(0) && hit.iunit.breakable() {
+                    if input.mouse_pressed(0) && hit.iunit.kind.breakable() {
                         iunit_service.remove_iunit(hit.iunit.position);
                     }
                 }
 
                 if let Some(hit) = unit_ray(start, end, unit_service) {
-                    if input.mouse_pressed(0) && hit.units[0].breakable() {
+                    if input.mouse_pressed(0) && hit.units[0].kind.breakable() {
                         unit_service.remove_unit(&hit.units[0].id.clone());
                     }
                 }

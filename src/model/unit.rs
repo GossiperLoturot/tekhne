@@ -1,6 +1,18 @@
-use super::UnitKind;
 use glam::*;
 use uuid::*;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnitKind {
+    Player,
+}
+
+impl UnitKind {
+    pub fn breakable(&self) -> bool {
+        match self {
+            UnitKind::Player => false,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Unit {
@@ -12,12 +24,5 @@ pub struct Unit {
 impl Unit {
     pub fn new(id: Uuid, position: Vec3A, kind: UnitKind) -> Self {
         Self { id, position, kind }
-    }
-
-    pub fn breakable(&self) -> bool {
-        match self.kind {
-            UnitKind::Player => false,
-            _ => true,
-        }
     }
 }

@@ -151,20 +151,25 @@ impl UnitPipeline {
         if let Some(camera) = service.camera.get_camera() {
             let view_aabb = camera.view_aabb();
 
-            let units = service
-                .unit
-                .get_units(view_aabb)
-                .into_iter()
-                .map(|unit| (unit.position, unit.kind));
-
             let iunits = service
                 .iunit
                 .get_iunits(view_aabb.as_iaabb3())
                 .into_iter()
-                .map(|iunit| (iunit.position.as_vec3a(), iunit.kind));
+                .map(|iunit| {
+                    let position = iunit.position.as_vec3();
+                    let model = UnitModelItem::from(iunit.kind);
+                    let texture = UnitTextureItem::from(iunit.kind);
+                    (position, model, texture)
+                });
 
-            for (position, unit_kind) in Iterator::chain(units, iunits) {
-                let texture = UnitTextureItem::from(unit_kind);
+            let units = service.unit.get_units(view_aabb).into_iter().map(|unit| {
+                let position = unit.position.into();
+                let model = UnitModelItem::from(unit.kind);
+                let texture = UnitTextureItem::from(unit.kind);
+                (position, model, texture)
+            });
+
+            for (position, model, texture) in Iterator::chain(units, iunits) {
                 let texcoord = self
                     .texture_resource
                     .texcoord(&texture)
@@ -177,8 +182,6 @@ impl UnitPipeline {
 
                 let vertices = &mut page_batch.chache_vertices;
                 let indices = &mut page_batch.cache_indices;
-
-                let model = UnitModelItem::from(unit_kind);
 
                 for index in model.indices() {
                     let vertex_count = vertices.len();

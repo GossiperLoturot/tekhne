@@ -79,7 +79,7 @@ impl UnitTextureResource {
 
         let mut texcoords = AHashMap::new();
 
-        for (item, (_, location)) in locations.packed_locations() {
+        for (&item, (_, location)) in locations.packed_locations() {
             let texture = item.texture().expect("failed to load texture");
             let (width, height) = item.block_size();
 
@@ -130,7 +130,7 @@ impl UnitTextureResource {
             }
 
             texcoords.insert(
-                item.clone(),
+                item,
                 UnitAtlasTexcoord {
                     page: location.z(),
                     x: (Self::SIZE_PER_BLOCK * location.x() + Self::SIZE_PER_BLOCK / 2) as f32

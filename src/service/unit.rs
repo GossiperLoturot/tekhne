@@ -75,11 +75,11 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::OakTree));
+        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::Player));
 
         let unit = service.get_unit(&id).unwrap();
         assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
-        assert_eq!(unit.kind, UnitKind::OakTree);
+        assert_eq!(unit.kind, UnitKind::Player);
     }
 
     #[test]
@@ -87,7 +87,7 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::OakTree));
+        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::Player));
         service.remove_unit(&id);
 
         let is_none = service.get_unit(&id).is_none();
@@ -99,13 +99,13 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::OakTree));
+        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::Player));
 
         let other_id = Uuid::new_v4();
         service.add_unit(Unit::new(
             other_id,
             Vec3A::new(-4.0, -4.0, -4.0),
-            UnitKind::OakTree,
+            UnitKind::Player,
         ));
 
         let units = service.get_units(Aabb3A::new(
@@ -116,6 +116,6 @@ mod tests {
         let unit = units.get(0).unwrap();
         assert_eq!(unit.id, id);
         assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
-        assert_eq!(unit.kind, UnitKind::OakTree);
+        assert_eq!(unit.kind, UnitKind::Player);
     }
 }

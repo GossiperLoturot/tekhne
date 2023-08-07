@@ -66,25 +66,32 @@ impl UnitModelItem {
     }
 }
 
+impl From<IUnitKind> for UnitModelItem {
+    fn from(value: IUnitKind) -> Self {
+        match value {
+            IUnitKind::SurfaceDirt => Self::TopPlane,
+            IUnitKind::SurfaceGrass => Self::TopPlane,
+            IUnitKind::SurfaceGravel => Self::TopPlane,
+            IUnitKind::SurfaceSand => Self::TopPlane,
+            IUnitKind::SurfaceStone => Self::TopPlane,
+            IUnitKind::MixGrass => Self::BottomPlane,
+            IUnitKind::Dandelion => Self::BottomPlane,
+            IUnitKind::FallenBranch => Self::BottomPlane,
+            IUnitKind::FallenLeaves => Self::BottomPlane,
+            IUnitKind::MixPebbles => Self::BottomPlane,
+            IUnitKind::OakTree => Self::Billboard4x6,
+            IUnitKind::BirchTree => Self::Billboard4x6,
+            IUnitKind::DyingTree => Self::Billboard4x6,
+            IUnitKind::FallenTree => Self::Billboard4x2,
+            IUnitKind::MixRock => Self::Billboard2x2,
+        }
+    }
+}
+
 impl From<UnitKind> for UnitModelItem {
     fn from(value: UnitKind) -> Self {
         match value {
-            UnitKind::SurfaceDirt => Self::TopPlane,
-            UnitKind::SurfaceGrass => Self::TopPlane,
-            UnitKind::SurfaceGravel => Self::TopPlane,
-            UnitKind::SurfaceSand => Self::TopPlane,
-            UnitKind::SurfaceStone => Self::TopPlane,
-            UnitKind::MixGrass => Self::BottomPlane,
-            UnitKind::Dandelion => Self::BottomPlane,
-            UnitKind::FallenBranch => Self::BottomPlane,
-            UnitKind::FallenLeaves => Self::BottomPlane,
-            UnitKind::MixPebbles => Self::BottomPlane,
             UnitKind::Player => Self::Billboard1x2,
-            UnitKind::OakTree => Self::Billboard4x6,
-            UnitKind::BirchTree => Self::Billboard4x6,
-            UnitKind::DyingTree => Self::Billboard4x6,
-            UnitKind::FallenTree => Self::Billboard4x2,
-            UnitKind::MixRock => Self::Billboard2x2,
         }
     }
 }
@@ -109,25 +116,32 @@ pub enum UnitTextureItem {
     MixRock,
 }
 
+impl From<IUnitKind> for UnitTextureItem {
+    fn from(value: IUnitKind) -> Self {
+        match value {
+            IUnitKind::SurfaceDirt => Self::SurfaceDirt,
+            IUnitKind::SurfaceGrass => Self::SurfaceGrass,
+            IUnitKind::SurfaceGravel => Self::SurfaceGravel,
+            IUnitKind::SurfaceSand => Self::SurfaceSand,
+            IUnitKind::SurfaceStone => Self::SurfaceStone,
+            IUnitKind::MixGrass => Self::MixGrass,
+            IUnitKind::Dandelion => Self::Dandelion,
+            IUnitKind::FallenBranch => Self::FallenBranch,
+            IUnitKind::FallenLeaves => Self::FallenLeaves,
+            IUnitKind::MixPebbles => Self::MixPebbles,
+            IUnitKind::OakTree => Self::OakTree,
+            IUnitKind::BirchTree => Self::BirchTree,
+            IUnitKind::DyingTree => Self::DyingTree,
+            IUnitKind::FallenTree => Self::FallenTree,
+            IUnitKind::MixRock => Self::MixRock,
+        }
+    }
+}
+
 impl From<UnitKind> for UnitTextureItem {
     fn from(value: UnitKind) -> Self {
         match value {
-            UnitKind::SurfaceDirt => Self::SurfaceDirt,
-            UnitKind::SurfaceGrass => Self::SurfaceGrass,
-            UnitKind::SurfaceGravel => Self::SurfaceGravel,
-            UnitKind::SurfaceSand => Self::SurfaceSand,
-            UnitKind::SurfaceStone => Self::SurfaceStone,
-            UnitKind::MixGrass => Self::MixGrass,
-            UnitKind::Dandelion => Self::Dandelion,
-            UnitKind::FallenBranch => Self::FallenBranch,
-            UnitKind::FallenLeaves => Self::FallenLeaves,
-            UnitKind::MixPebbles => Self::MixPebbles,
             UnitKind::Player => Self::Player,
-            UnitKind::OakTree => Self::OakTree,
-            UnitKind::BirchTree => Self::BirchTree,
-            UnitKind::DyingTree => Self::DyingTree,
-            UnitKind::FallenTree => Self::FallenTree,
-            UnitKind::MixRock => Self::MixRock,
         }
     }
 }
@@ -145,12 +159,12 @@ impl UnitTextureItem {
             Self::FallenBranch => include_bytes!("../../../assets/textures/fallen_branch.png"),
             Self::FallenLeaves => include_bytes!("../../../assets/textures/fallen_leaves.png"),
             Self::MixPebbles => include_bytes!("../../../assets/textures/mix_pebbles.png"),
-            Self::Player => include_bytes!("../../../assets/textures/frame.png"),
             Self::OakTree => include_bytes!("../../../assets/textures/oak_tree.png"),
             Self::BirchTree => include_bytes!("../../../assets/textures/birch_tree.png"),
             Self::DyingTree => include_bytes!("../../../assets/textures/dying_tree.png"),
             Self::FallenTree => include_bytes!("../../../assets/textures/fallen_tree.png"),
             Self::MixRock => include_bytes!("../../../assets/textures/mix_rock.png"),
+            Self::Player => include_bytes!("../../../assets/textures/frame.png"),
         };
 
         image::load_from_memory(bytes)
@@ -168,12 +182,12 @@ impl UnitTextureItem {
             Self::FallenBranch => (1, 1),
             Self::FallenLeaves => (1, 1),
             Self::MixPebbles => (1, 1),
-            Self::Player => (1, 2),
             Self::OakTree => (4, 6),
             Self::BirchTree => (4, 6),
             Self::DyingTree => (4, 6),
             Self::FallenTree => (4, 2),
             Self::MixRock => (2, 2),
+            Self::Player => (1, 2),
         }
     }
 
@@ -189,12 +203,12 @@ impl UnitTextureItem {
             Self::FallenBranch => UnitAtlasOption::Single,
             Self::FallenLeaves => UnitAtlasOption::Single,
             Self::MixPebbles => UnitAtlasOption::Single,
-            Self::Player => UnitAtlasOption::Single,
             Self::OakTree => UnitAtlasOption::Single,
             Self::BirchTree => UnitAtlasOption::Single,
             Self::DyingTree => UnitAtlasOption::Single,
             Self::FallenTree => UnitAtlasOption::Single,
             Self::MixRock => UnitAtlasOption::Single,
+            Self::Player => UnitAtlasOption::Single,
         }
     }
 }
