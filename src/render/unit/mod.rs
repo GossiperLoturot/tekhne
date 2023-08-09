@@ -153,7 +153,7 @@ impl UnitPipeline {
 
             let iunits = service
                 .iunit
-                .get_iunits(view_aabb.as_iaabb3())
+                .get_iunits(view_aabb.floor().as_iaabb3())
                 .into_iter()
                 .map(|iunit| {
                     let position = iunit.position.as_vec3();

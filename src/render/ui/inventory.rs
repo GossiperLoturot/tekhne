@@ -5,8 +5,8 @@ use glam::*;
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
-    position: Vec3,
-    texcoord: Vec2,
+    position: [f32; 3],
+    texcoord: [f32; 2],
 }
 
 impl Vertex {
@@ -32,10 +32,10 @@ pub struct UIInventoryPipeline {
 impl UIInventoryPipeline {
     #[rustfmt::skip]
     const VERTICES: &[Vertex] = &[
-        Vertex { position: Vec3::new(-1.0, -1.0, 0.0), texcoord: Vec2::new(0.0, 0.0) },
-        Vertex { position: Vec3::new( 1.0, -1.0, 0.0), texcoord: Vec2::new(1.0, 0.0) },
-        Vertex { position: Vec3::new( 1.0,  1.0, 0.0), texcoord: Vec2::new(1.0, 1.0) },
-        Vertex { position: Vec3::new(-1.0,  1.0, 0.0), texcoord: Vec2::new(0.0, 1.0) },
+        Vertex { position: [-1.0, -1.0, 0.0], texcoord: [0.0, 0.0] },
+        Vertex { position: [ 1.0, -1.0, 0.0], texcoord: [1.0, 0.0] },
+        Vertex { position: [ 1.0,  1.0, 0.0], texcoord: [1.0, 1.0] },
+        Vertex { position: [-1.0,  1.0, 0.0], texcoord: [0.0, 1.0] },
     ];
 
     const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];

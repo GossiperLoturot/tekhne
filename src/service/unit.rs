@@ -45,24 +45,14 @@ impl UnitService {
     }
 
     pub fn get_units(&self, aabb: Aabb3A) -> Vec<&Unit> {
-        let mut units = vec![];
-
-        let grid_aabb = aabb.grid_partition(Self::GRID_SIZE);
-        for x in grid_aabb.min.x..=grid_aabb.max.x {
-            for y in grid_aabb.min.y..=grid_aabb.max.y {
-                for z in grid_aabb.min.z..=grid_aabb.max.z {
-                    let grid_index = IVec3::new(x, y, z);
-                    if let Some(ids) = self.index_table.get(&grid_index) {
-                        ids.into_iter()
-                            .filter_map(|id| self.units.get(id))
-                            .filter(|unit| aabb.contains(&unit.position))
-                            .for_each(|unit| units.push(unit));
-                    }
-                }
-            }
-        }
-
-        units
+        let grid_aabb = (aabb / Self::GRID_SIZE).floor().as_iaabb3();
+        grid_aabb
+            .iter()
+            .filter_map(|grid_index| self.index_table.get(&grid_index))
+            .flatten()
+            .filter_map(|id| self.units.get(id))
+            .filter(|unit| aabb.contains(unit.position))
+            .collect::<Vec<_>>()
     }
 }
 
@@ -75,10 +65,10 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::Player));
+        service.add_unit(Unit::new(id, vec3a(0.0, 0.0, 0.0), UnitKind::Player));
 
         let unit = service.get_unit(&id).unwrap();
-        assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
+        assert_eq!(unit.position, vec3a(0.0, 0.0, 0.0));
         assert_eq!(unit.kind, UnitKind::Player);
     }
 
@@ -87,7 +77,7 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::Player));
+        service.add_unit(Unit::new(id, vec3a(0.0, 0.0, 0.0), UnitKind::Player));
         service.remove_unit(&id);
 
         let is_none = service.get_unit(&id).is_none();
@@ -99,23 +89,20 @@ mod tests {
         let mut service = UnitService::default();
 
         let id = Uuid::new_v4();
-        service.add_unit(Unit::new(id, Vec3A::new(0.0, 0.0, 0.0), UnitKind::Player));
+        service.add_unit(Unit::new(id, vec3a(0.0, 0.0, 0.0), UnitKind::Player));
 
         let other_id = Uuid::new_v4();
         service.add_unit(Unit::new(
             other_id,
-            Vec3A::new(-4.0, -4.0, -4.0),
+            vec3a(-4.0, -4.0, -4.0),
             UnitKind::Player,
         ));
 
-        let units = service.get_units(Aabb3A::new(
-            Vec3A::new(0.0, 0.0, 0.0),
-            Vec3A::new(8.0, 8.0, 8.0),
-        ));
+        let units = service.get_units(aabb3a(vec3a(0.0, 0.0, 0.0), vec3a(8.0, 8.0, 8.0)));
         assert_eq!(units.len(), 1);
         let unit = units.get(0).unwrap();
         assert_eq!(unit.id, id);
-        assert_eq!(unit.position, Vec3A::new(0.0, 0.0, 0.0));
+        assert_eq!(unit.position, vec3a(0.0, 0.0, 0.0));
         assert_eq!(unit.kind, UnitKind::Player);
     }
 }

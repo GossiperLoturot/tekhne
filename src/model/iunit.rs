@@ -20,6 +20,7 @@ pub enum IUnitKind {
 }
 
 impl IUnitKind {
+    #[inline]
     pub fn breakable(&self) -> bool {
         match self {
             Self::SurfaceDirt => false,
@@ -48,7 +49,13 @@ pub struct IUnit {
 }
 
 impl IUnit {
+    #[inline]
     pub fn new(position: IVec3, kind: IUnitKind) -> Self {
         Self { position, kind }
+    }
+
+    #[inline]
+    pub fn breakable(&self) -> bool {
+        self.kind.breakable()
     }
 }

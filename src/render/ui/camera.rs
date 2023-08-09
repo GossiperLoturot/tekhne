@@ -55,7 +55,7 @@ impl UICameraResource {
         self.screen_to_ui_matrix = None;
 
         // transform to coordinates considering aspect ratio (expand)
-        let correction_matrix = Mat4::from_scale(Vec3::new(
+        let correction_matrix = Mat4::from_scale(vec3(
             (self.height as f32 / self.width as f32).min(1.0),
             (self.width as f32 / self.height as f32).min(1.0),
             1.0,
@@ -65,8 +65,8 @@ impl UICameraResource {
         queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&[matrix]));
 
         // transform from actually screen coordinates to 0-1 screen coordinates
-        let correction_matrix = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
-            * Mat4::from_scale(Vec3::new(
+        let correction_matrix = Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
+            * Mat4::from_scale(vec3(
                 (self.width as f32).recip() * 2.0,
                 -(self.height as f32).recip() * 2.0,
                 1.0,

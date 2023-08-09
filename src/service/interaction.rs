@@ -36,7 +36,7 @@ fn unit_ray(start: Vec3A, end: Vec3A, unit_service: &UnitService) -> Option<Unit
     let delta = (end - start).normalize() * FORWARD_STEP;
 
     for i in 1..length as usize {
-        let aabb = Aabb3A::new(start + delta * i as f32, start + delta * (i - 1) as f32);
+        let aabb = aabb3a(start + delta * i as f32, start + delta * (i - 1) as f32);
         let units = unit_service.get_units(aabb);
 
         if !units.is_empty() {
@@ -60,17 +60,17 @@ impl InteractionService {
     ) {
         if let Some(matrix) = read_back.screen_to_world_matrix {
             if let Some((x, y)) = input.mouse() {
-                let start = (matrix * Vec4::new(x, y, 0.0, 1.0)).xyz().into();
-                let end = (matrix * Vec4::new(x, y, 1.0, 1.0)).xyz().into();
+                let start = (matrix * vec4(x, y, 0.0, 1.0)).xyz().into();
+                let end = (matrix * vec4(x, y, 1.0, 1.0)).xyz().into();
 
                 if let Some(hit) = iunit_ray(start, end, iunit_service) {
-                    if input.mouse_pressed(0) && hit.iunit.kind.breakable() {
+                    if input.mouse_pressed(0) && hit.iunit.breakable() {
                         iunit_service.remove_iunit(hit.iunit.position);
                     }
                 }
 
                 if let Some(hit) = unit_ray(start, end, unit_service) {
-                    if input.mouse_pressed(0) && hit.units[0].kind.breakable() {
+                    if input.mouse_pressed(0) && hit.units[0].breakable() {
                         unit_service.remove_unit(&hit.units[0].id.clone());
                     }
                 }

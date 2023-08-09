@@ -7,6 +7,7 @@ pub enum UnitKind {
 }
 
 impl UnitKind {
+    #[inline]
     pub fn breakable(&self) -> bool {
         match self {
             UnitKind::Player => false,
@@ -22,7 +23,13 @@ pub struct Unit {
 }
 
 impl Unit {
+    #[inline]
     pub fn new(id: Uuid, position: Vec3A, kind: UnitKind) -> Self {
         Self { id, position, kind }
+    }
+
+    #[inline]
+    pub fn breakable(&self) -> bool {
+        self.kind.breakable()
     }
 }

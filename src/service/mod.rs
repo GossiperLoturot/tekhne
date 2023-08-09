@@ -73,7 +73,7 @@ impl Service {
 
         if let Some(camera) = self.camera.get_camera() {
             self.generation.generate(
-                camera.view_aabb().as_iaabb3(),
+                camera.view_aabb().floor().as_iaabb3(),
                 &mut self.iunit,
                 &mut self.unit,
             );

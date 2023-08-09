@@ -1,5 +1,5 @@
 @group(0) @binding(0)
-var<uniform> vp_matrix: mat4x4<f32>;
+var<uniform> view_matrix: mat4x4<f32>;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -16,7 +16,7 @@ fn vs_main(
     vertex: VertexInput,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.clip_position = vp_matrix * vec4<f32>(vertex.position, 1.0);
+    out.clip_position = view_matrix * vec4<f32>(vertex.position, 1.0);
     out.texcoord = vertex.texcoord;
     return out;
 }

@@ -12,6 +12,7 @@ pub enum UnitModelItem {
 }
 
 impl UnitModelItem {
+    #[inline]
     #[rustfmt::skip]
     pub fn vertices(&self) -> &[UnitVertex] {
         match self {
@@ -54,6 +55,7 @@ impl UnitModelItem {
         }
     }
 
+    #[inline]
     pub fn indices(&self) -> &[u32] {
         match self {
             UnitModelItem::TopPlane => &[0, 1, 2, 2, 3, 0],
@@ -67,6 +69,7 @@ impl UnitModelItem {
 }
 
 impl From<IUnitKind> for UnitModelItem {
+    #[inline]
     fn from(value: IUnitKind) -> Self {
         match value {
             IUnitKind::SurfaceDirt => Self::TopPlane,
@@ -89,6 +92,7 @@ impl From<IUnitKind> for UnitModelItem {
 }
 
 impl From<UnitKind> for UnitModelItem {
+    #[inline]
     fn from(value: UnitKind) -> Self {
         match value {
             UnitKind::Player => Self::Billboard1x2,
@@ -117,6 +121,7 @@ pub enum UnitTextureItem {
 }
 
 impl From<IUnitKind> for UnitTextureItem {
+    #[inline]
     fn from(value: IUnitKind) -> Self {
         match value {
             IUnitKind::SurfaceDirt => Self::SurfaceDirt,
@@ -139,6 +144,7 @@ impl From<IUnitKind> for UnitTextureItem {
 }
 
 impl From<UnitKind> for UnitTextureItem {
+    #[inline]
     fn from(value: UnitKind) -> Self {
         match value {
             UnitKind::Player => Self::Player,
@@ -147,6 +153,7 @@ impl From<UnitKind> for UnitTextureItem {
 }
 
 impl UnitTextureItem {
+    #[inline]
     pub fn texture(&self) -> image::ImageResult<image::DynamicImage> {
         let bytes: &[u8] = match self {
             Self::SurfaceDirt => include_bytes!("../../../assets/textures/surface_dirt.png"),
@@ -170,6 +177,7 @@ impl UnitTextureItem {
         image::load_from_memory(bytes)
     }
 
+    #[inline]
     pub fn block_size(&self) -> (u32, u32) {
         match self {
             Self::SurfaceDirt => (1, 1),
@@ -191,6 +199,7 @@ impl UnitTextureItem {
         }
     }
 
+    #[inline]
     pub fn atlas_option(&self) -> UnitAtlasOption {
         match self {
             Self::SurfaceDirt => UnitAtlasOption::Continuous,

@@ -17,61 +17,52 @@ impl GenerationService {
     ) {
         for x in aabb.min.x..=aabb.max.x {
             for y in aabb.min.y..=aabb.max.y {
-                let pos = IVec2::new(x, y);
+                let pos = ivec2(x, y);
                 if !self.init_flags.contains(&pos) {
                     // generation rules start
 
-                    iunit_service
-                        .add_iunit(IUnit::new(IVec3::new(x, y, 0), IUnitKind::SurfaceGrass));
+                    iunit_service.add_iunit(IUnit::new(ivec3(x, y, 0), IUnitKind::SurfaceGrass));
 
                     if rand::random::<f32>() < 0.08 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixGrass));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::MixGrass));
                     }
 
                     if rand::random::<f32>() < 0.02 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::Dandelion));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::Dandelion));
                     }
 
                     if rand::random::<f32>() < 0.01 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenLeaves));
+                            .add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::FallenLeaves));
                     }
 
                     if rand::random::<f32>() < 0.01 {
                         iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenBranch));
+                            .add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::FallenBranch));
                     }
 
                     if rand::random::<f32>() < 0.04 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixPebbles));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::MixPebbles));
                     }
 
                     if rand::random::<f32>() < 0.02 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::OakTree));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::OakTree));
                     }
 
                     if rand::random::<f32>() < 0.02 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::BirchTree));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::BirchTree));
                     }
 
                     if rand::random::<f32>() < 0.001 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::DyingTree));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::DyingTree));
                     }
 
                     if rand::random::<f32>() < 0.001 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::FallenTree));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::FallenTree));
                     }
 
                     if rand::random::<f32>() < 0.01 {
-                        iunit_service
-                            .add_iunit(IUnit::new(IVec3::new(x, y, 1), IUnitKind::MixRock));
+                        iunit_service.add_iunit(IUnit::new(ivec3(x, y, 1), IUnitKind::MixRock));
                     }
 
                     // generation rules end
@@ -93,7 +84,7 @@ mod tests {
         let mut unit_service = UnitService::default();
         let mut gen_service = GenerationService::default();
 
-        let aabb = IAabb3::new(IVec3::new(0, 0, 0), IVec3::new(8, 8, 8));
+        let aabb = iaabb3(ivec3(0, 0, 0), ivec3(8, 8, 8));
         gen_service.generate(aabb, &mut iunit_service, &mut unit_service);
     }
 }
