@@ -3,12 +3,12 @@ use crate::model::*;
 use strum::EnumIter;
 
 pub enum UnitModelItem {
-    TopPlane,
-    BottomPlane,
+    ITop1x1,
+    IBottom1x1,
+    IBottom2x2,
+    IBottom4x2,
+    IBillboard4x6,
     Billboard1x2,
-    Billboard2x2,
-    Billboard4x2,
-    Billboard4x6,
 }
 
 impl UnitModelItem {
@@ -16,41 +16,41 @@ impl UnitModelItem {
     #[rustfmt::skip]
     pub fn vertices(&self) -> &[UnitVertex] {
         match self {
-            UnitModelItem::TopPlane => &[
+            UnitModelItem::ITop1x1 => &[
                 UnitVertex { position: [0.0, 0.0, 1.0], texcoord: [0.0, 1.0] },
                 UnitVertex { position: [1.0, 0.0, 1.0], texcoord: [1.0, 1.0] },
                 UnitVertex { position: [1.0, 1.0, 1.0], texcoord: [1.0, 0.0] },
                 UnitVertex { position: [0.0, 1.0, 1.0], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::BottomPlane => &[
+            UnitModelItem::IBottom1x1 => &[
                 UnitVertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
                 UnitVertex { position: [1.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
                 UnitVertex { position: [1.0, 1.0, 0.1], texcoord: [1.0, 0.0] },
                 UnitVertex { position: [0.0, 1.0, 0.1], texcoord: [0.0, 0.0] },
             ],
+            UnitModelItem::IBottom2x2 => &[
+                UnitVertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [2.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [2.0, 2.0, 0.1], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [0.0, 2.0, 0.1], texcoord: [0.0, 0.0] },
+            ],
+            UnitModelItem::IBottom4x2 => &[
+                UnitVertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [4.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [4.0, 2.0, 0.1], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [0.0, 2.0, 0.1], texcoord: [0.0, 0.0] },
+            ],
+            UnitModelItem::IBillboard4x6 => &[
+                UnitVertex { position: [-1.5, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [ 2.5, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [ 2.5, 0.0, 6.0], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [-1.5, 0.0, 6.0], texcoord: [0.0, 0.0] },
+            ],
             UnitModelItem::Billboard1x2 => &[
-                UnitVertex { position: [0.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [1.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [1.0, 0.0, 2.0], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 0.0, 2.0], texcoord: [0.0, 0.0] },
-            ],
-            UnitModelItem::Billboard2x2 => &[
-                UnitVertex { position: [0.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [2.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [2.0, 0.0, 2.0], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 0.0, 2.0], texcoord: [0.0, 0.0] },
-            ],
-            UnitModelItem::Billboard4x2 => &[
-                UnitVertex { position: [0.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [4.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [4.0, 0.0, 2.0], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 0.0, 2.0], texcoord: [0.0, 0.0] },
-            ],
-            UnitModelItem::Billboard4x6 => &[
-                UnitVertex { position: [0.0, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [4.0, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [4.0, 0.0, 6.0], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 0.0, 6.0], texcoord: [0.0, 0.0] },
+                UnitVertex { position: [-0.5, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                UnitVertex { position: [ 0.5, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                UnitVertex { position: [ 0.5, 0.0, 2.0], texcoord: [1.0, 0.0] },
+                UnitVertex { position: [-0.5, 0.0, 2.0], texcoord: [0.0, 0.0] },
             ],
         }
     }
@@ -58,12 +58,12 @@ impl UnitModelItem {
     #[inline]
     pub fn indices(&self) -> &[u32] {
         match self {
-            UnitModelItem::TopPlane => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::BottomPlane => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::ITop1x1 => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::IBottom1x1 => &[0, 1, 2, 2, 3, 0],
             UnitModelItem::Billboard1x2 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::Billboard2x2 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::Billboard4x2 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::Billboard4x6 => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::IBottom2x2 => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::IBottom4x2 => &[0, 1, 2, 2, 3, 0],
+            UnitModelItem::IBillboard4x6 => &[0, 1, 2, 2, 3, 0],
         }
     }
 }
@@ -72,21 +72,21 @@ impl From<IUnitKind> for UnitModelItem {
     #[inline]
     fn from(value: IUnitKind) -> Self {
         match value {
-            IUnitKind::SurfaceDirt => Self::TopPlane,
-            IUnitKind::SurfaceGrass => Self::TopPlane,
-            IUnitKind::SurfaceGravel => Self::TopPlane,
-            IUnitKind::SurfaceSand => Self::TopPlane,
-            IUnitKind::SurfaceStone => Self::TopPlane,
-            IUnitKind::MixGrass => Self::BottomPlane,
-            IUnitKind::Dandelion => Self::BottomPlane,
-            IUnitKind::FallenBranch => Self::BottomPlane,
-            IUnitKind::FallenLeaves => Self::BottomPlane,
-            IUnitKind::MixPebbles => Self::BottomPlane,
-            IUnitKind::OakTree => Self::Billboard4x6,
-            IUnitKind::BirchTree => Self::Billboard4x6,
-            IUnitKind::DyingTree => Self::Billboard4x6,
-            IUnitKind::FallenTree => Self::Billboard4x2,
-            IUnitKind::MixRock => Self::Billboard2x2,
+            IUnitKind::SurfaceDirt => Self::ITop1x1,
+            IUnitKind::SurfaceGrass => Self::ITop1x1,
+            IUnitKind::SurfaceGravel => Self::ITop1x1,
+            IUnitKind::SurfaceSand => Self::ITop1x1,
+            IUnitKind::SurfaceStone => Self::ITop1x1,
+            IUnitKind::MixGrass => Self::IBottom1x1,
+            IUnitKind::Dandelion => Self::IBottom1x1,
+            IUnitKind::FallenBranch => Self::IBottom1x1,
+            IUnitKind::FallenLeaves => Self::IBottom1x1,
+            IUnitKind::MixPebbles => Self::IBottom1x1,
+            IUnitKind::OakTree => Self::IBillboard4x6,
+            IUnitKind::BirchTree => Self::IBillboard4x6,
+            IUnitKind::DyingTree => Self::IBillboard4x6,
+            IUnitKind::FallenTree => Self::IBottom4x2,
+            IUnitKind::MixRock => Self::IBottom2x2,
         }
     }
 }

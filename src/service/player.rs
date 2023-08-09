@@ -1,11 +1,10 @@
 use super::UnitService;
 use crate::model::*;
 use glam::*;
-use uuid::Uuid;
 
 #[derive(Default)]
 pub struct PlayerService {
-    player: Option<Uuid>,
+    player: Option<u64>,
 }
 
 impl PlayerService {
@@ -16,9 +15,9 @@ impl PlayerService {
         if let Some(id) = self.player {
             panic!("player {} already exists", id);
         } else {
-            let id = Uuid::new_v4();
-            unit_service.add_unit(Unit::new(id, vec3a(0.0, 0.0, 1.0), UnitKind::Player));
-            self.player = Some(id);
+            let unit = Unit::create(vec3a(0.0, 0.0, 1.0), UnitKind::Player);
+            self.player = Some(unit.id);
+            unit_service.add_unit(unit);
         }
     }
 
@@ -29,7 +28,7 @@ impl PlayerService {
         elased: std::time::Duration,
     ) {
         if let Some(id) = self.player {
-            if let Some(mut player) = unit_service.remove_unit(&id) {
+            if let Some(mut player) = unit_service.remove_unit(id) {
                 let speed = if input.key_held(winit::event::VirtualKeyCode::LShift) {
                     Self::SPRINT_SPEED
                 } else {
@@ -56,7 +55,7 @@ impl PlayerService {
 
     pub fn get_player<'a>(&self, unit_service: &'a UnitService) -> Option<&'a Unit> {
         if let Some(id) = self.player {
-            unit_service.get_unit(&id)
+            unit_service.get_unit(id)
         } else {
             None
         }

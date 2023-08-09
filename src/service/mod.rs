@@ -1,6 +1,5 @@
 pub use camera::CameraService;
 pub use generation::GenerationService;
-pub use interaction::InteractionService;
 pub use iunit::IUnitService;
 pub use player::PlayerService;
 pub use ui::UIService;
@@ -10,7 +9,6 @@ use glam::*;
 
 mod camera;
 mod generation;
-mod interaction;
 mod iunit;
 mod player;
 mod ui;
@@ -26,7 +24,6 @@ pub struct Service {
     pub iunit: IUnitService,
     pub unit: UnitService,
     pub generation: GenerationService,
-    pub interaction: InteractionService,
     pub player: PlayerService,
     pub ui: UIService,
     time_instant: std::time::Instant,
@@ -39,7 +36,6 @@ impl Service {
             iunit: IUnitService::default(),
             unit: UnitService::default(),
             generation: GenerationService::default(),
-            interaction: InteractionService::default(),
             player: PlayerService::default(),
             ui: UIService::default(),
             time_instant: std::time::Instant::now(),
@@ -65,11 +61,6 @@ impl Service {
         self.player.update(&mut self.unit, input, elapsed);
         self.camera.update(&self.unit, &self.player, input);
         self.ui.update(input);
-
-        if let Some(read_back) = read_back {
-            self.interaction
-                .update(input, read_back, &mut self.iunit, &mut self.unit);
-        }
 
         if let Some(camera) = self.camera.get_camera() {
             self.generation.generate(
