@@ -1,8 +1,5 @@
 use super::{iaabb3, IAabb3};
 use glam::*;
-use std::sync::atomic;
-
-static COUNTER: atomic::AtomicU64 = atomic::AtomicU64::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IUnitKind {
@@ -69,22 +66,14 @@ impl IUnitKind {
 
 #[derive(Debug, Clone)]
 pub struct IUnit {
-    pub id: u64,
     pub position: IVec3,
     pub kind: IUnitKind,
 }
 
 impl IUnit {
     #[inline]
-    pub fn new(id: u64, position: IVec3, kind: IUnitKind) -> Self {
-        Self { id, position, kind }
-    }
-
-    #[inline]
-    pub fn create(position: IVec3, kind: IUnitKind) -> Self {
-        let id = COUNTER.load(atomic::Ordering::SeqCst);
-        COUNTER.fetch_add(1, atomic::Ordering::SeqCst);
-        Self { id, position, kind }
+    pub fn new(position: IVec3, kind: IUnitKind) -> Self {
+        Self { position, kind }
     }
 
     #[inline]

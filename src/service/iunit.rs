@@ -1,36 +1,34 @@
 use crate::model::*;
 use ahash::{AHashMap, AHashSet};
 use glam::*;
+use slab::Slab;
 
 #[derive(Default)]
 pub struct IUnitService {
-    iunits: AHashMap<u64, IUnit>,
-    index_table: AHashMap<IVec3, AHashSet<u64>>,
+    iunits: Slab<IUnit>,
+    index_table: AHashMap<IVec3, AHashSet<usize>>,
 }
 
 impl IUnitService {
     const GRID_SIZE: f32 = 32.0;
 
-    pub fn add_iunit(&mut self, iunit: IUnit) -> Option<&IUnit> {
-        let id = iunit.id;
+    pub fn add_iunit(&mut self, iunit: IUnit) -> usize {
+        let id = self.iunits.vacant_key();
 
-        if !self.iunits.contains_key(&id) {
-            let grid_aabb = (iunit.aabb().as_aabb3a() / Self::GRID_SIZE)
-                .floor()
-                .as_iaabb3();
-            grid_aabb.iter().for_each(|index| {
-                self.index_table.entry(index).or_default().insert(id);
-            });
+        let grid_aabb = (iunit.aabb().as_aabb3a() / Self::GRID_SIZE)
+            .floor()
+            .as_iaabb3();
+        grid_aabb.iter().for_each(|index| {
+            self.index_table.entry(index).or_default().insert(id);
+        });
 
-            self.iunits.insert(id, iunit);
-            self.iunits.get(&id)
-        } else {
-            None
-        }
+        self.iunits.insert(iunit)
     }
 
-    pub fn remove_iunit(&mut self, id: u64) -> Option<IUnit> {
-        if let Some(iunit) = self.iunits.get(&id) {
+    pub fn remove_iunit(&mut self, id: usize) -> Option<IUnit> {
+        let iunit = self.iunits.try_remove(id);
+
+        if let Some(iunit) = iunit {
             let grid_aabb = (iunit.aabb().as_aabb3a() / Self::GRID_SIZE)
                 .floor()
                 .as_iaabb3();
@@ -38,14 +36,14 @@ impl IUnitService {
                 self.index_table.entry(index).or_default().remove(&id);
             });
 
-            self.iunits.remove(&id)
+            Some(iunit)
         } else {
             None
         }
     }
 
-    pub fn get_iunit(&self, id: u64) -> Option<&IUnit> {
-        self.iunits.get(&id)
+    pub fn get_iunit(&self, id: usize) -> Option<&IUnit> {
+        self.iunits.get(id)
     }
 
     pub fn get_iunits(&self, aabb: IAabb3) -> Vec<&IUnit> {
@@ -56,7 +54,7 @@ impl IUnitService {
             .flatten()
             .collect::<AHashSet<_>>()
             .into_iter()
-            .filter_map(|position| self.iunits.get(position))
+            .filter_map(|id| self.iunits.get(*id))
             .filter(|iunit| aabb.contains(iunit.position))
             .collect::<Vec<_>>()
     }
@@ -70,43 +68,35 @@ mod tests {
     fn add_iunit() {
         let mut service = IUnitService::default();
 
-        let src_iunit = IUnit::create(ivec3(0, 0, 0), IUnitKind::SurfaceDirt);
-        service.add_iunit(src_iunit.clone());
+        let id = service.add_iunit(IUnit::new(ivec3(0, 0, 0), IUnitKind::SurfaceDirt));
 
-        let iunit = service.get_iunit(src_iunit.id).unwrap();
-        assert_eq!(iunit.id, src_iunit.id);
-        assert_eq!(iunit.position, src_iunit.position);
-        assert_eq!(iunit.kind, src_iunit.kind);
+        let iunit = service.get_iunit(id).unwrap();
+        assert_eq!(iunit.position, ivec3(0, 0, 0));
+        assert_eq!(iunit.kind, IUnitKind::SurfaceDirt);
     }
 
     #[test]
     fn remove_iunit() {
         let mut service = IUnitService::default();
 
-        let iunit = IUnit::create(ivec3(0, 0, 0), IUnitKind::SurfaceDirt);
-        service.add_iunit(iunit.clone());
-        service.remove_iunit(iunit.id);
+        let id = service.add_iunit(IUnit::new(ivec3(0, 0, 0), IUnitKind::SurfaceDirt));
+        service.remove_iunit(id);
 
-        let is_none = service.get_iunit(iunit.id).is_none();
-        assert!(is_none);
+        assert!(service.get_iunit(id).is_none());
     }
 
     #[test]
     fn set_aabb_before_fill_data() {
         let mut service = IUnitService::default();
 
-        let src_iunit = IUnit::create(ivec3(0, 0, 0), IUnitKind::SurfaceDirt);
-        service.add_iunit(src_iunit.clone());
-
-        let other_iunit = IUnit::create(ivec3(-1, -1, -1), IUnitKind::SurfaceGrass);
-        service.add_iunit(other_iunit);
+        service.add_iunit(IUnit::new(ivec3(0, 0, 0), IUnitKind::SurfaceDirt));
+        service.add_iunit(IUnit::new(ivec3(-1, -1, -1), IUnitKind::SurfaceGrass));
 
         let iunits = service.get_iunits(iaabb3(ivec3(0, 0, 0), ivec3(8, 8, 8)));
         assert_eq!(iunits.len(), 1);
 
         let iunit = iunits.get(0).unwrap();
-        assert_eq!(iunit.id, src_iunit.id);
-        assert_eq!(iunit.position, src_iunit.position);
-        assert_eq!(iunit.kind, src_iunit.kind);
+        assert_eq!(iunit.position, ivec3(0, 0, 0));
+        assert_eq!(iunit.kind, IUnitKind::SurfaceDirt);
     }
 }

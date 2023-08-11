@@ -60,17 +60,6 @@ impl IAabb3 {
     }
 }
 
-impl Add<IVec3> for IAabb3 {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: IVec3) -> Self::Output {
-        Self {
-            min: self.min.add(rhs),
-            max: self.max.add(rhs),
-        }
-    }
-}
-
 impl Neg for IAabb3 {
     type Output = Self;
     #[inline]
@@ -78,6 +67,17 @@ impl Neg for IAabb3 {
         Self {
             min: self.min.neg(),
             max: self.max.neg(),
+        }
+    }
+}
+
+impl Add<IVec3> for IAabb3 {
+    type Output = Self;
+    #[inline]
+    fn add(self, rhs: IVec3) -> Self::Output {
+        Self {
+            min: self.min.add(rhs),
+            max: self.max.add(rhs),
         }
     }
 }
@@ -326,17 +326,6 @@ impl Aabb3A {
     }
 }
 
-impl Add<Vec3A> for Aabb3A {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Vec3A) -> Self::Output {
-        Self {
-            min: self.min.add(rhs),
-            max: self.max.add(rhs),
-        }
-    }
-}
-
 impl Neg for Aabb3A {
     type Output = Self;
     #[inline]
@@ -344,6 +333,17 @@ impl Neg for Aabb3A {
         Self {
             min: self.min.neg(),
             max: self.max.neg(),
+        }
+    }
+}
+
+impl Add<Vec3A> for Aabb3A {
+    type Output = Self;
+    #[inline]
+    fn add(self, rhs: Vec3A) -> Self::Output {
+        Self {
+            min: self.min.add(rhs),
+            max: self.max.add(rhs),
         }
     }
 }

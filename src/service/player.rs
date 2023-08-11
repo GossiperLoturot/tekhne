@@ -4,7 +4,7 @@ use glam::*;
 
 #[derive(Default)]
 pub struct PlayerService {
-    player: Option<u64>,
+    player: Option<usize>,
 }
 
 impl PlayerService {
@@ -15,9 +15,8 @@ impl PlayerService {
         if let Some(id) = self.player {
             panic!("player {} already exists", id);
         } else {
-            let unit = Unit::create(vec3a(0.0, 0.0, 1.0), UnitKind::Player);
-            self.player = Some(unit.id);
-            unit_service.add_unit(unit);
+            let id = unit_service.add_unit(Unit::new(vec3a(0.0, 0.0, 1.0), UnitKind::Player));
+            self.player = Some(id);
         }
     }
 

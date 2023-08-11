@@ -1,47 +1,45 @@
 use crate::model::*;
 use ahash::{AHashMap, AHashSet};
 use glam::*;
+use slab::Slab;
 
 #[derive(Default)]
 pub struct UnitService {
-    units: AHashMap<u64, Unit>,
-    index_table: AHashMap<IVec3, AHashSet<u64>>,
+    units: Slab<Unit>,
+    index_table: AHashMap<IVec3, AHashSet<usize>>,
 }
 
 impl UnitService {
     const GRID_SIZE: f32 = 32.0;
 
-    pub fn add_unit(&mut self, unit: Unit) -> Option<&Unit> {
-        let id = unit.id;
+    pub fn add_unit(&mut self, unit: Unit) -> usize {
+        let id = self.units.vacant_key();
 
-        if !self.units.contains_key(&unit.id) {
-            let grid_aabb = (unit.aabb() / Self::GRID_SIZE).floor().as_iaabb3();
-            grid_aabb.iter().for_each(|index| {
-                self.index_table.entry(index).or_default().insert(id);
-            });
+        let grid_aabb = (unit.aabb() / Self::GRID_SIZE).floor().as_iaabb3();
+        grid_aabb.iter().for_each(|index| {
+            self.index_table.entry(index).or_default().insert(id);
+        });
 
-            self.units.insert(id, unit);
-            self.units.get(&id)
-        } else {
-            None
-        }
+        self.units.insert(unit)
     }
 
-    pub fn remove_unit(&mut self, id: u64) -> Option<Unit> {
-        if let Some(unit) = self.units.get(&id) {
+    pub fn remove_unit(&mut self, id: usize) -> Option<Unit> {
+        let unit = self.units.try_remove(id);
+
+        if let Some(unit) = unit {
             let grid_aabb = (unit.aabb() / Self::GRID_SIZE).floor().as_iaabb3();
             grid_aabb.iter().for_each(|index| {
                 self.index_table.entry(index).or_default().remove(&id);
             });
 
-            self.units.remove(&id)
+            Some(unit)
         } else {
             None
         }
     }
 
-    pub fn get_unit(&self, id: u64) -> Option<&Unit> {
-        self.units.get(&id)
+    pub fn get_unit(&self, id: usize) -> Option<&Unit> {
+        self.units.get(id)
     }
 
     pub fn get_units(&self, aabb: Aabb3A) -> Vec<&Unit> {
@@ -52,7 +50,7 @@ impl UnitService {
             .flatten()
             .collect::<AHashSet<_>>()
             .into_iter()
-            .filter_map(|id| self.units.get(id))
+            .filter_map(|id| self.units.get(*id))
             .filter(|unit| aabb.contains(unit.position))
             .collect::<Vec<_>>()
     }
@@ -66,43 +64,35 @@ mod tests {
     fn add_unit() {
         let mut service = UnitService::default();
 
-        let src_unit = Unit::create(vec3a(0.0, 0.0, 0.0), UnitKind::Player);
-        service.add_unit(src_unit.clone());
+        let id = service.add_unit(Unit::new(vec3a(0.0, 0.0, 0.0), UnitKind::Player));
 
-        let unit = service.get_unit(src_unit.id).unwrap();
-        assert_eq!(unit.id, src_unit.id);
-        assert_eq!(unit.position, src_unit.position);
-        assert_eq!(unit.kind, src_unit.kind);
+        let unit = service.get_unit(id).unwrap();
+        assert_eq!(unit.position, vec3a(0.0, 0.0, 0.0));
+        assert_eq!(unit.kind, UnitKind::Player);
     }
 
     #[test]
     fn remove_unit() {
         let mut service = UnitService::default();
 
-        let unit = Unit::create(vec3a(0.0, 0.0, 0.0), UnitKind::Player);
-        service.add_unit(unit.clone());
-        service.remove_unit(unit.id);
+        let id = service.add_unit(Unit::new(vec3a(0.0, 0.0, 0.0), UnitKind::Player));
+        service.remove_unit(id);
 
-        let is_none = service.get_unit(unit.id).is_none();
-        assert!(is_none);
+        assert!(service.get_unit(id).is_none());
     }
 
     #[test]
     fn set_aabb_before_fill_data() {
         let mut service = UnitService::default();
 
-        let src_unit = Unit::create(vec3a(0.0, 0.0, 0.0), UnitKind::Player);
-        service.add_unit(src_unit.clone());
-
-        let other_unit = Unit::create(vec3a(-4.0, -4.0, -4.0), UnitKind::Player);
-        service.add_unit(other_unit);
+        service.add_unit(Unit::new(vec3a(0.0, 0.0, 0.0), UnitKind::Player));
+        service.add_unit(Unit::new(vec3a(-4.0, -4.0, -4.0), UnitKind::Player));
 
         let units = service.get_units(aabb3a(vec3a(0.0, 0.0, 0.0), vec3a(8.0, 8.0, 8.0)));
         assert_eq!(units.len(), 1);
 
         let unit = units.get(0).unwrap();
-        assert_eq!(unit.id, src_unit.id);
-        assert_eq!(unit.position, src_unit.position);
-        assert_eq!(unit.kind, src_unit.kind);
+        assert_eq!(unit.position, vec3a(0.0, 0.0, 0.0));
+        assert_eq!(unit.kind, UnitKind::Player);
     }
 }
