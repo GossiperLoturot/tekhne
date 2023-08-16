@@ -153,21 +153,25 @@ impl UnitPipeline {
 
             let iunits = service
                 .iunit
-                .get_iunits(view_aabb.floor().as_iaabb3())
+                .get_by_aabb(view_aabb.floor().as_iaabb3())
                 .into_iter()
-                .map(|iunit| {
+                .map(|(_, iunit)| {
                     let position = iunit.position.as_vec3();
                     let model = UnitModelItem::from(iunit.kind);
                     let texture = UnitTextureItem::from(iunit.kind);
                     (position, model, texture)
                 });
 
-            let units = service.unit.get_units(view_aabb).into_iter().map(|unit| {
-                let position = unit.position.into();
-                let model = UnitModelItem::from(unit.kind);
-                let texture = UnitTextureItem::from(unit.kind);
-                (position, model, texture)
-            });
+            let units = service
+                .unit
+                .get_by_aabb(view_aabb)
+                .into_iter()
+                .map(|(_, unit)| {
+                    let position = unit.position.into();
+                    let model = UnitModelItem::from(unit.kind);
+                    let texture = UnitTextureItem::from(unit.kind);
+                    (position, model, texture)
+                });
 
             for (position, model, texture) in Iterator::chain(units, iunits) {
                 let texcoord = self

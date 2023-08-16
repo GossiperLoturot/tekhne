@@ -15,7 +15,7 @@ impl PlayerService {
         if let Some(id) = self.player {
             panic!("player {} already exists", id);
         } else {
-            let id = unit_service.add_unit(Unit::new(vec3a(0.0, 0.0, 1.0), UnitKind::Player));
+            let id = unit_service.insert(Unit::new(vec3a(0.0, 0.0, 1.0), UnitKind::Player));
             self.player = Some(id);
         }
     }
@@ -27,7 +27,7 @@ impl PlayerService {
         elased: std::time::Duration,
     ) {
         if let Some(id) = self.player {
-            if let Some(mut player) = unit_service.remove_unit(id) {
+            if let Some(mut player) = unit_service.remove(id) {
                 let speed = if input.key_held(winit::event::VirtualKeyCode::LShift) {
                     Self::SPRINT_SPEED
                 } else {
@@ -47,14 +47,14 @@ impl PlayerService {
                     player.position.x += speed * elased.as_secs_f32();
                 }
 
-                unit_service.add_unit(player);
+                unit_service.insert(player);
             }
         }
     }
 
     pub fn get_player<'a>(&self, unit_service: &'a UnitService) -> Option<&'a Unit> {
         if let Some(id) = self.player {
-            unit_service.get_unit(id)
+            unit_service.get(id)
         } else {
             None
         }
