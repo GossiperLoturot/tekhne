@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ahash = "0.8"
+ahash = "0.7"
 bytemuck = { version = "1.13", features = ["derive"] }
 glam = { version = "0.24", features = ["bytemuck"] }
 image = { version = "0.24", default-features = false, features = ["png"] }
@@ -14,5 +14,5 @@ rectangle-pack = "0.4"
 slab = "0.4"
 strum = { version = "0.25", features = ["derive"] }
 wgpu = "0.17"
-winit = { version = "0.28", default-features = false, features = ["x11", "wayland"] }
+winit = { version = "0.28", default-features = false, features = ["wayland"] }
 winit_input_helper = "0.14"
