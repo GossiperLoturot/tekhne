@@ -1,5 +1,9 @@
-use glam::*;
+//! UIで使用されるカメラに関するモジュール
 
+use glam::*;
+use std::num::NonZeroU64;
+
+/// 画面のアスペクト比の計算と保持を行うリソース
 pub struct UICameraResource {
     matrix_buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -10,6 +14,7 @@ pub struct UICameraResource {
 }
 
 impl UICameraResource {
+    /// 新しいリソースを作成する。
     pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
         let matrix_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -51,10 +56,17 @@ impl UICameraResource {
         }
     }
 
-    pub fn pre_draw(&mut self, queue: &wgpu::Queue) {
+    /// 変換行列の計算とGPU上の行列データの更新を行う。
+    pub fn pre_draw(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        staging_belt: &mut wgpu::util::StagingBelt,
+    ) {
         self.screen_to_ui_matrix = None;
 
-        // transform to coordinates considering aspect ratio (expand)
+        // アスペクト比による引き延ばしを補正する行列
+        // 画面の中に描写空間が収まるように補正する。
         let correction_matrix = Mat4::from_scale(vec3(
             (self.height as f32 / self.width as f32).min(1.0),
             (self.width as f32 / self.height as f32).min(1.0),
@@ -62,16 +74,20 @@ impl UICameraResource {
         ));
         let matrix = correction_matrix;
 
-        queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&[matrix]));
+        if let Some(size) = NonZeroU64::new(self.matrix_buffer.size()) {
+            staging_belt
+                .write_buffer(encoder, &self.matrix_buffer, 0, size, device)
+                .copy_from_slice(bytemuck::cast_slice(&[matrix]));
+        }
 
-        // transform from actually screen coordinates to 0-1 screen coordinates
-        let correction_matrix = Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
+        // ピクセル座標空間から[0,1]座標空間へ変換する行列
+        let transform_matrix = Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
             * Mat4::from_scale(vec3(
                 (self.width as f32).recip() * 2.0,
                 -(self.height as f32).recip() * 2.0,
                 1.0,
             ));
-        self.screen_to_ui_matrix = Some(matrix.inverse() * correction_matrix);
+        self.screen_to_ui_matrix = Some(matrix.inverse() * transform_matrix);
     }
 
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
@@ -82,6 +98,7 @@ impl UICameraResource {
         &self.bind_group
     }
 
+    /// 画面座標空間からUI座標空間への変換行列を返す。
     pub fn screen_to_ui_matrix(&self) -> Option<Mat4> {
         self.screen_to_ui_matrix
     }

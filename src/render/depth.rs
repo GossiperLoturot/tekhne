@@ -1,10 +1,15 @@
+//! デプスマップに関するモジュール
+
+/// デプスマップの作成と保持を行うリソース
 pub struct DepthResource {
     view: wgpu::TextureView,
 }
 
 impl DepthResource {
+    /// デプスマップに使用するテクスチャのフォーマット[`wgpu::TextureFormat`]
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
+    /// 新しいリソースを作成する。
     pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
@@ -25,6 +30,7 @@ impl DepthResource {
         Self { view }
     }
 
+    /// デプスマップに使用するテクスチャのビュー[`wgpu::TextureView`]を返す。
     pub fn view(&self) -> &wgpu::TextureView {
         &self.view
     }

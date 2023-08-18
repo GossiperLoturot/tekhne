@@ -1,23 +1,29 @@
+//! 領域と衝突判定に関するモジュール
+
 use glam::*;
 use std::ops::*;
 
+/// 新しい3次元の線分を作成する。
 #[inline]
 pub fn ray3a(start: Vec3A, end: Vec3A) -> Ray3A {
     Ray3A { start, end }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+/// 3次元の線分
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Ray3A {
     pub start: Vec3A,
     pub end: Vec3A,
 }
 
 impl Ray3A {
+    /// 新しい3次元の線分を作成する。
     #[inline]
     pub fn new(start: Vec3A, end: Vec3A) -> Self {
         Self { start, end }
     }
 
+    /// 線分の長さを計算する。
     #[inline]
     pub fn length(&self) -> f32 {
         (self.end - self.start).length()
@@ -215,28 +221,35 @@ impl Div<Ray3A> for f32 {
     }
 }
 
+/// 新しい3次元のAABBを作成する。
 #[inline]
 pub fn aabb3a(min: Vec3A, max: Vec3A) -> Aabb3A {
     Aabb3A { min, max }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+/// 3次元のAABB
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Aabb3A {
+    /// AABBが含まれる要素(x, y, z)のすべてが最小の座標点
     pub min: Vec3A,
+    /// AABBが含まれる要素(x, y, z)のすべてが最大の座標点
     pub max: Vec3A,
 }
 
 impl Aabb3A {
+    /// 新しい3次元のAABBを作成する。
     #[inline]
     pub fn new(min: Vec3A, max: Vec3A) -> Self {
         Self { min, max }
     }
 
+    /// AABBの大きさを計算する。
     #[inline]
     pub fn volume(&self) -> Vec3A {
         self.min - self.max
     }
 
+    /// 床関数によって丸められたAABBを返す。
     #[inline]
     pub fn floor(&self) -> Self {
         Self {
@@ -245,6 +258,7 @@ impl Aabb3A {
         }
     }
 
+    /// 四捨五入によって丸められたAABBを返す。
     #[inline]
     pub fn round(&self) -> Self {
         Self {
@@ -253,6 +267,7 @@ impl Aabb3A {
         }
     }
 
+    /// 天井関数によって丸められたAABBを返す。
     #[inline]
     pub fn ceil(&self) -> Self {
         Self {
@@ -261,6 +276,7 @@ impl Aabb3A {
         }
     }
 
+    /// 3次元の整数AABBへ変換する。
     #[inline]
     pub fn as_iaabb3(&self) -> IAabb3 {
         IAabb3 {
@@ -461,28 +477,35 @@ impl Div<Aabb3A> for f32 {
     }
 }
 
+/// 新しい3次元の整数AABBを作成する。
 #[inline]
 pub fn iaabb3(min: IVec3, max: IVec3) -> IAabb3 {
     IAabb3 { min, max }
 }
 
+/// 整数座標空間における3次元のAABB
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct IAabb3 {
+    /// AABBに含まれる要素(x, y, z)のすべてが最小の座標点
     pub min: IVec3,
+    /// AABBが含まれる要素(x, y, z)のすべてが最大の座標点
     pub max: IVec3,
 }
 
 impl IAabb3 {
+    /// 新しい3次元の整数AABBを作成する。
     #[inline]
     pub fn new(min: IVec3, max: IVec3) -> Self {
         Self { min, max }
     }
 
+    /// AABBの大きさを計算する。
     #[inline]
     pub fn volume(&self) -> IVec3 {
         self.min - self.max
     }
 
+    /// 整数座標空間において、AABBに含まれるすべての座標点を返すイテレータを返す。
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = IVec3> + '_ {
         (self.min.x..=self.max.x)
@@ -491,6 +514,7 @@ impl IAabb3 {
             .map(|(x, y, z)| ivec3(x, y, z))
     }
 
+    /// 3次元のAABBへ変換する。
     #[inline]
     pub fn as_aabb3a(&self) -> Aabb3A {
         Aabb3A {
@@ -691,7 +715,11 @@ impl Div<IAabb3> for i32 {
     }
 }
 
+/// 2つのオブジェクトにおける衝突判定を提供する。
 pub trait Intersect<T> {
+    /// 2つのオブジェクトの衝突を判定する。
+    ///
+    /// 衝突した場合はtrueを返し、そうでない場合はfalseを返す。
     fn intersect(self, other: T) -> bool;
 }
 

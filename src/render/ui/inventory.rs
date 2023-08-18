@@ -1,7 +1,11 @@
-use super::UICameraResource;
-use crate::{render::DepthResource, service::Service};
-use glam::*;
+//! インベントリUIに関するモジュール
 
+use super::UICameraResource;
+use crate::render::DepthResource;
+use glam::*;
+use wgpu::util::DeviceExt;
+
+/// インベントリUIの描写に使用する頂点データ
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
@@ -13,6 +17,7 @@ impl Vertex {
     const ATTRIBUTES: &[wgpu::VertexAttribute] =
         &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
 
+    /// 頂点データのレイアウトを返す。
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as u64,
@@ -22,6 +27,7 @@ impl Vertex {
     }
 }
 
+/// インベントリUIの描写を行うパイプライン
 pub struct UIInventoryPipeline {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
@@ -40,14 +46,14 @@ impl UIInventoryPipeline {
 
     const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
+    /// パイプラインを作成する。
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &UICameraResource,
     ) -> Self {
-        use wgpu::util::DeviceExt;
-        let image_data =
+        let texture_data =
             image::load_from_memory(include_bytes!("../../../assets/textures/frame.png"))
                 .expect("failed to load image")
                 .to_rgba8();
@@ -57,8 +63,8 @@ impl UIInventoryPipeline {
             &wgpu::TextureDescriptor {
                 label: None,
                 size: wgpu::Extent3d {
-                    width: image_data.width(),
-                    height: image_data.height(),
+                    width: texture_data.width(),
+                    height: texture_data.height(),
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
@@ -68,7 +74,7 @@ impl UIInventoryPipeline {
                 usage: wgpu::TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             },
-            &image_data,
+            &texture_data,
         );
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
@@ -94,6 +100,7 @@ impl UIInventoryPipeline {
                 },
             ],
         });
+
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &bind_group_layout,
@@ -179,10 +186,7 @@ impl UIInventoryPipeline {
         }
     }
 
-    pub fn pre_draw(&mut self, queue: &wgpu::Queue, service: &Service) {
-        // TODO: ui switching
-    }
-
+    /// レンダーパスへ描写命令を発行する。
     pub fn draw<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,

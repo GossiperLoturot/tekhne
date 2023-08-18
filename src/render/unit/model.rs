@@ -1,7 +1,10 @@
+//! ブロックとエンティティの描写を目的とする追加情報に関するモジュール
+
 use super::{texture::UnitAtlasOption, UnitVertex};
 use crate::model::*;
 use strum::EnumIter;
 
+/// 3Dモデルの種類
 pub enum UnitModelItem {
     ITop1x1,
     IBottom1x1,
@@ -12,6 +15,7 @@ pub enum UnitModelItem {
 }
 
 impl UnitModelItem {
+    /// 3Dモデルの頂点データを返す。
     #[inline]
     #[rustfmt::skip]
     pub fn vertices(&self) -> &[UnitVertex] {
@@ -55,6 +59,7 @@ impl UnitModelItem {
         }
     }
 
+    /// 3Dモデルのインデクスデータを返す。
     #[inline]
     pub fn indices(&self) -> &[u32] {
         match self {
@@ -68,38 +73,39 @@ impl UnitModelItem {
     }
 }
 
-impl From<IUnitKind> for UnitModelItem {
+impl From<BlockKind> for UnitModelItem {
     #[inline]
-    fn from(value: IUnitKind) -> Self {
+    fn from(value: BlockKind) -> Self {
         match value {
-            IUnitKind::SurfaceDirt => Self::ITop1x1,
-            IUnitKind::SurfaceGrass => Self::ITop1x1,
-            IUnitKind::SurfaceGravel => Self::ITop1x1,
-            IUnitKind::SurfaceSand => Self::ITop1x1,
-            IUnitKind::SurfaceStone => Self::ITop1x1,
-            IUnitKind::MixGrass => Self::IBottom1x1,
-            IUnitKind::Dandelion => Self::IBottom1x1,
-            IUnitKind::FallenBranch => Self::IBottom1x1,
-            IUnitKind::FallenLeaves => Self::IBottom1x1,
-            IUnitKind::MixPebbles => Self::IBottom1x1,
-            IUnitKind::OakTree => Self::IBillboard4x6,
-            IUnitKind::BirchTree => Self::IBillboard4x6,
-            IUnitKind::DyingTree => Self::IBillboard4x6,
-            IUnitKind::FallenTree => Self::IBottom4x2,
-            IUnitKind::MixRock => Self::IBottom2x2,
+            BlockKind::SurfaceDirt => Self::ITop1x1,
+            BlockKind::SurfaceGrass => Self::ITop1x1,
+            BlockKind::SurfaceGravel => Self::ITop1x1,
+            BlockKind::SurfaceSand => Self::ITop1x1,
+            BlockKind::SurfaceStone => Self::ITop1x1,
+            BlockKind::MixGrass => Self::IBottom1x1,
+            BlockKind::Dandelion => Self::IBottom1x1,
+            BlockKind::FallenBranch => Self::IBottom1x1,
+            BlockKind::FallenLeaves => Self::IBottom1x1,
+            BlockKind::MixPebbles => Self::IBottom1x1,
+            BlockKind::OakTree => Self::IBillboard4x6,
+            BlockKind::BirchTree => Self::IBillboard4x6,
+            BlockKind::DyingTree => Self::IBillboard4x6,
+            BlockKind::FallenTree => Self::IBottom4x2,
+            BlockKind::MixRock => Self::IBottom2x2,
         }
     }
 }
 
-impl From<UnitKind> for UnitModelItem {
+impl From<EntityKind> for UnitModelItem {
     #[inline]
-    fn from(value: UnitKind) -> Self {
+    fn from(value: EntityKind) -> Self {
         match value {
-            UnitKind::Player => Self::Billboard1x2,
+            EntityKind::Player => Self::Billboard1x2,
         }
     }
 }
 
+/// テクスチャの種類
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, EnumIter)]
 pub enum UnitTextureItem {
     SurfaceDirt,
@@ -120,39 +126,42 @@ pub enum UnitTextureItem {
     MixRock,
 }
 
-impl From<IUnitKind> for UnitTextureItem {
+impl From<BlockKind> for UnitTextureItem {
     #[inline]
-    fn from(value: IUnitKind) -> Self {
+    fn from(value: BlockKind) -> Self {
         match value {
-            IUnitKind::SurfaceDirt => Self::SurfaceDirt,
-            IUnitKind::SurfaceGrass => Self::SurfaceGrass,
-            IUnitKind::SurfaceGravel => Self::SurfaceGravel,
-            IUnitKind::SurfaceSand => Self::SurfaceSand,
-            IUnitKind::SurfaceStone => Self::SurfaceStone,
-            IUnitKind::MixGrass => Self::MixGrass,
-            IUnitKind::Dandelion => Self::Dandelion,
-            IUnitKind::FallenBranch => Self::FallenBranch,
-            IUnitKind::FallenLeaves => Self::FallenLeaves,
-            IUnitKind::MixPebbles => Self::MixPebbles,
-            IUnitKind::OakTree => Self::OakTree,
-            IUnitKind::BirchTree => Self::BirchTree,
-            IUnitKind::DyingTree => Self::DyingTree,
-            IUnitKind::FallenTree => Self::FallenTree,
-            IUnitKind::MixRock => Self::MixRock,
+            BlockKind::SurfaceDirt => Self::SurfaceDirt,
+            BlockKind::SurfaceGrass => Self::SurfaceGrass,
+            BlockKind::SurfaceGravel => Self::SurfaceGravel,
+            BlockKind::SurfaceSand => Self::SurfaceSand,
+            BlockKind::SurfaceStone => Self::SurfaceStone,
+            BlockKind::MixGrass => Self::MixGrass,
+            BlockKind::Dandelion => Self::Dandelion,
+            BlockKind::FallenBranch => Self::FallenBranch,
+            BlockKind::FallenLeaves => Self::FallenLeaves,
+            BlockKind::MixPebbles => Self::MixPebbles,
+            BlockKind::OakTree => Self::OakTree,
+            BlockKind::BirchTree => Self::BirchTree,
+            BlockKind::DyingTree => Self::DyingTree,
+            BlockKind::FallenTree => Self::FallenTree,
+            BlockKind::MixRock => Self::MixRock,
         }
     }
 }
 
-impl From<UnitKind> for UnitTextureItem {
+impl From<EntityKind> for UnitTextureItem {
     #[inline]
-    fn from(value: UnitKind) -> Self {
+    fn from(value: EntityKind) -> Self {
         match value {
-            UnitKind::Player => Self::Player,
+            EntityKind::Player => Self::Player,
         }
     }
 }
 
 impl UnitTextureItem {
+    /// テクスチャのデータを返す。
+    ///
+    /// このデータはRGBA8の形式でレイアウトされる。
     #[inline]
     pub fn texture(&self) -> image::ImageResult<image::DynamicImage> {
         let bytes: &[u8] = match self {
@@ -177,6 +186,10 @@ impl UnitTextureItem {
         image::load_from_memory(bytes)
     }
 
+    /// ミップマップ生成時に用いられるテクスチャの大きさを返す。
+    ///
+    /// この大きさはミップマップ生成時に用いられる。正しい大きさを指定した場合は
+    /// テクスチャが不自然にボケることなく描写される。
     #[inline]
     pub fn block_size(&self) -> (u32, u32) {
         match self {
@@ -199,6 +212,9 @@ impl UnitTextureItem {
         }
     }
 
+    /// ミップマップ生成時に用いられるテクスチャの種類を返す。
+    ///
+    /// 詳細は[`UnitAtlasOption`]に記述される。
     #[inline]
     pub fn atlas_option(&self) -> UnitAtlasOption {
         match self {

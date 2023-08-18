@@ -1,15 +1,18 @@
-pub use camera::CameraResource;
-pub use depth::DepthResource;
-pub use ui::UIPipeline;
-pub use unit::UnitPipeline;
+//! 描写に関するモジュール
 
-use crate::service::{ReadBack, Service};
+use crate::system::{ReadBack, System};
+use camera::CameraResource;
+use depth::DepthResource;
+use ui::UICameraResource;
+use ui::UIInventoryPipeline;
+use unit::UnitPipeline;
 
 mod camera;
 mod depth;
 mod ui;
 mod unit;
 
+/// 描写に関する操作を行うコンテキスト
 pub struct Render {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -18,10 +21,16 @@ pub struct Render {
     camera_resource: CameraResource,
     depth_resource: DepthResource,
     unit_pipeline: UnitPipeline,
-    ui_pipeline: UIPipeline,
+    ui_camera_resource: UICameraResource,
+    ui_inventoy_pipeline: UIInventoryPipeline,
 }
 
 impl Render {
+    /// 新しいコンテキストを作成する。(非同期)
+    ///
+    /// # Panic
+    ///
+    /// 互換性のある`Adapter`、`Surface`が存在しない場合
     pub async fn new_async(window: &winit::window::Window) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
         let surface = unsafe { instance.create_surface(window) }.unwrap();
@@ -47,7 +56,9 @@ impl Render {
         let camera_resource = CameraResource::new(&device, &config);
         let depth_resource = DepthResource::new(&device, &config);
         let unit_pipeline = UnitPipeline::new(&device, &queue, &config, &camera_resource);
-        let ui_pipeline = UIPipeline::new(&device, &queue, &config);
+        let ui_camera_resource = UICameraResource::new(&device, &config);
+        let ui_inventoy_pipeline =
+            UIInventoryPipeline::new(&device, &queue, &config, &ui_camera_resource);
 
         Self {
             device,
@@ -57,20 +68,34 @@ impl Render {
             camera_resource,
             depth_resource,
             unit_pipeline,
-            ui_pipeline,
+            ui_camera_resource,
+            ui_inventoy_pipeline,
         }
     }
 
-    pub fn draw(&mut self, service: &Service) -> ReadBack {
-        self.staging_belt.recall();
+    /// 描写サイクルを実行する。
+    ///
+    /// 描写の際に生成したデータをゲームサイクル内で使用するため、
+    /// フィードバックデータ[`ReadBack`]を返す。
+    ///
+    /// # Panic
+    ///
+    /// 画面テクスチャの取得に失敗した場合
+    pub fn draw(&mut self, service: &System) -> ReadBack {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
-        self.camera_resource.pre_draw(&self.queue, service);
+        self.staging_belt.recall();
+
+        self.camera_resource
+            .pre_draw(&self.device, &mut encoder, &mut self.staging_belt, service);
         self.unit_pipeline
             .pre_draw(&self.device, &mut encoder, &mut self.staging_belt, service);
-        self.ui_pipeline.pre_draw(&self.queue, service);
+        self.ui_camera_resource
+            .pre_draw(&self.device, &mut encoder, &mut self.staging_belt);
+
+        self.staging_belt.finish();
 
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame
@@ -98,15 +123,15 @@ impl Render {
 
         self.unit_pipeline
             .draw(&mut render_pass, &self.camera_resource);
-        self.ui_pipeline.draw(&mut render_pass);
+        self.ui_inventoy_pipeline
+            .draw(&mut render_pass, &self.ui_camera_resource);
 
         drop(render_pass);
-        self.staging_belt.finish();
         self.queue.submit([encoder.finish()]);
         frame.present();
 
         let screen_to_world_matrix = self.camera_resource.screen_to_world_matrix();
-        let screen_to_ui_matrix = self.ui_pipeline.screen_to_ui_matrix();
+        let screen_to_ui_matrix = self.ui_camera_resource.screen_to_ui_matrix();
 
         ReadBack {
             screen_to_world_matrix,

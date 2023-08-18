@@ -1,15 +1,22 @@
-use crate::render::unit::model::UnitTextureItem;
+//! ブロックとエンティティのアトラスマップ生成に関するモジュール
+
+use super::model::UnitTextureItem;
 use ahash::AHashMap;
 use glam::*;
 use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
 use wgpu::util::DeviceExt;
 
+/// ミップマップ生成の方式
+///
+/// [`UnitAtlasOption::Continuous`]は連続的(シームレス)なテクスチャに適した処理、
+/// 逆に[`UnitAtlasOption::Single`]はそうでないテクスチャに適した処理を行う。
 pub enum UnitAtlasOption {
     Single,
     Continuous,
 }
 
+/// テクスチャのアトラスマップ上での配置
 pub struct UnitAtlasTexcoord {
     pub page: u32,
     pub x: f32,
@@ -18,6 +25,7 @@ pub struct UnitAtlasTexcoord {
     pub height: f32,
 }
 
+/// アトラスマップの生成と配置の取得を行うリソース
 pub struct UnitTextureResource {
     texcoords: AHashMap<UnitTextureItem, UnitAtlasTexcoord>,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -25,11 +33,24 @@ pub struct UnitTextureResource {
 }
 
 impl UnitTextureResource {
+    /// 生成するアトラスマップの最大数
     const MAX_PAGE_COUNT: u32 = 255;
+
+    /// 一つのアトラスマップに配置する最小単位の幅(高さ)
+    ///
+    /// この`Block`は[`crate::model::Block`]とは異なり、
+    /// アトラスマップに配置できるテクスチャの最小単位を指す。
     const BLOCK_SIZE: u32 = 64;
+
+    /// 最小単位の大きさ
     const SIZE_PER_BLOCK: u32 = 32;
 
+    /// 新しいリソースを作成する。
+    ///
+    /// アトラスマップの生成を3次元ビンパッキング問題に帰着し、
+    /// ソルバーを使用して効果的なアトラスマップの配置を計算する。
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        // 配置する箱の大きさを定義する。
         let mut rects = rectangle_pack::GroupedRectsToPlace::<_, ()>::new();
         for item in UnitTextureItem::iter() {
             let (width, height) = item.block_size();
@@ -40,6 +61,7 @@ impl UnitTextureResource {
             )
         }
 
+        // 収納する箱の大きさを定義する。
         let mut target_bin = BTreeMap::new();
         target_bin.insert(
             (),
@@ -50,6 +72,7 @@ impl UnitTextureResource {
             ),
         );
 
+        // 配置を計算する。
         let locations = rectangle_pack::pack_rects(
             &rects,
             &mut target_bin,
@@ -58,6 +81,7 @@ impl UnitTextureResource {
         )
         .expect("failed to pack atlas layout");
 
+        // 配置から必要なアトラスマップを作成する。
         let page_count = locations
             .packed_locations()
             .iter()
@@ -79,16 +103,20 @@ impl UnitTextureResource {
 
         let mut texcoords = AHashMap::new();
 
+        // 配置をもとにアトラスマップへテクスチャを適用する。
         for (&item, (_, location)) in locations.packed_locations() {
             let texture = item.texture().expect("failed to load texture");
             let (width, height) = item.block_size();
 
+            // ミップマップ生成用に大きさを拡張したテクスチャを作成する
             let mut dilation = image::DynamicImage::new_rgba8(
                 Self::SIZE_PER_BLOCK * (width + 1),
                 Self::SIZE_PER_BLOCK * (height + 1),
             );
 
             match item.atlas_option() {
+                // [`UnitAtlasOption::Single`]の場合は大きさを拡張した
+                // テクスチャの中心に1つのみ配置する。
                 UnitAtlasOption::Single => {
                     image::imageops::replace(
                         &mut dilation,
@@ -97,6 +125,8 @@ impl UnitTextureResource {
                         (Self::SIZE_PER_BLOCK / 2) as i64,
                     );
                 }
+                // [`UnitAtlasOption::Continuous`]の場合は大きさを拡張した
+                // テクスチャへ格子状に9つ配置する。
                 UnitAtlasOption::Continuous => {
                     for x in -1..=1 {
                         for y in -1..=1 {
@@ -113,6 +143,8 @@ impl UnitTextureResource {
                 }
             }
 
+            // ミップマップのレベルに応じて大きさを拡張したテクスチャを
+            // 縮小・クリップしてアトラスマップへ貼り付ける。
             for mip_level in 0..mip_level_count {
                 let size_per_block = Self::SIZE_PER_BLOCK >> mip_level;
                 let mip_map = dilation.resize(
@@ -129,6 +161,7 @@ impl UnitTextureResource {
                 );
             }
 
+            // 描写用にテクスチャの配置を[0,1]座標空間へ変換し、保持する。
             texcoords.insert(
                 item,
                 UnitAtlasTexcoord {
@@ -165,6 +198,7 @@ impl UnitTextureResource {
             ],
         });
 
+        // それぞれのアトラスマップに対してリソースを作成する。
         let mut bind_groups = vec![];
         for atlas in atlas_set {
             let atlas_data = atlas
@@ -221,10 +255,12 @@ impl UnitTextureResource {
         }
     }
 
+    /// 生成されたアトラスマップの数を返す。
     pub fn page_count(&self) -> u32 {
         self.bind_groups.len() as u32
     }
 
+    /// 該当するテクスチャのアトラスマップ上の配置を返す。
     pub fn texcoord(&self, item: &UnitTextureItem) -> Option<&UnitAtlasTexcoord> {
         self.texcoords.get(item)
     }

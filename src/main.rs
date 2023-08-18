@@ -1,6 +1,6 @@
 mod model;
 mod render;
-mod service;
+mod system;
 
 fn main() {
     let event_loop = winit::event_loop::EventLoopBuilder::new().build();
@@ -9,7 +9,7 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let mut service = service::Service::new();
+    let mut service = system::System::new();
     let mut render = pollster::block_on(render::Render::new_async(&window));
     let mut input = winit_input_helper::WinitInputHelper::new();
     let mut read_back = None;

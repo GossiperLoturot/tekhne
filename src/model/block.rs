@@ -1,8 +1,11 @@
+//! ブロック単体に関するモジュール
+
 use super::{iaabb3, IAabb3};
 use glam::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IUnitKind {
+/// ブロックの種類
+#[derive(Debug, Clone, Copy)]
+pub enum BlockKind {
     SurfaceDirt,
     SurfaceGrass,
     SurfaceGravel,
@@ -20,7 +23,10 @@ pub enum IUnitKind {
     MixRock,
 }
 
-impl IUnitKind {
+impl BlockKind {
+    /// ブロックの破壊可能性を返す。
+    ///
+    /// 破壊可能ならばtrueを返し、そうでない場合はfalseを返す。
     #[inline]
     pub fn breakable(&self) -> bool {
         match self {
@@ -42,8 +48,11 @@ impl IUnitKind {
         }
     }
 
+    /// ブロックの衝突判定領域を返す。
+    ///
+    /// ローカル座標空間(ブロックが設置されるであろう位置を原点とした座標空間)上でのAABBを返す。
     #[inline]
-    pub fn aabb(&self) -> IAabb3 {
+    pub fn bounds(&self) -> IAabb3 {
         match self {
             Self::SurfaceDirt => iaabb3(ivec3(0, 0, 0), ivec3(0, 0, 0)),
             Self::SurfaceGrass => iaabb3(ivec3(0, 0, 0), ivec3(0, 0, 0)),
@@ -64,25 +73,33 @@ impl IUnitKind {
     }
 }
 
+/// ワールドに配置されるブロックのデータ
 #[derive(Debug, Clone)]
-pub struct IUnit {
+pub struct Block {
     pub position: IVec3,
-    pub kind: IUnitKind,
+    pub kind: BlockKind,
 }
 
-impl IUnit {
+impl Block {
+    /// 新しいブロックを作成する。
     #[inline]
-    pub fn new(position: IVec3, kind: IUnitKind) -> Self {
+    pub fn new(position: IVec3, kind: BlockKind) -> Self {
         Self { position, kind }
     }
 
+    /// ブロックの破壊可能性を返す。
+    ///
+    /// 破壊可能ならばtrueを返し、そうでない場合はfalseを返す。
     #[inline]
     pub fn breakable(&self) -> bool {
         self.kind.breakable()
     }
 
+    /// ブロックの衝突判定領域を返す。
+    ///
+    /// ワールド座標空間上でのAABBを返す。
     #[inline]
-    pub fn aabb(&self) -> IAabb3 {
-        self.position + self.kind.aabb()
+    pub fn bounds(&self) -> IAabb3 {
+        self.position + self.kind.bounds()
     }
 }

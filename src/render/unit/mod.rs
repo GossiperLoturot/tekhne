@@ -1,15 +1,18 @@
+//! ブロックとエンティティの描写に関するモジュール
+
 use self::{
     model::{UnitModelItem, UnitTextureItem},
     texture::UnitTextureResource,
 };
 use super::{CameraResource, DepthResource};
-use crate::service::Service;
+use crate::system::System;
 use glam::*;
 use std::num::NonZeroU64;
 
 mod model;
 mod texture;
 
+/// ブロックとエンティティの描写に使用する頂点データ
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct UnitVertex {
@@ -21,6 +24,7 @@ impl UnitVertex {
     const ATTRIBUTES: &[wgpu::VertexAttribute] =
         &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
 
+    /// 頂点データのレイアウト
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as u64,
@@ -30,8 +34,9 @@ impl UnitVertex {
     }
 }
 
+/// 1つのアトラスマップに関連する頂点データとインデクスデータ
 pub struct PageBatch {
-    chache_vertices: Vec<UnitVertex>,
+    cache_vertices: Vec<UnitVertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_count: u32,
     cache_indices: Vec<u32>,
@@ -39,6 +44,10 @@ pub struct PageBatch {
     index_count: u32,
 }
 
+/// ブロックとエンティティの描写を行うパイプライン
+///
+/// テクスチャはアトラスマップにまとめられる。複数枚のアトラスマップが生成された場合は
+/// 複数の描写(バッチ)処理を行う。それぞれのバッチ処理には[`PageBatch`]が用いられる。
 pub struct UnitPipeline {
     page_batches: Vec<PageBatch>,
     texture_resource: UnitTextureResource,
@@ -46,14 +55,17 @@ pub struct UnitPipeline {
 }
 
 impl UnitPipeline {
+    /// 新しいパイプラインを作成する。
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
         camera_resource: &CameraResource,
     ) -> Self {
+        // アトラスマップを生成する。
         let texture_resource = UnitTextureResource::new(device, queue);
 
+        // それぞれのアトラスマップに必要なデータ[`PageBatch`]を確保する
         let mut page_batches = vec![];
         for _ in 0..texture_resource.page_count() {
             let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -71,13 +83,14 @@ impl UnitPipeline {
             });
 
             let page_batch = PageBatch {
-                chache_vertices: vec![],
+                cache_vertices: vec![],
                 vertex_buffer,
                 vertex_count: 0,
                 cache_indices: vec![],
                 index_buffer,
                 index_count: 0,
             };
+
             page_batches.push(page_batch);
         }
 
@@ -141,39 +154,48 @@ impl UnitPipeline {
         }
     }
 
+    /// ブロックとエンティティをもとに、GPU上のデータを更新する。
+    ///
+    /// # Panic
+    ///
+    /// 存在しないアトラスマップ・バッチを使用しようとした場合
     pub fn pre_draw(
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        service: &Service,
+        service: &System,
     ) {
         if let Some(camera) = service.camera.get_camera() {
-            let view_aabb = camera.view_aabb();
+            let bounds = camera.view_bounds();
 
-            let iunits = service
-                .iunit
-                .get_by_aabb(view_aabb.floor().as_iaabb3())
+            // 描写範囲内の[`crate::model::Block`]を描写用データへ変換する
+            let blocks = service
+                .block
+                .get_by_aabb(bounds.floor().as_iaabb3())
                 .into_iter()
-                .map(|(_, iunit)| {
-                    let position = iunit.position.as_vec3();
-                    let model = UnitModelItem::from(iunit.kind);
-                    let texture = UnitTextureItem::from(iunit.kind);
+                .map(|(_, block)| {
+                    let position = block.position.as_vec3();
+                    let model = UnitModelItem::from(block.kind);
+                    let texture = UnitTextureItem::from(block.kind);
                     (position, model, texture)
                 });
 
-            let units = service
-                .unit
-                .get_by_aabb(view_aabb)
+            // 描写範囲内の[`crate::model::Entity`]を描写用データへ変換する
+            let entities = service
+                .entity
+                .get_by_aabb(bounds)
                 .into_iter()
-                .map(|(_, unit)| {
-                    let position = unit.position.into();
-                    let model = UnitModelItem::from(unit.kind);
-                    let texture = UnitTextureItem::from(unit.kind);
+                .map(|(_, entity)| {
+                    let position = entity.position.into();
+                    let model = UnitModelItem::from(entity.kind);
+                    let texture = UnitTextureItem::from(entity.kind);
                     (position, model, texture)
                 });
 
-            for (position, model, texture) in Iterator::chain(units, iunits) {
+            // 描写範囲内のすべての[`crate::model::Block`]と[`crate::model::Entity`]を該当するバッチへ
+            // 頂点データとインデクスデータを挿入する。
+            for (position, model, texture) in Iterator::chain(blocks, entities) {
                 let texcoord = self
                     .texture_resource
                     .texcoord(&texture)
@@ -184,38 +206,38 @@ impl UnitPipeline {
                     .get_mut(texcoord.page as usize)
                     .expect("not found available page batch");
 
-                let vertices = &mut page_batch.chache_vertices;
+                // メモリ確保が頻繁に行われるのを回避するためキャッシュを使用する。
+                let vertices = &mut page_batch.cache_vertices;
                 let indices = &mut page_batch.cache_indices;
 
                 for index in model.indices() {
-                    let vertex_count = vertices.len();
-                    indices.push(vertex_count as u32 + index);
+                    let vertex_count = vertices.len() as u32;
+                    indices.push(vertex_count + index);
                 }
 
                 for vertex in model.vertices() {
-                    let vertex = UnitVertex {
-                        position: [
-                            position.x + vertex.position[0],
-                            position.y + vertex.position[1],
-                            position.z + vertex.position[2],
-                        ],
-                        texcoord: [
-                            texcoord.x + vertex.texcoord[0] * texcoord.width,
-                            texcoord.y + vertex.texcoord[1] * texcoord.height,
-                        ],
-                    };
-                    vertices.push(vertex)
+                    let position = [
+                        position.x + vertex.position[0],
+                        position.y + vertex.position[1],
+                        position.z + vertex.position[2],
+                    ];
+                    let texcoord = [
+                        texcoord.x + vertex.texcoord[0] * texcoord.width,
+                        texcoord.y + vertex.texcoord[1] * texcoord.height,
+                    ];
+                    vertices.push(UnitVertex { position, texcoord });
                 }
             }
 
+            // それぞれのバッチを実行する。
             for page in 0..self.texture_resource.page_count() {
                 let page_batch = self
                     .page_batches
                     .get_mut(page as usize)
                     .expect("not found available page batch");
 
-                let vertex_data = bytemuck::cast_slice(&page_batch.chache_vertices);
-                page_batch.vertex_count = page_batch.chache_vertices.len() as u32;
+                let vertex_data = bytemuck::cast_slice(&page_batch.cache_vertices);
+                page_batch.vertex_count = page_batch.cache_vertices.len() as u32;
                 if let Some(size) = NonZeroU64::new(vertex_data.len() as u64) {
                     staging_belt
                         .write_buffer(encoder, &page_batch.vertex_buffer, 0, size, device)
@@ -230,12 +252,13 @@ impl UnitPipeline {
                         .copy_from_slice(index_data);
                 }
 
-                page_batch.chache_vertices.clear();
+                page_batch.cache_vertices.clear();
                 page_batch.cache_indices.clear();
             }
         }
     }
 
+    /// レンダーパスへ描写命令を発行する。
     pub fn draw<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
