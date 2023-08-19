@@ -3,14 +3,14 @@
 use crate::system::{ReadBack, System};
 use camera::CameraResource;
 use depth::DepthResource;
+use primitive::PrimitivePipeline;
 use ui::UICameraResource;
 use ui::UIInventoryPipeline;
-use unit::UnitPipeline;
 
 mod camera;
 mod depth;
+mod primitive;
 mod ui;
-mod unit;
 
 /// 描写に関する操作を行うコンテキスト
 pub struct Render {
@@ -20,7 +20,7 @@ pub struct Render {
     staging_belt: wgpu::util::StagingBelt,
     camera_resource: CameraResource,
     depth_resource: DepthResource,
-    unit_pipeline: UnitPipeline,
+    primitive_pipeline: PrimitivePipeline,
     ui_camera_resource: UICameraResource,
     ui_inventoy_pipeline: UIInventoryPipeline,
 }
@@ -55,7 +55,7 @@ impl Render {
 
         let camera_resource = CameraResource::new(&device, &config);
         let depth_resource = DepthResource::new(&device, &config);
-        let unit_pipeline = UnitPipeline::new(&device, &queue, &config, &camera_resource);
+        let primitive_pipeline = PrimitivePipeline::new(&device, &queue, &config, &camera_resource);
         let ui_camera_resource = UICameraResource::new(&device, &config);
         let ui_inventoy_pipeline =
             UIInventoryPipeline::new(&device, &queue, &config, &ui_camera_resource);
@@ -67,7 +67,7 @@ impl Render {
             staging_belt,
             camera_resource,
             depth_resource,
-            unit_pipeline,
+            primitive_pipeline,
             ui_camera_resource,
             ui_inventoy_pipeline,
         }
@@ -90,8 +90,12 @@ impl Render {
 
         self.camera_resource
             .pre_draw(&self.device, &mut encoder, &mut self.staging_belt, service);
-        self.unit_pipeline
-            .pre_draw(&self.device, &mut encoder, &mut self.staging_belt, service);
+        self.primitive_pipeline.pre_draw(
+            &self.device,
+            &mut encoder,
+            &mut self.staging_belt,
+            service,
+        );
         self.ui_camera_resource
             .pre_draw(&self.device, &mut encoder, &mut self.staging_belt);
 
@@ -121,7 +125,7 @@ impl Render {
             }),
         });
 
-        self.unit_pipeline
+        self.primitive_pipeline
             .draw(&mut render_pass, &self.camera_resource);
         self.ui_inventoy_pipeline
             .draw(&mut render_pass, &self.ui_camera_resource);

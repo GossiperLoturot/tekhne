@@ -1,26 +1,25 @@
-//! ブロックとエンティティの描写に関するモジュール
+//! プリミティブの描写に関するモジュール
 
-use self::{
-    model::{UnitModelItem, UnitTextureItem},
-    texture::UnitTextureResource,
+use super::{
+    model::{ModelItem, TextureItem},
+    texture::AtlasResource,
 };
-use super::{CameraResource, DepthResource};
-use crate::system::System;
+use crate::{
+    render::{camera::CameraResource, depth::DepthResource},
+    system::System,
+};
 use glam::*;
 use std::num::NonZeroU64;
 
-mod model;
-mod texture;
-
-/// ブロックとエンティティの描写に使用する頂点データ
+/// プリミティブの描写に使用する頂点データ
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct UnitVertex {
+pub struct Vertex {
     pub position: [f32; 3],
     pub texcoord: [f32; 2],
 }
 
-impl UnitVertex {
+impl Vertex {
     const ATTRIBUTES: &[wgpu::VertexAttribute] =
         &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
 
@@ -35,8 +34,8 @@ impl UnitVertex {
 }
 
 /// 1つのアトラスマップに関連する頂点データとインデクスデータ
-pub struct PageBatch {
-    cache_vertices: Vec<UnitVertex>,
+struct PageBatch {
+    cache_vertices: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_count: u32,
     cache_indices: Vec<u32>,
@@ -44,17 +43,17 @@ pub struct PageBatch {
     index_count: u32,
 }
 
-/// ブロックとエンティティの描写を行うパイプライン
+/// プリミティブの描写を行うパイプライン
 ///
 /// テクスチャはアトラスマップにまとめられる。複数枚のアトラスマップが生成された場合は
-/// 複数の描写(バッチ)処理を行う。それぞれのバッチ処理には[`PageBatch`]が用いられる。
-pub struct UnitPipeline {
+/// 複数の描写(バッチ)処理を行う。
+pub struct Pipeline {
     page_batches: Vec<PageBatch>,
-    texture_resource: UnitTextureResource,
+    texture_resource: AtlasResource,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl UnitPipeline {
+impl Pipeline {
     /// 新しいパイプラインを作成する。
     pub fn new(
         device: &wgpu::Device,
@@ -63,7 +62,7 @@ impl UnitPipeline {
         camera_resource: &CameraResource,
     ) -> Self {
         // アトラスマップを生成する。
-        let texture_resource = UnitTextureResource::new(device, queue);
+        let texture_resource = AtlasResource::new(device, queue);
 
         // それぞれのアトラスマップに必要なデータ[`PageBatch`]を確保する
         let mut page_batches = vec![];
@@ -103,8 +102,9 @@ impl UnitPipeline {
             push_constant_ranges: &[],
         });
 
-        let shader =
-            device.create_shader_module(wgpu::include_wgsl!("../../../assets/shaders/unit.wgsl"));
+        let shader = device.create_shader_module(wgpu::include_wgsl!(
+            "../../../assets/shaders/primitive.wgsl"
+        ));
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -112,7 +112,7 @@ impl UnitPipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[UnitVertex::layout()],
+                buffers: &[Vertex::layout()],
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -176,8 +176,8 @@ impl UnitPipeline {
                 .into_iter()
                 .map(|(_, block)| {
                     let position = block.position.as_vec3();
-                    let model = UnitModelItem::from(block.kind);
-                    let texture = UnitTextureItem::from(block.kind);
+                    let model = ModelItem::from(block.kind);
+                    let texture = TextureItem::from(block.kind);
                     (position, model, texture)
                 });
 
@@ -188,8 +188,8 @@ impl UnitPipeline {
                 .into_iter()
                 .map(|(_, entity)| {
                     let position = entity.position.into();
-                    let model = UnitModelItem::from(entity.kind);
-                    let texture = UnitTextureItem::from(entity.kind);
+                    let model = ModelItem::from(entity.kind);
+                    let texture = TextureItem::from(entity.kind);
                     (position, model, texture)
                 });
 
@@ -225,7 +225,7 @@ impl UnitPipeline {
                         texcoord.x + vertex.texcoord[0] * texcoord.width,
                         texcoord.y + vertex.texcoord[1] * texcoord.height,
                     ];
-                    vertices.push(UnitVertex { position, texcoord });
+                    vertices.push(Vertex { position, texcoord });
                 }
             }
 

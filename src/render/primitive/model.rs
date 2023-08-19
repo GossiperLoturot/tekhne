@@ -1,11 +1,14 @@
-//! ブロックとエンティティの描写を目的とする追加情報に関するモジュール
+//! プリミティブ単体に関するモジュール
 
-use super::{texture::UnitAtlasOption, UnitVertex};
+use super::{
+    pipeline::Vertex,
+    texture::{AtlasOption, BlockSize},
+};
 use crate::model::*;
 use strum::EnumIter;
 
 /// 3Dモデルの種類
-pub enum UnitModelItem {
+pub enum ModelItem {
     ITop1x1,
     IBottom1x1,
     IBottom2x2,
@@ -14,47 +17,47 @@ pub enum UnitModelItem {
     Billboard1x2,
 }
 
-impl UnitModelItem {
+impl ModelItem {
     /// 3Dモデルの頂点データを返す。
     #[inline]
     #[rustfmt::skip]
-    pub fn vertices(&self) -> &[UnitVertex] {
+    pub fn vertices(&self) -> &[Vertex] {
         match self {
-            UnitModelItem::ITop1x1 => &[
-                UnitVertex { position: [0.0, 0.0, 1.0], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [1.0, 0.0, 1.0], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [1.0, 1.0, 1.0], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 1.0, 1.0], texcoord: [0.0, 0.0] },
+            Self::ITop1x1 => &[
+                Vertex { position: [0.0, 0.0, 1.0], texcoord: [0.0, 1.0] },
+                Vertex { position: [1.0, 0.0, 1.0], texcoord: [1.0, 1.0] },
+                Vertex { position: [1.0, 1.0, 1.0], texcoord: [1.0, 0.0] },
+                Vertex { position: [0.0, 1.0, 1.0], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::IBottom1x1 => &[
-                UnitVertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [1.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [1.0, 1.0, 0.1], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 1.0, 0.1], texcoord: [0.0, 0.0] },
+            Self::IBottom1x1 => &[
+                Vertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
+                Vertex { position: [1.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
+                Vertex { position: [1.0, 1.0, 0.1], texcoord: [1.0, 0.0] },
+                Vertex { position: [0.0, 1.0, 0.1], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::IBottom2x2 => &[
-                UnitVertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [2.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [2.0, 2.0, 0.1], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 2.0, 0.1], texcoord: [0.0, 0.0] },
+            Self::IBottom2x2 => &[
+                Vertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
+                Vertex { position: [2.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
+                Vertex { position: [2.0, 2.0, 0.1], texcoord: [1.0, 0.0] },
+                Vertex { position: [0.0, 2.0, 0.1], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::IBottom4x2 => &[
-                UnitVertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [4.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [4.0, 2.0, 0.1], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [0.0, 2.0, 0.1], texcoord: [0.0, 0.0] },
+            Self::IBottom4x2 => &[
+                Vertex { position: [0.0, 0.0, 0.1], texcoord: [0.0, 1.0] },
+                Vertex { position: [4.0, 0.0, 0.1], texcoord: [1.0, 1.0] },
+                Vertex { position: [4.0, 2.0, 0.1], texcoord: [1.0, 0.0] },
+                Vertex { position: [0.0, 2.0, 0.1], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::IBillboard4x6 => &[
-                UnitVertex { position: [-1.5, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [ 2.5, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [ 2.5, 0.0, 6.0], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [-1.5, 0.0, 6.0], texcoord: [0.0, 0.0] },
+            Self::IBillboard4x6 => &[
+                Vertex { position: [-1.5, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                Vertex { position: [ 2.5, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                Vertex { position: [ 2.5, 0.0, 6.0], texcoord: [1.0, 0.0] },
+                Vertex { position: [-1.5, 0.0, 6.0], texcoord: [0.0, 0.0] },
             ],
-            UnitModelItem::Billboard1x2 => &[
-                UnitVertex { position: [-0.5, 0.0, 0.0], texcoord: [0.0, 1.0] },
-                UnitVertex { position: [ 0.5, 0.0, 0.0], texcoord: [1.0, 1.0] },
-                UnitVertex { position: [ 0.5, 0.0, 2.0], texcoord: [1.0, 0.0] },
-                UnitVertex { position: [-0.5, 0.0, 2.0], texcoord: [0.0, 0.0] },
+            Self::Billboard1x2 => &[
+                Vertex { position: [-0.5, 0.0, 0.0], texcoord: [0.0, 1.0] },
+                Vertex { position: [ 0.5, 0.0, 0.0], texcoord: [1.0, 1.0] },
+                Vertex { position: [ 0.5, 0.0, 2.0], texcoord: [1.0, 0.0] },
+                Vertex { position: [-0.5, 0.0, 2.0], texcoord: [0.0, 0.0] },
             ],
         }
     }
@@ -63,17 +66,17 @@ impl UnitModelItem {
     #[inline]
     pub fn indices(&self) -> &[u32] {
         match self {
-            UnitModelItem::ITop1x1 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::IBottom1x1 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::Billboard1x2 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::IBottom2x2 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::IBottom4x2 => &[0, 1, 2, 2, 3, 0],
-            UnitModelItem::IBillboard4x6 => &[0, 1, 2, 2, 3, 0],
+            Self::ITop1x1 => &[0, 1, 2, 2, 3, 0],
+            Self::IBottom1x1 => &[0, 1, 2, 2, 3, 0],
+            Self::Billboard1x2 => &[0, 1, 2, 2, 3, 0],
+            Self::IBottom2x2 => &[0, 1, 2, 2, 3, 0],
+            Self::IBottom4x2 => &[0, 1, 2, 2, 3, 0],
+            Self::IBillboard4x6 => &[0, 1, 2, 2, 3, 0],
         }
     }
 }
 
-impl From<BlockKind> for UnitModelItem {
+impl From<BlockKind> for ModelItem {
     #[inline]
     fn from(value: BlockKind) -> Self {
         match value {
@@ -96,7 +99,7 @@ impl From<BlockKind> for UnitModelItem {
     }
 }
 
-impl From<EntityKind> for UnitModelItem {
+impl From<EntityKind> for ModelItem {
     #[inline]
     fn from(value: EntityKind) -> Self {
         match value {
@@ -107,7 +110,7 @@ impl From<EntityKind> for UnitModelItem {
 
 /// テクスチャの種類
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, EnumIter)]
-pub enum UnitTextureItem {
+pub enum TextureItem {
     SurfaceDirt,
     SurfaceGrass,
     SurfaceGravel,
@@ -126,7 +129,7 @@ pub enum UnitTextureItem {
     MixRock,
 }
 
-impl From<BlockKind> for UnitTextureItem {
+impl From<BlockKind> for TextureItem {
     #[inline]
     fn from(value: BlockKind) -> Self {
         match value {
@@ -149,7 +152,7 @@ impl From<BlockKind> for UnitTextureItem {
     }
 }
 
-impl From<EntityKind> for UnitTextureItem {
+impl From<EntityKind> for TextureItem {
     #[inline]
     fn from(value: EntityKind) -> Self {
         match value {
@@ -158,7 +161,7 @@ impl From<EntityKind> for UnitTextureItem {
     }
 }
 
-impl UnitTextureItem {
+impl TextureItem {
     /// テクスチャのデータを返す。
     ///
     /// このデータはRGBA8の形式でレイアウトされる。
@@ -188,52 +191,51 @@ impl UnitTextureItem {
 
     /// ミップマップ生成時に用いられるテクスチャの大きさを返す。
     ///
-    /// この大きさはミップマップ生成時に用いられる。正しい大きさを指定した場合は
-    /// テクスチャが不自然にボケることなく描写される。
+    /// 詳細は[`BlockSize`]に記述される。
     #[inline]
-    pub fn block_size(&self) -> (u32, u32) {
+    pub fn block_size(&self) -> BlockSize {
         match self {
-            Self::SurfaceDirt => (1, 1),
-            Self::SurfaceGrass => (1, 1),
-            Self::SurfaceGravel => (1, 1),
-            Self::SurfaceSand => (1, 1),
-            Self::SurfaceStone => (1, 1),
-            Self::MixGrass => (1, 1),
-            Self::Dandelion => (1, 1),
-            Self::FallenBranch => (1, 1),
-            Self::FallenLeaves => (1, 1),
-            Self::MixPebbles => (1, 1),
-            Self::OakTree => (4, 6),
-            Self::BirchTree => (4, 6),
-            Self::DyingTree => (4, 6),
-            Self::FallenTree => (4, 2),
-            Self::MixRock => (2, 2),
-            Self::Player => (1, 2),
+            Self::SurfaceDirt => BlockSize(1, 1),
+            Self::SurfaceGrass => BlockSize(1, 1),
+            Self::SurfaceGravel => BlockSize(1, 1),
+            Self::SurfaceSand => BlockSize(1, 1),
+            Self::SurfaceStone => BlockSize(1, 1),
+            Self::MixGrass => BlockSize(1, 1),
+            Self::Dandelion => BlockSize(1, 1),
+            Self::FallenBranch => BlockSize(1, 1),
+            Self::FallenLeaves => BlockSize(1, 1),
+            Self::MixPebbles => BlockSize(1, 1),
+            Self::OakTree => BlockSize(4, 6),
+            Self::BirchTree => BlockSize(4, 6),
+            Self::DyingTree => BlockSize(4, 6),
+            Self::FallenTree => BlockSize(4, 2),
+            Self::MixRock => BlockSize(2, 2),
+            Self::Player => BlockSize(1, 2),
         }
     }
 
     /// ミップマップ生成時に用いられるテクスチャの種類を返す。
     ///
-    /// 詳細は[`UnitAtlasOption`]に記述される。
+    /// 詳細は[`AtlasOption`]に記述される。
     #[inline]
-    pub fn atlas_option(&self) -> UnitAtlasOption {
+    pub fn atlas_option(&self) -> AtlasOption {
         match self {
-            Self::SurfaceDirt => UnitAtlasOption::Continuous,
-            Self::SurfaceGrass => UnitAtlasOption::Continuous,
-            Self::SurfaceGravel => UnitAtlasOption::Continuous,
-            Self::SurfaceSand => UnitAtlasOption::Continuous,
-            Self::SurfaceStone => UnitAtlasOption::Continuous,
-            Self::MixGrass => UnitAtlasOption::Single,
-            Self::Dandelion => UnitAtlasOption::Single,
-            Self::FallenBranch => UnitAtlasOption::Single,
-            Self::FallenLeaves => UnitAtlasOption::Single,
-            Self::MixPebbles => UnitAtlasOption::Single,
-            Self::OakTree => UnitAtlasOption::Single,
-            Self::BirchTree => UnitAtlasOption::Single,
-            Self::DyingTree => UnitAtlasOption::Single,
-            Self::FallenTree => UnitAtlasOption::Single,
-            Self::MixRock => UnitAtlasOption::Single,
-            Self::Player => UnitAtlasOption::Single,
+            Self::SurfaceDirt => AtlasOption::Continuous,
+            Self::SurfaceGrass => AtlasOption::Continuous,
+            Self::SurfaceGravel => AtlasOption::Continuous,
+            Self::SurfaceSand => AtlasOption::Continuous,
+            Self::SurfaceStone => AtlasOption::Continuous,
+            Self::MixGrass => AtlasOption::Single,
+            Self::Dandelion => AtlasOption::Single,
+            Self::FallenBranch => AtlasOption::Single,
+            Self::FallenLeaves => AtlasOption::Single,
+            Self::MixPebbles => AtlasOption::Single,
+            Self::OakTree => AtlasOption::Single,
+            Self::BirchTree => AtlasOption::Single,
+            Self::DyingTree => AtlasOption::Single,
+            Self::FallenTree => AtlasOption::Single,
+            Self::MixRock => AtlasOption::Single,
+            Self::Player => AtlasOption::Single,
         }
     }
 }

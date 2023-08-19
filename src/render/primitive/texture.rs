@@ -1,23 +1,26 @@
-//! ブロックとエンティティのアトラスマップ生成に関するモジュール
+//! プリミティブのアトラスマップ生成に関するモジュール
 
-use super::model::UnitTextureItem;
+use super::model::TextureItem;
 use ahash::AHashMap;
 use glam::*;
 use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
 use wgpu::util::DeviceExt;
 
+/// アトラスマップに配置するテクスチャの大きさ(最小単位)
+pub struct BlockSize(pub u32, pub u32);
+
 /// ミップマップ生成の方式
 ///
-/// [`UnitAtlasOption::Continuous`]は連続的(シームレス)なテクスチャに適した処理、
-/// 逆に[`UnitAtlasOption::Single`]はそうでないテクスチャに適した処理を行う。
-pub enum UnitAtlasOption {
+/// [`AtlasOption::Continuous`]は連続的(シームレス)なテクスチャに適した処理、
+/// 逆に[`AtlasOption::Single`]はそうでないテクスチャに適した処理を行う。
+pub enum AtlasOption {
     Single,
     Continuous,
 }
 
 /// テクスチャのアトラスマップ上での配置
-pub struct UnitAtlasTexcoord {
+pub struct AtlasTexcoord {
     pub page: u32,
     pub x: f32,
     pub y: f32,
@@ -26,13 +29,13 @@ pub struct UnitAtlasTexcoord {
 }
 
 /// アトラスマップの生成と配置の取得を行うリソース
-pub struct UnitTextureResource {
-    texcoords: AHashMap<UnitTextureItem, UnitAtlasTexcoord>,
+pub struct AtlasResource {
+    texcoords: AHashMap<TextureItem, AtlasTexcoord>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_groups: Vec<wgpu::BindGroup>,
 }
 
-impl UnitTextureResource {
+impl AtlasResource {
     /// 生成するアトラスマップの最大数
     const MAX_PAGE_COUNT: u32 = 255;
 
@@ -52,8 +55,8 @@ impl UnitTextureResource {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         // 配置する箱の大きさを定義する。
         let mut rects = rectangle_pack::GroupedRectsToPlace::<_, ()>::new();
-        for item in UnitTextureItem::iter() {
-            let (width, height) = item.block_size();
+        for item in TextureItem::iter() {
+            let BlockSize(width, height) = item.block_size();
             rects.push_rect(
                 item,
                 None,
@@ -106,7 +109,7 @@ impl UnitTextureResource {
         // 配置をもとにアトラスマップへテクスチャを適用する。
         for (&item, (_, location)) in locations.packed_locations() {
             let texture = item.texture().expect("failed to load texture");
-            let (width, height) = item.block_size();
+            let BlockSize(width, height) = item.block_size();
 
             // ミップマップ生成用に大きさを拡張したテクスチャを作成する
             let mut dilation = image::DynamicImage::new_rgba8(
@@ -115,9 +118,8 @@ impl UnitTextureResource {
             );
 
             match item.atlas_option() {
-                // [`UnitAtlasOption::Single`]の場合は大きさを拡張した
-                // テクスチャの中心に1つのみ配置する。
-                UnitAtlasOption::Single => {
+                // 拡張したテクスチャの中心に1つのみ配置する。
+                AtlasOption::Single => {
                     image::imageops::replace(
                         &mut dilation,
                         &texture,
@@ -125,9 +127,8 @@ impl UnitTextureResource {
                         (Self::SIZE_PER_BLOCK / 2) as i64,
                     );
                 }
-                // [`UnitAtlasOption::Continuous`]の場合は大きさを拡張した
-                // テクスチャへ格子状に9つ配置する。
-                UnitAtlasOption::Continuous => {
+                // 拡張したテクスチャへ格子状に9つ配置する。
+                AtlasOption::Continuous => {
                     for x in -1..=1 {
                         for y in -1..=1 {
                             image::imageops::replace(
@@ -164,7 +165,7 @@ impl UnitTextureResource {
             // 描写用にテクスチャの配置を[0,1]座標空間へ変換し、保持する。
             texcoords.insert(
                 item,
-                UnitAtlasTexcoord {
+                AtlasTexcoord {
                     page: location.z(),
                     x: (Self::SIZE_PER_BLOCK * location.x() + Self::SIZE_PER_BLOCK / 2) as f32
                         / size as f32,
@@ -261,7 +262,7 @@ impl UnitTextureResource {
     }
 
     /// 該当するテクスチャのアトラスマップ上の配置を返す。
-    pub fn texcoord(&self, item: &UnitTextureItem) -> Option<&UnitAtlasTexcoord> {
+    pub fn texcoord(&self, item: &TextureItem) -> Option<&AtlasTexcoord> {
         self.texcoords.get(item)
     }
 
