@@ -1,6 +1,5 @@
-mod model;
-mod render;
-mod system;
+mod game_loop;
+mod renderer;
 
 fn main() {
     let event_loop = winit::event_loop::EventLoopBuilder::new().build();
@@ -9,10 +8,9 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let mut service = system::System::new();
-    let mut render = pollster::block_on(render::Render::new_async(&window));
+    let mut game_loop = game_loop::GameLoop::new();
+    let mut renderer = pollster::block_on(renderer::Renderer::new_async(&window));
     let mut input = winit_input_helper::WinitInputHelper::new();
-    let mut read_back = None;
 
     use winit::event::Event;
     use winit::event::WindowEvent;
@@ -21,8 +19,8 @@ fn main() {
 
         match event {
             Event::RedrawRequested(window_id) if window_id == window.id() => {
-                service.update(&input, read_back.as_ref());
-                read_back = Some(render.draw(&service));
+                game_loop.update(&input);
+                renderer.draw(&game_loop);
             }
             Event::RedrawEventsCleared => {
                 window.request_redraw();

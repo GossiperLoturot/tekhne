@@ -1,12 +1,50 @@
-//! カメラシステムに関するモジュール
+//! カメラの機能に関するモジュール
 
-use super::{EntitySystem, PlayerSystem};
-use crate::model::*;
 use glam::*;
 
-/// ワールド上のカメラの操作を行うシステム
-///
-/// カメラはワールド内に最大1個のみである。
+use crate::game_loop::{entity, player};
+
+#[derive(Clone, Debug)]
+pub struct Camera {
+    pub position: Vec2,
+    pub zoom: f32,
+}
+
+impl Camera {
+    const NEAR: f32 = -128.0;
+    const FAR: f32 = 128.0;
+
+    /// 新しいカメラを作成する。
+    #[inline]
+    pub fn new(position: Vec2, zoom: f32) -> Self {
+        Self { position, zoom }
+    }
+
+    /// 描写領域を含むようなビュー行列を返す。
+    #[inline]
+    pub fn view_matrix(&self) -> Mat4 {
+        let view_aabb = self.view_bounds();
+        Mat4::orthographic_rh(
+            view_aabb.0.x,
+            view_aabb.1.x,
+            view_aabb.0.y,
+            view_aabb.1.y,
+            Self::NEAR,
+            Self::FAR,
+        )
+    }
+
+    /// 描写範囲を返す。
+    #[inline]
+    pub fn view_bounds(&self) -> (Vec2, Vec2) {
+        (
+            self.position - Vec2::splat(self.zoom),
+            self.position + Vec2::splat(self.zoom),
+        )
+    }
+}
+
+/// カメラの機能
 #[derive(Default)]
 pub struct CameraSystem {
     camera: Option<Camera>,
@@ -22,31 +60,22 @@ impl CameraSystem {
     /// 拡大・縮小の最大値
     const ZOOM_MAX: f32 = 128.0;
 
-    /// ワールド上に新しいカメラを作成する。
-    ///
-    /// ワールド上にカメラが存在せず、作成に成功した場合は`Some(&Camera)`を返す。
-    /// 逆にカメラが存在し、作成に失敗した場合は`None`を返す。
+    /// カメラを作成する。
     pub fn spawn_camera(&mut self) -> Option<&Camera> {
         if self.camera.is_none() {
-            self.camera = Some(Camera::new(Vec3A::ZERO, Self::ZOOM_INIT));
+            self.camera = Some(Camera::new(Vec2::ZERO, Self::ZOOM_INIT));
             self.camera.as_ref()
         } else {
             None
         }
     }
 
-    /// ワールド上のカメラを削除する。
-    ///
-    /// ワールド上にカメラが存在し、削除に成功した場合は`Some(Camera)`を返す。
-    /// 逆にカメラが存在せず、削除に失敗した場合は`None`を返す。
+    /// カメラを削除する。
     pub fn despawn_camera(&mut self) -> Option<Camera> {
         self.camera.take()
     }
 
-    /// ワールド上のカメラを取得する。
-    ///
-    /// ワールド上にカメラが存在する場合は`Some(&Camera)`を返す。
-    /// 逆にカメラが存在しない場合は`None`を返す。
+    /// カメラを取得する。
     pub fn get_camera(&self) -> Option<&Camera> {
         self.camera.as_ref()
     }
@@ -60,8 +89,8 @@ impl CameraSystem {
     /// - ホイールクリックで拡大・縮小をリセットする。
     pub fn update(
         &mut self,
-        entity_system: &EntitySystem,
-        player_system: &PlayerSystem,
+        entity_system: &entity::EntitySystem,
+        player_system: &player::PlayerSystem,
         input: &winit_input_helper::WinitInputHelper,
     ) {
         if let Some(camera) = &mut self.camera {

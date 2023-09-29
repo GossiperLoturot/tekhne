@@ -1,8 +1,10 @@
 //! カメラに関するモジュール
 
-use crate::system::System;
+use std::num;
+
 use glam::*;
-use std::num::NonZeroU64;
+
+use crate::game_loop;
 
 /// カメラの変換行列と画面のアスペクト比の計算と保持を行うリソース
 pub struct CameraResource {
@@ -58,16 +60,16 @@ impl CameraResource {
     }
 
     /// 変換行列の計算とGPU上の行列データの更新を行う。
-    pub fn pre_draw(
+    pub fn upload(
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        service: &System,
+        game_loop: &game_loop::GameLoop,
     ) {
         self.screen_to_world_matrix = None;
 
-        if let Some(camera) = service.camera.get_camera() {
+        if let Some(camera) = game_loop.camera.get_camera() {
             // アスペクト比による引き延ばしを補正する行列
             // 描写空間の中に画面が収まるように補正する。
             let correction_matrix = Mat4::from_scale(vec3(
@@ -77,7 +79,7 @@ impl CameraResource {
             ));
             let matrix = correction_matrix * camera.view_matrix();
 
-            if let Some(size) = NonZeroU64::new(self.matrix_buffer.size()) {
+            if let Some(size) = num::NonZeroU64::new(self.matrix_buffer.size()) {
                 staging_belt
                     .write_buffer(encoder, &self.matrix_buffer, 0, size, device)
                     .copy_from_slice(bytemuck::cast_slice(&[matrix]));
