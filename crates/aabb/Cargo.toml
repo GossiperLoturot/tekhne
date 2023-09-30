@@ -1,0 +1,12 @@
+[package]
+name = "aabb"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies.glam]
+version = "0.24"
+default-features = false

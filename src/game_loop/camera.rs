@@ -1,5 +1,6 @@
 //! カメラの機能に関するモジュール
 
+use aabb::*;
 use glam::*;
 
 use crate::game_loop::{entity, player};
@@ -25,10 +26,10 @@ impl Camera {
     pub fn view_matrix(&self) -> Mat4 {
         let view_aabb = self.view_bounds();
         Mat4::orthographic_rh(
-            view_aabb.0.x,
-            view_aabb.1.x,
-            view_aabb.0.y,
-            view_aabb.1.y,
+            view_aabb.min.x,
+            view_aabb.max.x,
+            view_aabb.min.y,
+            view_aabb.max.y,
             Self::NEAR,
             Self::FAR,
         )
@@ -36,8 +37,8 @@ impl Camera {
 
     /// 描写範囲を返す。
     #[inline]
-    pub fn view_bounds(&self) -> (Vec2, Vec2) {
-        (
+    pub fn view_bounds(&self) -> Aabb2 {
+        Aabb2::new(
             self.position - Vec2::splat(self.zoom),
             self.position + Vec2::splat(self.zoom),
         )

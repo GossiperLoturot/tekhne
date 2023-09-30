@@ -2,9 +2,9 @@
 
 use crate::game_loop;
 
-mod camera;
-mod depth;
-mod entity;
+pub mod camera;
+pub mod depth;
+pub mod entity;
 
 /// 描写の機能
 pub struct Renderer {

@@ -1,5 +1,6 @@
 //! ワールド生成の機能に関するモジュール
 
+use aabb::*;
 use ahash::AHashSet;
 use glam::*;
 
@@ -13,12 +14,12 @@ pub struct GenerationSystem {
 
 impl GenerationSystem {
     /// 指定した範囲のワールドを生成する。
-    pub fn generate(&mut self, start: Vec2, end: Vec2, entity_system: &mut entity::EntitySystem) {
-        let start = start.floor().as_ivec2();
-        let end = end.floor().as_ivec2();
+    pub fn generate(&mut self, bounds: Aabb2, entity_system: &mut entity::EntitySystem) {
+        let min = bounds.min.floor().as_ivec2();
+        let max = bounds.max.floor().as_ivec2();
 
-        for x in start.x..=end.x {
-            for y in start.y..=end.y {
+        for x in min.x..=max.x {
+            for y in min.y..=max.y {
                 let pos = ivec2(x, y);
                 if !self.init_flags.contains(&pos) {
                     let x = x as f32;

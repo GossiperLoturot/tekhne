@@ -2,9 +2,10 @@
 
 use std::num;
 
-use crate::game_loop;
-
-use super::{camera, depth};
+use crate::{
+    game_loop,
+    renderer::{camera, depth},
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -117,11 +118,11 @@ impl EntityRenderer {
         game_loop: &game_loop::GameLoop,
     ) {
         if let Some(camera) = game_loop.camera.get_camera() {
-            let (start, end) = camera.view_bounds();
+            let bounds = camera.view_bounds();
 
             let mut indices = vec![];
             let mut vertices = vec![];
-            for (_, entity) in game_loop.entity.get_from_area(start, end) {
+            for (_, entity) in game_loop.entity.get_from_area(bounds) {
                 let vlen = vertices.len() as u32;
                 indices.push(vlen);
                 indices.push(vlen + 1);
@@ -130,24 +131,18 @@ impl EntityRenderer {
                 indices.push(vlen + 3);
                 indices.push(vlen);
 
+                let bounds = entity.bounds();
                 vertices.push(Vertex {
-                    position: [entity.position.x, entity.position.y, 0.0],
+                    position: [bounds.min.x, bounds.min.y, 0.0],
                 });
-
                 vertices.push(Vertex {
-                    position: [entity.position.x + entity.size().x, entity.position.y, 0.0],
+                    position: [bounds.max.x, bounds.min.y, 0.0],
                 });
-
                 vertices.push(Vertex {
-                    position: [
-                        entity.position.x + entity.size().x,
-                        entity.position.y + entity.size().y,
-                        0.0,
-                    ],
+                    position: [bounds.max.x, bounds.max.y, 0.0],
                 });
-
                 vertices.push(Vertex {
-                    position: [entity.position.x, entity.position.y + entity.size().y, 0.0],
+                    position: [bounds.min.x, bounds.max.y, 0.0],
                 });
             }
 

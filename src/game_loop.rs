@@ -2,10 +2,10 @@
 
 use std::time;
 
-mod camera;
-mod entity;
-mod generation;
-mod player;
+pub mod camera;
+pub mod entity;
+pub mod generation;
+pub mod player;
 
 pub struct GameLoop {
     pub camera: camera::CameraSystem,
@@ -44,8 +44,8 @@ impl GameLoop {
         self.camera.update(&self.entity, &self.player, input);
 
         if let Some(camera) = self.camera.get_camera() {
-            let (start, end) = camera.view_bounds();
-            self.generation.generate(start, end, &mut self.entity);
+            let bounds = camera.view_bounds();
+            self.generation.generate(bounds, &mut self.entity);
         }
     }
 }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+aabb = { path = "crates/aabb" }
 ahash = "0.8"
 bytemuck = { version = "1.14", features = ["derive"] }
 glam = { version = "0.24", features = ["bytemuck"] }
@@ -13,3 +14,6 @@ slab = "0.4"
 wgpu = "0.17"
 winit = "0.28"
 winit_input_helper = "0.14"
+
+[workspace]
+members = ["crates/*"]
