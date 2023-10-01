@@ -1,0 +1,18 @@
+[package]
+name = "atlas"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.image]
+version = "0.24"
+default-features = false
+
+[dependencies.rectangle-pack]
+version = "0.4"
+default-features = false
+
+[dev-dependencies.ahash]
+version = "0.8"
+
+[dev-dependencies.image]
+version = "0.24"

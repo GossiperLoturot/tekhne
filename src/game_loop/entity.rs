@@ -65,10 +65,10 @@ impl EntityKind {
             Self::FallenBranch => vec2(1.0, 1.0),
             Self::FallenLeaves => vec2(1.0, 1.0),
             Self::MixPebbles => vec2(1.0, 1.0),
-            Self::OakTree => vec2(1.0, 1.0),
-            Self::BirchTree => vec2(4.0, 4.0),
-            Self::DyingTree => vec2(4.0, 4.0),
-            Self::FallenTree => vec2(2.0, 2.0),
+            Self::OakTree => vec2(3.0, 4.0),
+            Self::BirchTree => vec2(3.0, 4.0),
+            Self::DyingTree => vec2(3.0, 4.0),
+            Self::FallenTree => vec2(4.0, 2.0),
             Self::MixRock => vec2(2.0, 2.0),
         }
     }

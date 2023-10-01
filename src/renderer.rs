@@ -47,7 +47,8 @@ impl Renderer {
 
         let depth_resource = depth::DepthResource::new(&device, &config);
         let camera_resource = camera::CameraResource::new(&device, &config);
-        let entity_renderer = entity::EntityRenderer::new(&device, &config, &camera_resource);
+        let entity_renderer =
+            entity::EntityRenderer::new(&device, &queue, &config, &camera_resource);
 
         Self {
             device,
