@@ -1,4 +1,4 @@
-//! エンティティの描写に関するモジュール
+//! ブロックの描写に関するモジュール
 
 use std::num;
 
@@ -42,13 +42,13 @@ pub struct Batch {
     bind_group: wgpu::BindGroup,
 }
 
-pub struct EntityRenderer {
+pub struct BlockRenderer {
     texcoords: Vec<image_atlas::Texcoord32>,
     batches: Vec<Batch>,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl EntityRenderer {
+impl BlockRenderer {
     const ATLAS_MAX_COUNT: u32 = 8;
     const ATLAS_SIZE: u32 = 2048;
     const ATLAS_BLOCK_SIZE: u32 = 32;
@@ -91,7 +91,7 @@ impl EntityRenderer {
                 Self::ATLAS_BLOCK_SIZE,
             ),
             entries: &assets
-                .entity_specs()
+                .block_specs()
                 .iter()
                 .map(|spec| image_atlas::AtlasEntry {
                     texture: image::open(&spec.texture_path).unwrap(),
@@ -184,7 +184,7 @@ impl EntityRenderer {
             push_constant_ranges: &[],
         });
 
-        let shader = device.create_shader_module(wgpu::include_wgsl!("entity.wgsl"));
+        let shader = device.create_shader_module(wgpu::include_wgsl!("block.wgsl"));
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
@@ -243,11 +243,12 @@ impl EntityRenderer {
     ) {
         if let Some(camera) = game_loop.camera.get_camera() {
             let bounds = camera.view_bounds();
+            let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
 
-            for (_, entity) in game_loop.entity.get_from_area(assets, bounds) {
-                let spec = &assets.entity_specs()[entity.spec_id];
+            for (_, entity) in game_loop.block.get_from_area(assets, bounds) {
+                let spec = &assets.block_specs()[entity.spec_id];
 
-                let bounds = aabb2(entity.position, entity.position + spec.size);
+                let bounds = iaabb2(entity.position, entity.position + spec.size).as_aabb2();
                 let texcoord = &self.texcoords[entity.spec_id];
                 let batch = &mut self.batches[texcoord.page as usize];
 

@@ -5,7 +5,6 @@ use glam::*;
 use crate::game_loop::entity;
 
 /// プレイヤーシステムの機能
-#[derive(Default)]
 pub struct PlayerSystem {
     player_id: Option<usize>,
 }
@@ -17,16 +16,22 @@ impl PlayerSystem {
     /// スプリント時の移動速度
     const SPRINT_SPEED: f32 = 4.0;
 
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            player_id: Default::default(),
+        }
+    }
+
     /// 新しいプレイヤーを作成し、そのエンティティの参照を返す。
+    #[inline]
     pub fn spawn_player<'a>(
         &mut self,
         entity_system: &'a mut entity::EntitySystem,
     ) -> Option<&'a entity::Entity> {
         if self.player_id.is_none() {
-            let id = entity_system.insert(entity::Entity::new(
-                vec2(0.0, 0.0),
-                entity::EntityKind::Player,
-            ));
+            // TODO: customizable player entity picking
+            let id = entity_system.insert(entity::Entity::new(0, vec2(0.0, 0.0)));
             self.player_id = Some(id);
             self.get_player(entity_system)
         } else {
@@ -35,6 +40,7 @@ impl PlayerSystem {
     }
 
     /// プレイヤーを削除し、そのエンティティを返す。
+    #[inline]
     pub fn despawn_player(
         &mut self,
         entity_system: &mut entity::EntitySystem,
@@ -43,6 +49,7 @@ impl PlayerSystem {
     }
 
     /// プレイヤーの参照を返す。
+    #[inline]
     pub fn get_player<'a>(
         &self,
         entity_system: &'a entity::EntitySystem,
@@ -51,6 +58,7 @@ impl PlayerSystem {
     }
 
     /// プレイヤーの可変参照を返す。
+    #[inline]
     pub fn get_player_mut<'a>(
         &self,
         entity_system: &'a mut entity::EntitySystem,

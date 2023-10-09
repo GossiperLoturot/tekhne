@@ -5,7 +5,6 @@ use glam::*;
 
 use crate::game_loop::{entity, player};
 
-#[derive(Clone, Debug)]
 pub struct Camera {
     pub position: Vec2,
     pub zoom: f32,
@@ -46,7 +45,6 @@ impl Camera {
 }
 
 /// カメラの機能
-#[derive(Default)]
 pub struct CameraSystem {
     camera: Option<Camera>,
 }
@@ -61,7 +59,15 @@ impl CameraSystem {
     /// 拡大・縮小の最大値
     const ZOOM_MAX: f32 = 128.0;
 
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            camera: Default::default(),
+        }
+    }
+
     /// カメラを作成する。
+    #[inline]
     pub fn spawn_camera(&mut self) -> Option<&Camera> {
         if self.camera.is_none() {
             self.camera = Some(Camera::new(Vec2::ZERO, Self::ZOOM_INIT));
@@ -72,11 +78,13 @@ impl CameraSystem {
     }
 
     /// カメラを削除する。
+    #[inline]
     pub fn despawn_camera(&mut self) -> Option<Camera> {
         self.camera.take()
     }
 
     /// カメラを取得する。
+    #[inline]
     pub fn get_camera(&self) -> Option<&Camera> {
         self.camera.as_ref()
     }

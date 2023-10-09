@@ -6,6 +6,8 @@ use core::{
 
 use glam::*;
 
+use crate::*;
+
 /// Creates a new AABB from two points.
 #[inline]
 pub const fn aabb2(min: Vec2, max: Vec2) -> Aabb2 {
@@ -13,7 +15,7 @@ pub const fn aabb2(min: Vec2, max: Vec2) -> Aabb2 {
 }
 
 /// A 2-dimensional axis-aligned bounding box.
-#[repr(C)]
+#[repr(C, align(16))]
 #[derive(Default, Clone, Copy, PartialEq)]
 pub struct Aabb2 {
     pub min: Vec2,
@@ -193,6 +195,24 @@ impl Aabb2 {
         Self {
             min: self.min.rem_euclid(rhs.min),
             max: self.max.rem_euclid(rhs.max),
+        }
+    }
+
+    /// Returns whether if `self` intersects `rhs`.
+    #[inline]
+    pub fn intersect(&self, rhs: Aabb2) -> bool {
+        self.min.x < rhs.max.x
+            && self.min.y < rhs.max.y
+            && rhs.min.x < self.max.x
+            && rhs.min.y < self.max.y
+    }
+
+    /// Casts into `IAabb2`.
+    #[inline]
+    pub fn as_iaabb2(&self) -> IAabb2 {
+        IAabb2 {
+            min: self.min.as_ivec2(),
+            max: self.max.as_ivec2(),
         }
     }
 }

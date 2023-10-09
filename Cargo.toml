@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 aabb = { path = "crates/aabb" }
 ahash = "0.8"
-atlas = { path = "crates/atlas" }
 bytemuck = { version = "1.14", features = ["derive"] }
 glam = { version = "0.24", features = ["bytemuck"] }
 image = "0.24"
+image-atlas = "0.2"
 pollster = "0.3"
 rand = "0.8"
 rectangle-pack = "0.4"

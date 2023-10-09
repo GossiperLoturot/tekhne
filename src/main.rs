@@ -1,7 +1,10 @@
+mod assets;
 mod game_loop;
 mod renderer;
 
 fn main() {
+    let assets = assets::Assets::new();
+
     let event_loop = winit::event_loop::EventLoopBuilder::new().build();
     let window = winit::window::WindowBuilder::new()
         .with_resizable(false)
@@ -9,7 +12,7 @@ fn main() {
         .unwrap();
 
     let mut game_loop = game_loop::GameLoop::new();
-    let mut renderer = pollster::block_on(renderer::Renderer::new_async(&window));
+    let mut renderer = pollster::block_on(renderer::Renderer::new_async(&assets, &window));
     let mut input = winit_input_helper::WinitInputHelper::new();
 
     use winit::event::Event;
@@ -19,8 +22,8 @@ fn main() {
 
         match event {
             Event::RedrawRequested(window_id) if window_id == window.id() => {
-                game_loop.update(&input);
-                renderer.draw(&game_loop);
+                game_loop.update(&assets, &input);
+                renderer.draw(&assets, &game_loop);
             }
             Event::RedrawEventsCleared => {
                 window.request_redraw();

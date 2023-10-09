@@ -1,7 +1,8 @@
 //! 描写に関するモジュール
 
-use crate::game_loop;
+use crate::{assets, game_loop};
 
+pub mod block;
 pub mod camera;
 pub mod depth;
 pub mod entity;
@@ -15,6 +16,7 @@ pub struct Renderer {
     camera_resource: camera::CameraResource,
     depth_resource: depth::DepthResource,
     entity_renderer: entity::EntityRenderer,
+    block_renderer: block::BlockRenderer,
 }
 
 impl Renderer {
@@ -23,7 +25,7 @@ impl Renderer {
     /// # Panic
     ///
     /// 互換性のある`Adapter`、`Surface`が存在しない場合
-    pub async fn new_async(window: &winit::window::Window) -> Self {
+    pub async fn new_async(assets: &assets::Assets, window: &winit::window::Window) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
         let surface = unsafe { instance.create_surface(window) }.unwrap();
         let adapter = instance
@@ -48,7 +50,9 @@ impl Renderer {
         let depth_resource = depth::DepthResource::new(&device, &config);
         let camera_resource = camera::CameraResource::new(&device, &config);
         let entity_renderer =
-            entity::EntityRenderer::new(&device, &queue, &config, &camera_resource);
+            entity::EntityRenderer::new(&device, &queue, &config, assets, &camera_resource);
+        let block_renderer =
+            block::BlockRenderer::new(&device, &queue, &config, assets, &camera_resource);
 
         Self {
             device,
@@ -58,6 +62,7 @@ impl Renderer {
             camera_resource,
             depth_resource,
             entity_renderer,
+            block_renderer,
         }
     }
 
@@ -69,7 +74,7 @@ impl Renderer {
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn draw(&mut self, game_loop: &game_loop::GameLoop) {
+    pub fn draw(&mut self, assets: &assets::Assets, game_loop: &game_loop::GameLoop) {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
@@ -86,6 +91,14 @@ impl Renderer {
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
+            assets,
+            game_loop,
+        );
+        self.block_renderer.upload(
+            &self.device,
+            &mut encoder,
+            &mut self.staging_belt,
+            assets,
             game_loop,
         );
 
@@ -116,6 +129,8 @@ impl Renderer {
         });
 
         self.entity_renderer
+            .draw(&mut render_pass, &self.camera_resource);
+        self.block_renderer
             .draw(&mut render_pass, &self.camera_resource);
 
         drop(render_pass);
