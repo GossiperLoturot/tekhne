@@ -91,7 +91,7 @@ impl BlockRenderer {
                 Self::ATLAS_BLOCK_SIZE,
             ),
             entries: &assets
-                .block_specs()
+                .block_specs
                 .iter()
                 .map(|spec| image_atlas::AtlasEntry {
                     texture: image::open(&spec.texture_path).unwrap(),
@@ -245,38 +245,42 @@ impl BlockRenderer {
             let bounds = camera.view_bounds();
             let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
 
-            for (_, entity) in game_loop.block.get_from_area(assets, bounds) {
-                let spec = &assets.block_specs()[entity.spec_id];
+            assets
+                .layers
+                .iter()
+                .flat_map(|layer| game_loop.block.get_from_area(bounds, layer.id))
+                .for_each(|(_, block)| {
+                    let spec = &assets.block_specs[block.spec_id];
 
-                let bounds = iaabb2(entity.position, entity.position + spec.size).as_aabb2();
-                let texcoord = &self.texcoords[entity.spec_id];
-                let batch = &mut self.batches[texcoord.page as usize];
+                    let bounds = iaabb2(block.position, block.position + spec.size).as_aabb2();
+                    let texcoord = &self.texcoords[block.spec_id];
+                    let batch = &mut self.batches[texcoord.page as usize];
 
-                let vertex_count = batch.vertices.len() as u32;
-                batch.indices.push(vertex_count);
-                batch.indices.push(vertex_count + 1);
-                batch.indices.push(vertex_count + 2);
-                batch.indices.push(vertex_count + 2);
-                batch.indices.push(vertex_count + 3);
-                batch.indices.push(vertex_count);
+                    let vertex_count = batch.vertices.len() as u32;
+                    batch.indices.push(vertex_count);
+                    batch.indices.push(vertex_count + 1);
+                    batch.indices.push(vertex_count + 2);
+                    batch.indices.push(vertex_count + 2);
+                    batch.indices.push(vertex_count + 3);
+                    batch.indices.push(vertex_count);
 
-                batch.vertices.push(Vertex {
-                    position: [bounds.min.x, bounds.min.y, spec.z_index],
-                    texcoord: [texcoord.min_x, texcoord.max_y],
+                    batch.vertices.push(Vertex {
+                        position: [bounds.min.x, bounds.min.y, spec.z_index],
+                        texcoord: [texcoord.min_x, texcoord.max_y],
+                    });
+                    batch.vertices.push(Vertex {
+                        position: [bounds.max.x, bounds.min.y, spec.z_index],
+                        texcoord: [texcoord.max_x, texcoord.max_y],
+                    });
+                    batch.vertices.push(Vertex {
+                        position: [bounds.max.x, bounds.max.y, spec.z_index],
+                        texcoord: [texcoord.max_x, texcoord.min_y],
+                    });
+                    batch.vertices.push(Vertex {
+                        position: [bounds.min.x, bounds.max.y, spec.z_index],
+                        texcoord: [texcoord.min_x, texcoord.min_y],
+                    });
                 });
-                batch.vertices.push(Vertex {
-                    position: [bounds.max.x, bounds.min.y, spec.z_index],
-                    texcoord: [texcoord.max_x, texcoord.max_y],
-                });
-                batch.vertices.push(Vertex {
-                    position: [bounds.max.x, bounds.max.y, spec.z_index],
-                    texcoord: [texcoord.max_x, texcoord.min_y],
-                });
-                batch.vertices.push(Vertex {
-                    position: [bounds.min.x, bounds.max.y, spec.z_index],
-                    texcoord: [texcoord.min_x, texcoord.min_y],
-                });
-            }
 
             for batch in &mut self.batches {
                 let vertex_data = bytemuck::cast_slice(&batch.vertices);

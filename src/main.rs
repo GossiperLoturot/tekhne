@@ -3,7 +3,7 @@ mod game_loop;
 mod renderer;
 
 fn main() {
-    let assets = assets::Assets::new();
+    let assets = assets::Assets::new("assets/assets.json");
 
     let event_loop = winit::event_loop::EventLoopBuilder::new().build();
     let window = winit::window::WindowBuilder::new()

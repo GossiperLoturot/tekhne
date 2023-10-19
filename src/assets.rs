@@ -1,9 +1,19 @@
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 
 use glam::*;
 
+pub struct Layer {
+    pub id: usize,
+    pub label: String,
+}
+
 pub struct EntitySpec {
     pub id: usize,
+    pub label: String,
+    pub layer_id: usize,
     pub size: Vec2,
     pub z_index: f32,
     pub texture_path: PathBuf,
@@ -12,6 +22,8 @@ pub struct EntitySpec {
 
 pub struct BlockSpec {
     pub id: usize,
+    pub label: String,
+    pub layer_id: usize,
     pub size: IVec2,
     pub z_index: f32,
     pub texture_path: PathBuf,
@@ -20,174 +32,209 @@ pub struct BlockSpec {
 
 pub enum GenerationSpec {
     RandomBlock {
+        id: usize,
         block_spec_id: usize,
         probability: f32,
     },
     FillBlock {
+        id: usize,
         block_spec_id: usize,
     },
 }
 
 pub struct Assets {
-    entity_specs: Vec<EntitySpec>,
-    block_specs: Vec<BlockSpec>,
-    generation_specs: Vec<GenerationSpec>,
+    pub layers: Vec<Layer>,
+    pub entity_specs: Vec<EntitySpec>,
+    pub block_specs: Vec<BlockSpec>,
+    pub generation_specs: Vec<GenerationSpec>,
 }
 
+pub static ASSETS: std::sync::OnceLock<Assets> = std::sync::OnceLock::new();
+
 impl Assets {
-    /// TODO: load from external storage
-    pub fn new() -> Self {
-        let entity_specs = vec![EntitySpec {
-            id: 0,
-            size: vec2(1.0, 2.0),
-            z_index: 50.0,
-            texture_path: "assets/textures/frame.png".into(),
-            texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-        }];
+    pub fn new<P: AsRef<Path>>(path: P) -> Self {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct LayerIn {
+            label: String,
+        }
 
-        let block_specs = vec![
-            BlockSpec {
-                id: 0,
-                size: ivec2(1, 1),
-                z_index: 0.0,
-                texture_path: "assets/textures/surface_grass.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Repeat,
-            },
-            BlockSpec {
-                id: 1,
-                size: ivec2(1, 1),
-                z_index: 10.0,
-                texture_path: "assets/textures/mix_grass.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 2,
-                size: ivec2(1, 1),
-                z_index: 10.0,
-                texture_path: "assets/textures/dandelion.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 3,
-                size: ivec2(1, 1),
-                z_index: 10.0,
-                texture_path: "assets/textures/fallen_branch.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 4,
-                size: ivec2(1, 1),
-                z_index: 10.0,
-                texture_path: "assets/textures/fallen_leaves.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 5,
-                size: ivec2(1, 1),
-                z_index: 10.0,
-                texture_path: "assets/textures/mix_pebbles.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 6,
-                size: ivec2(4, 6),
-                z_index: 100.0,
-                texture_path: "assets/textures/oak_tree.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 7,
-                size: ivec2(4, 6),
-                z_index: 100.0,
-                texture_path: "assets/textures/birch_tree.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 8,
-                size: ivec2(4, 6),
-                z_index: 100.0,
-                texture_path: "assets/textures/dying_tree.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 9,
-                size: ivec2(4, 2),
-                z_index: 100.0,
-                texture_path: "assets/textures/fallen_tree.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-            BlockSpec {
-                id: 10,
-                size: ivec2(2, 2),
-                z_index: 100.0,
-                texture_path: "assets/textures/mix_rock.png".into(),
-                texture_mip_option: image_atlas::AtlasEntryMipOption::Clamp,
-            },
-        ];
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct EntitySpecIn {
+            label: String,
+            layer_label: String,
+            size_x: f32,
+            size_y: f32,
+            z_index: f32,
+            texture_path: String,
+            texture_mip_option: String,
+        }
 
-        let generation_specs = vec![
-            GenerationSpec::RandomBlock {
-                block_spec_id: 1,
-                probability: 0.01,
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct BlockSpecIn {
+            label: String,
+            layer_label: String,
+            size_x: i32,
+            size_y: i32,
+            z_index: f32,
+            texture_path: String,
+            texture_mip_option: String,
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize)]
+        #[serde(tag = "mode", rename_all = "snake_case")]
+        enum GenerationSpecIn {
+            RandomBlock {
+                block_spec_label: String,
+                probability: f32,
             },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 2,
-                probability: 0.01,
+            FillBlock {
+                block_spec_label: String,
             },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 3,
-                probability: 0.01,
-            },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 4,
-                probability: 0.01,
-            },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 5,
-                probability: 0.01,
-            },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 6,
-                probability: 0.01,
-            },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 7,
-                probability: 0.01,
-            },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 8,
-                probability: 0.01,
-            },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 9,
-                probability: 0.01,
-            },
-            GenerationSpec::RandomBlock {
-                block_spec_id: 10,
-                probability: 0.01,
-            },
-            GenerationSpec::FillBlock { block_spec_id: 0 },
-        ];
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct AssetsIn {
+            layers: Vec<LayerIn>,
+            entity_specs: Vec<EntitySpecIn>,
+            block_specs: Vec<BlockSpecIn>,
+            generation_specs: Vec<GenerationSpecIn>,
+        }
+
+        let reader = File::open(path).unwrap();
+        let AssetsIn {
+            layers,
+            entity_specs,
+            block_specs,
+            generation_specs,
+        } = serde_json::from_reader(reader).unwrap();
+
+        let layers = layers
+            .into_iter()
+            .enumerate()
+            .map(|(id, LayerIn { label })| Layer { id, label })
+            .collect::<Vec<_>>();
+
+        let entity_specs = entity_specs
+            .into_iter()
+            .enumerate()
+            .map(
+                |(
+                    id,
+                    EntitySpecIn {
+                        label,
+                        layer_label,
+                        size_x,
+                        size_y,
+                        z_index,
+                        texture_path,
+                        texture_mip_option,
+                    },
+                )| {
+                    let (layer_id, _) = layers
+                        .iter()
+                        .enumerate()
+                        .find(|(_, layer)| layer.label == layer_label)
+                        .unwrap();
+
+                    let texture_mip_option = match texture_mip_option.as_str() {
+                        "clamp" => image_atlas::AtlasEntryMipOption::Clamp,
+                        "repeat" => image_atlas::AtlasEntryMipOption::Repeat,
+                        "mirror" => image_atlas::AtlasEntryMipOption::Mirror,
+                        _ => unreachable!(),
+                    };
+
+                    EntitySpec {
+                        id,
+                        label,
+                        layer_id,
+                        size: vec2(size_x, size_y),
+                        z_index,
+                        texture_path: texture_path.into(),
+                        texture_mip_option,
+                    }
+                },
+            )
+            .collect::<Vec<_>>();
+
+        let block_specs = block_specs
+            .into_iter()
+            .enumerate()
+            .map(
+                |(
+                    id,
+                    BlockSpecIn {
+                        label,
+                        layer_label,
+                        size_x,
+                        size_y,
+                        z_index,
+                        texture_path,
+                        texture_mip_option,
+                    },
+                )| {
+                    let (layer_id, _) = layers
+                        .iter()
+                        .enumerate()
+                        .find(|(_, layer)| layer.label == layer_label)
+                        .unwrap();
+
+                    let texture_mip_option = match texture_mip_option.as_str() {
+                        "clamp" => image_atlas::AtlasEntryMipOption::Clamp,
+                        "repeat" => image_atlas::AtlasEntryMipOption::Repeat,
+                        "mirror" => image_atlas::AtlasEntryMipOption::Mirror,
+                        _ => unreachable!(),
+                    };
+
+                    BlockSpec {
+                        id,
+                        label,
+                        layer_id,
+                        size: ivec2(size_x, size_y),
+                        z_index,
+                        texture_path: texture_path.into(),
+                        texture_mip_option,
+                    }
+                },
+            )
+            .collect::<Vec<_>>();
+
+        let generation_specs = generation_specs
+            .into_iter()
+            .enumerate()
+            .map(|(id, generation)| match generation {
+                GenerationSpecIn::RandomBlock {
+                    block_spec_label,
+                    probability,
+                } => {
+                    let (block_spec_id, _) = block_specs
+                        .iter()
+                        .enumerate()
+                        .find(|(_, block_spec)| block_spec.label == block_spec_label)
+                        .unwrap();
+
+                    GenerationSpec::RandomBlock {
+                        id,
+                        block_spec_id,
+                        probability,
+                    }
+                }
+                GenerationSpecIn::FillBlock { block_spec_label } => {
+                    let (block_spec_id, _) = block_specs
+                        .iter()
+                        .enumerate()
+                        .find(|(_, block_spec)| block_spec.label == block_spec_label)
+                        .unwrap();
+
+                    GenerationSpec::FillBlock { id, block_spec_id }
+                }
+            })
+            .collect::<Vec<_>>();
 
         Self {
+            layers,
             entity_specs,
             block_specs,
             generation_specs,
         }
-    }
-
-    #[inline]
-    pub fn entity_specs(&self) -> &[EntitySpec] {
-        &self.entity_specs
-    }
-
-    #[inline]
-    pub fn block_specs(&self) -> &[BlockSpec] {
-        &self.block_specs
-    }
-
-    #[inline]
-    pub fn generation_specs(&self) -> &[GenerationSpec] {
-        &self.generation_specs
     }
 }

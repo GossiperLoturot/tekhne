@@ -43,11 +43,12 @@ impl GenerationSystem {
 
             let bounds = iaabb2(grid_point, grid_point + ivec2(1, 1)) * Self::GRID_SIZE;
 
-            for spec in assets.generation_specs() {
+            for spec in &assets.generation_specs {
                 match spec {
                     assets::GenerationSpec::RandomBlock {
                         block_spec_id,
                         probability,
+                        ..
                     } => {
                         for position in iter_point(bounds) {
                             if *probability < rand::random::<f32>() {
@@ -58,16 +59,16 @@ impl GenerationSystem {
                                 spec_id: *block_spec_id,
                                 position,
                             };
-                            block_system.insert(block);
+                            block_system.insert(assets, block);
                         }
                     }
-                    assets::GenerationSpec::FillBlock { block_spec_id } => {
+                    assets::GenerationSpec::FillBlock { block_spec_id, .. } => {
                         for position in iter_point(bounds) {
                             let block = block::Block {
                                 spec_id: *block_spec_id,
                                 position,
                             };
-                            block_system.insert(block);
+                            block_system.insert(assets, block);
                         }
                     }
                 }
