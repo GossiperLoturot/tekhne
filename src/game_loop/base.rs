@@ -1,79 +1,79 @@
-//! ブロックシステムの機能に関するモジュール
+//! ベースシステムの機能に関するモジュール
 
 use aabb::*;
 use ahash::HashMap;
 use glam::*;
 use slab::Slab;
 
-pub struct Block {
+pub struct Base {
     pub spec_id: usize,
     pub position: IVec2,
 }
 
-impl Block {
-    /// 新しいブロックを作成する。
+impl Base {
+    /// 新しいベースを作成する。
     #[inline]
     pub fn new(spec_id: usize, position: IVec2) -> Self {
         Self { spec_id, position }
     }
 }
 
-/// ブロックシステムの機能
-pub struct BlockSystem {
-    blocks: Slab<Block>,
+/// ベースシステムの機能
+pub struct BaseSystem {
+    bases: Slab<Base>,
     index: HashMap<IVec2, Slab<usize>>,
     rev_index: Slab<usize>,
 }
 
-impl BlockSystem {
+impl BaseSystem {
     /// 近傍探索のための空間分割サイズ
     const GRID_SIZE: i32 = 32;
 
     #[inline]
     pub fn new() -> Self {
         Self {
-            blocks: Default::default(),
+            bases: Default::default(),
             index: Default::default(),
             rev_index: Default::default(),
         }
     }
 
-    /// ブロックを追加し、識別子を返す。
-    pub fn insert(&mut self, block: Block) -> usize {
-        let id = self.blocks.vacant_key();
+    /// ベースを追加し、識別子を返す。
+    pub fn insert(&mut self, base: Base) -> usize {
+        let id = self.bases.vacant_key();
 
         // インデクスを構築
-        let point = block
+        let point = base
             .position
             .div_euclid(ivec2(Self::GRID_SIZE, Self::GRID_SIZE));
         let idx_id = self.index.entry(point).or_default().insert(id);
         self.rev_index.insert(idx_id);
 
-        self.blocks.insert(block)
+        self.bases.insert(base)
     }
 
-    /// ブロックを削除し、そのブロックを返す。
-    pub fn remove(&mut self, id: usize) -> Option<Block> {
-        let block = self.blocks.try_remove(id)?;
+    /// ベースを削除し、そのベースを返す。
+    pub fn remove(&mut self, id: usize) -> Option<Base> {
+        let base = self.bases.try_remove(id)?;
 
         // インデクスを破棄
         let idx_id = self.rev_index.remove(id);
-        let point = block
+        let point = base
             .position
             .div_euclid(ivec2(Self::GRID_SIZE, Self::GRID_SIZE));
         self.index.get_mut(&point).unwrap().remove(idx_id);
 
-        Some(block)
+        Some(base)
     }
 
-    /// 指定した識別子に対応するブロックの参照を返す。
-    pub fn get(&self, id: usize) -> Option<&Block> {
-        self.blocks.get(id)
+    /// 指定した識別子に対応するベースの参照を返す。
+    pub fn get(&self, id: usize) -> Option<&Base> {
+        self.bases.get(id)
     }
 
-    /// 指定した範囲に存在するブロックの識別子と参照を返す。
+    /// 指定した範囲に存在するベースの識別子と参照を返す。
     #[inline]
-    pub fn get_from_area(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Block)> {
+    pub fn get_from_area(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
         let grid_bounds = bounds.div_euclid_i32(Self::GRID_SIZE);
         let min = grid_bounds.min;
         let max = grid_bounds.max;
@@ -81,6 +81,6 @@ impl BlockSystem {
 
         iter.filter_map(move |point| self.index.get(&point))
             .flatten()
-            .map(|(_, &id)| (id, &self.blocks[id]))
+            .map(|(_, &id)| (id, &self.bases[id]))
     }
 }

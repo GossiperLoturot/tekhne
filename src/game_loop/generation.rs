@@ -4,7 +4,10 @@ use aabb::*;
 use ahash::HashSet;
 use glam::*;
 
-use crate::{assets, game_loop::block};
+use crate::{
+    assets,
+    game_loop::{base, block},
+};
 
 /// ワールド生成の機能
 pub struct GenerationSystem {
@@ -26,6 +29,7 @@ impl GenerationSystem {
     pub fn generate(
         &mut self,
         assets: &assets::Assets,
+        base_system: &mut base::BaseSystem,
         block_system: &mut block::BlockSystem,
         bounds: IAabb2,
     ) {
@@ -55,20 +59,14 @@ impl GenerationSystem {
                                 continue;
                             }
 
-                            let block = block::Block {
-                                spec_id: *block_spec_id,
-                                position,
-                            };
-                            block_system.insert(assets, block);
+                            let block = block::Block::new(*block_spec_id, position);
+                            block_system.insert(block);
                         }
                     }
-                    assets::GenerationSpec::FillBlock { block_spec_id, .. } => {
+                    assets::GenerationSpec::FillBase { base_spec_id, .. } => {
                         for position in iter_point(bounds) {
-                            let block = block::Block {
-                                spec_id: *block_spec_id,
-                                position,
-                            };
-                            block_system.insert(assets, block);
+                            let base = base::Base::new(*base_spec_id, position);
+                            base_system.insert(base);
                         }
                     }
                 }

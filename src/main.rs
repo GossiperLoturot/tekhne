@@ -21,12 +21,12 @@ fn main() {
         input.update(&event);
 
         match event {
+            Event::RedrawEventsCleared => {
+                window.request_redraw();
+            }
             Event::RedrawRequested(window_id) if window_id == window.id() => {
                 game_loop.update(&assets, &input);
                 renderer.draw(&assets, &game_loop);
-            }
-            Event::RedrawEventsCleared => {
-                window.request_redraw();
             }
             Event::WindowEvent { window_id, event } if window_id == window.id() => match event {
                 WindowEvent::CloseRequested => {

@@ -1,4 +1,4 @@
-//! ブロックの描写に関するモジュール
+//! ベースの描写に関するモジュール
 
 use std::num;
 
@@ -61,13 +61,13 @@ impl Batch {
     }
 }
 
-pub struct BlockRenderer {
+pub struct BaseRenderer {
     texcoords: Vec<image_atlas::Texcoord32>,
     batches: Vec<Batch>,
     pipeline: wgpu::RenderPipeline,
 }
 
-impl BlockRenderer {
+impl BaseRenderer {
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -106,7 +106,7 @@ impl BlockRenderer {
             size: ATLAS_SIZE,
             mip: image_atlas::AtlasMipOption::MipWithBlock(ATLAS_MIP_FILTER, ATLAS_BLOCK_SIZE),
             entries: &assets
-                .block_specs
+                .base_specs
                 .iter()
                 .map(|spec| image_atlas::AtlasEntry {
                     texture: image::open(&spec.texture_path).unwrap(),
@@ -190,7 +190,7 @@ impl BlockRenderer {
             push_constant_ranges: &[],
         });
 
-        let shader = device.create_shader_module(wgpu::include_wgsl!("block.wgsl"));
+        let shader = device.create_shader_module(wgpu::include_wgsl!("base.wgsl"));
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
@@ -251,45 +251,39 @@ impl BlockRenderer {
             let bounds = camera.view_bounds();
             let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
 
-            game_loop
-                .block
-                .get_from_area(bounds)
-                .for_each(|(_, block)| {
-                    let spec = &assets.block_specs[block.spec_id];
+            game_loop.base.get_from_area(bounds).for_each(|(_, base)| {
+                let spec = &assets.base_specs[base.spec_id];
 
-                    let bounds = iaabb2(block.position, block.position + spec.size).as_aabb2();
-                    let texcoord = &self.texcoords[block.spec_id];
-                    let batch = &mut self.batches[texcoord.page as usize];
+                let bounds = iaabb2(base.position, base.position + ivec2(1, 1)).as_aabb2();
+                let texcoord = &self.texcoords[base.spec_id];
+                let batch = &mut self.batches[texcoord.page as usize];
 
-                    let vertex_count = batch.vertices.len() as u32;
-                    batch.indices.push(vertex_count);
-                    batch.indices.push(vertex_count + 1);
-                    batch.indices.push(vertex_count + 2);
-                    batch.indices.push(vertex_count + 2);
-                    batch.indices.push(vertex_count + 3);
-                    batch.indices.push(vertex_count);
+                let vertex_count = batch.vertices.len() as u32;
+                batch.indices.push(vertex_count);
+                batch.indices.push(vertex_count + 1);
+                batch.indices.push(vertex_count + 2);
+                batch.indices.push(vertex_count + 2);
+                batch.indices.push(vertex_count + 3);
+                batch.indices.push(vertex_count);
 
-                    let z_index = match spec.y_axis {
-                        assets::YAxis::Y => 0.0,
-                        assets::YAxis::YZ => spec.size.y as f32,
-                    };
-                    batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.min.y, 0.0],
-                        texcoord: [texcoord.min_x, texcoord.max_y],
-                    });
-                    batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.min.y, 0.0],
-                        texcoord: [texcoord.max_x, texcoord.max_y],
-                    });
-                    batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.max.y, z_index],
-                        texcoord: [texcoord.max_x, texcoord.min_y],
-                    });
-                    batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.max.y, z_index],
-                        texcoord: [texcoord.min_x, texcoord.min_y],
-                    });
+                const Z_INDEX: f32 = -0.00390625; // 2^(-8)
+                batch.vertices.push(Vertex {
+                    position: [bounds.min.x, bounds.min.y, Z_INDEX],
+                    texcoord: [texcoord.min_x, texcoord.max_y],
                 });
+                batch.vertices.push(Vertex {
+                    position: [bounds.max.x, bounds.min.y, Z_INDEX],
+                    texcoord: [texcoord.max_x, texcoord.max_y],
+                });
+                batch.vertices.push(Vertex {
+                    position: [bounds.max.x, bounds.max.y, Z_INDEX],
+                    texcoord: [texcoord.max_x, texcoord.min_y],
+                });
+                batch.vertices.push(Vertex {
+                    position: [bounds.min.x, bounds.max.y, Z_INDEX],
+                    texcoord: [texcoord.min_x, texcoord.min_y],
+                });
+            });
 
             for batch in &mut self.batches {
                 let vertex_data = bytemuck::cast_slice(&batch.vertices);

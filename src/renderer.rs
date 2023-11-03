@@ -2,6 +2,7 @@
 
 use crate::{assets, game_loop};
 
+pub mod base;
 pub mod block;
 pub mod camera;
 pub mod depth;
@@ -15,8 +16,9 @@ pub struct Renderer {
     staging_belt: wgpu::util::StagingBelt,
     camera_resource: camera::CameraResource,
     depth_resource: depth::DepthResource,
-    entity_renderer: entity::EntityRenderer,
+    base_renderer: base::BaseRenderer,
     block_renderer: block::BlockRenderer,
+    entity_renderer: entity::EntityRenderer,
 }
 
 impl Renderer {
@@ -49,10 +51,12 @@ impl Renderer {
 
         let depth_resource = depth::DepthResource::new(&device, &config);
         let camera_resource = camera::CameraResource::new(&device, &config);
-        let entity_renderer =
-            entity::EntityRenderer::new(&device, &queue, &config, assets, &camera_resource);
+        let base_renderer =
+            base::BaseRenderer::new(&device, &queue, &config, assets, &camera_resource);
         let block_renderer =
             block::BlockRenderer::new(&device, &queue, &config, assets, &camera_resource);
+        let entity_renderer =
+            entity::EntityRenderer::new(&device, &queue, &config, assets, &camera_resource);
 
         Self {
             device,
@@ -61,8 +65,9 @@ impl Renderer {
             staging_belt,
             camera_resource,
             depth_resource,
-            entity_renderer,
+            base_renderer,
             block_renderer,
+            entity_renderer,
         }
     }
 
@@ -87,7 +92,7 @@ impl Renderer {
             &mut self.staging_belt,
             game_loop,
         );
-        self.entity_renderer.upload(
+        self.base_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
@@ -95,6 +100,13 @@ impl Renderer {
             game_loop,
         );
         self.block_renderer.upload(
+            &self.device,
+            &mut encoder,
+            &mut self.staging_belt,
+            assets,
+            game_loop,
+        );
+        self.entity_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
@@ -115,22 +127,26 @@ impl Renderer {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: true,
+                    store: wgpu::StoreOp::Discard,
                 },
             })],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: self.depth_resource.view(),
                 depth_ops: Some(wgpu::Operations {
                     load: wgpu::LoadOp::Clear(1.0),
-                    store: true,
+                    store: wgpu::StoreOp::Discard,
                 }),
                 stencil_ops: None,
             }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
         });
 
-        self.entity_renderer
+        self.base_renderer
             .draw(&mut render_pass, &self.camera_resource);
         self.block_renderer
+            .draw(&mut render_pass, &self.camera_resource);
+        self.entity_renderer
             .draw(&mut render_pass, &self.camera_resource);
 
         drop(render_pass);

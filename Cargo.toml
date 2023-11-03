@@ -8,15 +8,14 @@ aabb = { path = "crates/aabb" }
 ahash = "0.8"
 bytemuck = { version = "1.14", features = ["derive"] }
 glam = { version = "0.24", features = ["bytemuck"] }
-image = "0.24"
-image-atlas = "0.2"
+image = { version = "0.24", default-features = false, features = ["png"] }
+image-atlas = "0.3"
 pollster = "0.3"
 rand = "0.8"
-rectangle-pack = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 slab = "0.4"
-wgpu = "0.17"
+wgpu = "0.18"
 winit = "0.28"
 winit_input_helper = "0.14"
 

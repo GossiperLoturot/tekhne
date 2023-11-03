@@ -1,216 +1,186 @@
 {
-    "layers": [
+    "baseSpecs": [
         {
-            "label": "foundation"
+            "label": "surfaceDirt",
+            "xSize": 1,
+            "ySize": 1,
+            "texturePath": "assets/textures/surface_dirt.png",
+            "textureMipOption": "repeat"
         },
         {
-            "label": "middle"
+            "label": "surfaceGrass",
+            "xSize": 1,
+            "ySize": 1,
+            "texturePath": "assets/textures/surface_grass.png",
+            "textureMipOption": "repeat"
         },
         {
-            "label": "overlay"
+            "label": "surfaceGravel",
+            "xSize": 1,
+            "ySize": 1,
+            "texturePath": "assets/textures/surface_gravel.png",
+            "textureMipOption": "repeat"
+        },
+        {
+            "label": "surfaceSand",
+            "xSize": 1,
+            "ySize": 1,
+            "texturePath": "assets/textures/surface_sand.png",
+            "textureMipOption": "repeat"
+        },
+        {
+            "label": "surfaceStone",
+            "xSize": 1,
+            "ySize": 1,
+            "texturePath": "assets/textures/surface_stone.png",
+            "textureMipOption": "repeat"
         }
     ],
-    "entity_specs": [
+    "blockSpecs": [
         {
-            "label": "player",
-            "layer_label": "middle",
-            "size_x": 1.0,
-            "size_y": 2.0,
-            "z_index": 50.0,
-            "texture_path": "assets/textures/frame.png",
-            "texture_mip_option": "clamp"
-        }
-    ],
-    "block_specs": [
-        {
-            "label": "surface_dirt",
-            "layer_label": "foundation",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 0.0,
-            "texture_path": "assets/textures/surface_dirt.png",
-            "texture_mip_option": "repeat"
-        },
-        {
-            "label": "surface_grass",
-            "layer_label": "foundation",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 0.0,
-            "texture_path": "assets/textures/surface_grass.png",
-            "texture_mip_option": "repeat"
-        },
-        {
-            "label": "surface_gravel",
-            "layer_label": "foundation",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 0.0,
-            "texture_path": "assets/textures/surface_gravel.png",
-            "texture_mip_option": "repeat"
-        },
-        {
-            "label": "surface_sand",
-            "layer_label": "foundation",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 0.0,
-            "texture_path": "assets/textures/surface_sand.png",
-            "texture_mip_option": "repeat"
-        },
-        {
-            "label": "surface_stone",
-            "layer_label": "foundation",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 0.0,
-            "texture_path": "assets/textures/surface_stone.png",
-            "texture_mip_option": "repeat"
-        },
-        {
-            "label": "mix_grass",
-            "layer_label": "middle",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 50.0,
-            "texture_path": "assets/textures/mix_grass.png",
-            "texture_mip_option": "clamp"
+            "label": "mixGrass",
+            "xSize": 1,
+            "ySize": 1,
+            "yAxis": "yz",
+            "texturePath": "assets/textures/mix_grass.png",
+            "textureMipOption": "clamp"
         },
         {
             "label": "dandelion",
-            "layer_label": "middle",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 50.0,
-            "texture_path": "assets/textures/dandelion.png",
-            "texture_mip_option": "clamp"
+            "xSize": 1,
+            "ySize": 1,
+            "yAxis": "y",
+            "texturePath": "assets/textures/dandelion.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "fallen_branch",
-            "layer_label": "middle",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 50.0,
-            "texture_path": "assets/textures/fallen_branch.png",
-            "texture_mip_option": "clamp"
+            "label": "fallenBranch",
+            "xSize": 1,
+            "ySize": 1,
+            "yAxis": "y",
+            "texturePath": "assets/textures/fallen_branch.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "fallen_leaves",
-            "layer_label": "middle",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 50.0,
-            "texture_path": "assets/textures/fallen_leaves.png",
-            "texture_mip_option": "clamp"
+            "label": "fallenLeaves",
+            "xSize": 1,
+            "ySize": 1,
+            "yAxis": "y",
+            "texturePath": "assets/textures/fallen_leaves.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "mix_pebbles",
-            "layer_label": "middle",
-            "size_x": 1,
-            "size_y": 1,
-            "z_index": 50.0,
-            "texture_path": "assets/textures/mix_pebbles.png",
-            "texture_mip_option": "clamp"
+            "label": "mixPebbles",
+            "xSize": 1,
+            "ySize": 1,
+            "yAxis": "y",
+            "texturePath": "assets/textures/mix_pebbles.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "oak_tree",
-            "layer_label": "middle",
-            "size_x": 4,
-            "size_y": 6,
-            "z_index": 100.0,
-            "texture_path": "assets/textures/oak_tree.png",
-            "texture_mip_option": "clamp"
+            "label": "oakTree",
+            "xSize": 4,
+            "ySize": 6,
+            "yAxis": "yz",
+            "texturePath": "assets/textures/oak_tree.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "birch_tree",
-            "layer_label": "middle",
-            "size_x": 4,
-            "size_y": 6,
-            "z_index": 100.0,
-            "texture_path": "assets/textures/birch_tree.png",
-            "texture_mip_option": "clamp"
+            "label": "birchTree",
+            "xSize": 4,
+            "ySize": 6,
+            "yAxis": "yz",
+            "texturePath": "assets/textures/birch_tree.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "dying_tree",
-            "layer_label": "middle",
-            "size_x": 4,
-            "size_y": 6,
-            "z_index": 100.0,
-            "texture_path": "assets/textures/dying_tree.png",
-            "texture_mip_option": "clamp"
+            "label": "dyingTree",
+            "xSize": 4,
+            "ySize": 6,
+            "yAxis": "yz",
+            "texturePath": "assets/textures/dying_tree.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "fallen_tree",
-            "layer_label": "middle",
-            "size_x": 4,
-            "size_y": 2,
-            "z_index": 100.0,
-            "texture_path": "assets/textures/fallen_tree.png",
-            "texture_mip_option": "clamp"
+            "label": "fallenTree",
+            "xSize": 4,
+            "ySize": 2,
+            "yAxis": "yz",
+            "texturePath": "assets/textures/fallen_tree.png",
+            "textureMipOption": "clamp"
         },
         {
-            "label": "mix_rock",
-            "layer_label": "middle",
-            "size_x": 2,
-            "size_y": 2,
-            "z_index": 100.0,
-            "texture_path": "assets/textures/mix_rock.png",
-            "texture_mip_option": "clamp"
+            "label": "mixRock",
+            "xSize": 2,
+            "ySize": 2,
+            "yAxis": "yz",
+            "texturePath": "assets/textures/mix_rock.png",
+            "textureMipOption": "clamp"
         }
     ],
-    "generation_specs": [
+    "entitySpecs": [
         {
-            "mode": "fill_block",
-            "block_spec_label": "surface_grass"
+            "label": "player",
+            "xSize": 1.0,
+            "ySize": 2.0,
+            "yAxis": "yz",
+            "texturePath": "assets/textures/frame.png",
+            "textureMipOption": "clamp"
+        }
+    ],
+    "generationSpecs": [
+        {
+            "mode": "fillBase",
+            "baseSpecLabel": "surfaceGrass"
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "mix_grass",
+            "mode": "randomBlock",
+            "blockSpecLabel": "mixGrass",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "dandelion",
+            "mode": "randomBlock",
+            "blockSpecLabel": "dandelion",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "fallen_branch",
+            "mode": "randomBlock",
+            "blockSpecLabel": "fallenBranch",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "fallen_leaves",
+            "mode": "randomBlock",
+            "blockSpecLabel": "fallenLeaves",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "mix_pebbles",
+            "mode": "randomBlock",
+            "blockSpecLabel": "mixPebbles",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "oak_tree",
+            "mode": "randomBlock",
+            "blockSpecLabel": "oakTree",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "birch_tree",
+            "mode": "randomBlock",
+            "blockSpecLabel": "birchTree",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "dying_tree",
+            "mode": "randomBlock",
+            "blockSpecLabel": "dyingTree",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "fallen_tree",
+            "mode": "randomBlock",
+            "blockSpecLabel": "fallenTree",
             "probability": 0.01
         },
         {
-            "mode": "random_block",
-            "block_spec_label": "mix_rock",
+            "mode": "randomBlock",
+            "blockSpecLabel": "mixRock",
             "probability": 0.01
         }
     ]

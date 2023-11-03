@@ -13,7 +13,7 @@ use crate::{
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Vertex {
+struct Vertex {
     pub position: [f32; 3],
     pub texcoord: [f32; 2],
 }
@@ -32,7 +32,7 @@ impl Vertex {
     }
 }
 
-pub struct Batch {
+struct Batch {
     vertices: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_count: u32,
@@ -42,6 +42,25 @@ pub struct Batch {
     bind_group: wgpu::BindGroup,
 }
 
+impl Batch {
+    #[inline]
+    fn new(
+        vertex_buffer: wgpu::Buffer,
+        index_buffer: wgpu::Buffer,
+        bind_group: wgpu::BindGroup,
+    ) -> Self {
+        Self {
+            vertices: Vec::new(),
+            vertex_buffer,
+            vertex_count: 0,
+            indices: Vec::new(),
+            index_buffer,
+            index_count: 0,
+            bind_group,
+        }
+    }
+}
+
 pub struct EntityRenderer {
     texcoords: Vec<image_atlas::Texcoord32>,
     batches: Vec<Batch>,
@@ -49,11 +68,6 @@ pub struct EntityRenderer {
 }
 
 impl EntityRenderer {
-    const ATLAS_MAX_COUNT: u32 = 8;
-    const ATLAS_SIZE: u32 = 2048;
-    const ATLAS_BLOCK_SIZE: u32 = 32;
-    const ATLAS_MIP_FILTER: image_atlas::AtlasMipFilter = image_atlas::AtlasMipFilter::Lanczos3;
-
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -83,13 +97,14 @@ impl EntityRenderer {
             ],
         });
 
+        const ATLAS_MAX_COUNT: u32 = 8;
+        const ATLAS_SIZE: u32 = 1024;
+        const ATLAS_BLOCK_SIZE: u32 = 32;
+        const ATLAS_MIP_FILTER: image_atlas::AtlasMipFilter = image_atlas::AtlasMipFilter::Lanczos3;
         let atlas = image_atlas::create_atlas(&image_atlas::AtlasDescriptor {
-            max_page_count: Self::ATLAS_MAX_COUNT,
-            size: Self::ATLAS_SIZE,
-            mip: image_atlas::AtlasMipOption::MipWithBlock(
-                Self::ATLAS_MIP_FILTER,
-                Self::ATLAS_BLOCK_SIZE,
-            ),
+            max_page_count: ATLAS_MAX_COUNT,
+            size: ATLAS_SIZE,
+            mip: image_atlas::AtlasMipOption::MipWithBlock(ATLAS_MIP_FILTER, ATLAS_BLOCK_SIZE),
             entries: &assets
                 .entity_specs
                 .iter()
@@ -109,7 +124,6 @@ impl EntityRenderer {
 
         let batches = atlas
             .textures
-            .into_vec()
             .into_iter()
             .map(|texture| {
                 let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -131,11 +145,11 @@ impl EntityRenderer {
                     &wgpu::TextureDescriptor {
                         label: None,
                         size: wgpu::Extent3d {
-                            width: Self::ATLAS_SIZE,
-                            height: Self::ATLAS_SIZE,
+                            width: texture.size,
+                            height: texture.size,
                             depth_or_array_layers: 1,
                         },
-                        mip_level_count: texture.len() as u32,
+                        mip_level_count: texture.mip_level_count,
                         sample_count: 1,
                         dimension: wgpu::TextureDimension::D2,
                         format: wgpu::TextureFormat::Rgba8Unorm,
@@ -143,7 +157,7 @@ impl EntityRenderer {
                         view_formats: &[],
                     },
                     &texture
-                        .into_vec()
+                        .mip_maps
                         .into_iter()
                         .flat_map(|texture| texture.to_vec())
                         .collect::<Vec<_>>(),
@@ -166,15 +180,7 @@ impl EntityRenderer {
                     ],
                 });
 
-                Batch {
-                    vertices: vec![],
-                    vertex_buffer,
-                    vertex_count: 0,
-                    indices: vec![],
-                    index_buffer,
-                    index_count: 0,
-                    bind_group,
-                }
+                Batch::new(vertex_buffer, index_buffer, bind_group)
             })
             .collect::<Vec<_>>();
 
@@ -244,10 +250,9 @@ impl EntityRenderer {
         if let Some(camera) = game_loop.camera.get_camera() {
             let bounds = camera.view_bounds();
 
-            assets
-                .layers
-                .iter()
-                .flat_map(|layer| game_loop.entity.get_from_area(bounds, layer.id))
+            game_loop
+                .entity
+                .get_from_area(bounds)
                 .for_each(|(_, entity)| {
                     let spec = &assets.entity_specs[entity.spec_id];
 
@@ -263,20 +268,24 @@ impl EntityRenderer {
                     batch.indices.push(vertex_count + 3);
                     batch.indices.push(vertex_count);
 
+                    let z_index = match spec.y_axis {
+                        assets::YAxis::Y => 0.0,
+                        assets::YAxis::YZ => spec.size.y as f32,
+                    };
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.min.y, spec.z_index],
+                        position: [bounds.min.x, bounds.min.y, 0.0],
                         texcoord: [texcoord.min_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.min.y, spec.z_index],
+                        position: [bounds.max.x, bounds.min.y, 0.0],
                         texcoord: [texcoord.max_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.max.y, spec.z_index],
+                        position: [bounds.max.x, bounds.max.y, z_index],
                         texcoord: [texcoord.max_x, texcoord.min_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.max.y, spec.z_index],
+                        position: [bounds.min.x, bounds.max.y, z_index],
                         texcoord: [texcoord.min_x, texcoord.min_y],
                     });
                 });

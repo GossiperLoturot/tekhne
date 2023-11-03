@@ -6,6 +6,7 @@ use aabb::*;
 
 use crate::assets;
 
+pub mod base;
 pub mod block;
 pub mod camera;
 pub mod entity;
@@ -14,8 +15,9 @@ pub mod player;
 
 pub struct GameLoop {
     pub camera: camera::CameraSystem,
-    pub entity: entity::EntitySystem,
+    pub base: base::BaseSystem,
     pub block: block::BlockSystem,
+    pub entity: entity::EntitySystem,
     pub generation: generation::GenerationSystem,
     pub player: player::PlayerSystem,
     pub time_instant: time::Instant,
@@ -27,8 +29,9 @@ impl GameLoop {
     pub fn new() -> Self {
         Self {
             camera: camera::CameraSystem::new(),
-            entity: entity::EntitySystem::new(),
+            base: base::BaseSystem::new(),
             block: block::BlockSystem::new(),
+            entity: entity::EntitySystem::new(),
             generation: generation::GenerationSystem::new(),
             player: player::PlayerSystem::new(),
             time_instant: time::Instant::now(),
@@ -45,22 +48,21 @@ impl GameLoop {
         self.time_instant = std::time::Instant::now();
 
         if self.player.get_player(&self.entity).is_none() {
-            self.player.spawn_player(assets, &mut self.entity);
+            self.player.spawn_player(&mut self.entity);
         }
 
         if self.camera.get_camera().is_none() {
             self.camera.spawn_camera();
         }
 
-        self.player.update(assets, &mut self.entity, input, elapsed);
+        self.player.update(&mut self.entity, input, elapsed);
         self.camera.update(&self.entity, &self.player, input);
 
         if let Some(camera) = self.camera.get_camera() {
             let bounds = camera.view_bounds();
-            // TODO: generates entity
-
             let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
-            self.generation.generate(assets, &mut self.block, bounds);
+            self.generation
+                .generate(assets, &mut self.base, &mut self.block, bounds);
         }
     }
 }
