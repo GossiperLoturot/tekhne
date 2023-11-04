@@ -244,7 +244,6 @@ impl BaseRenderer {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        assets: &assets::Assets,
         game_loop: &game_loop::GameLoop,
     ) {
         if let Some(camera) = game_loop.camera.get_camera() {
@@ -252,9 +251,7 @@ impl BaseRenderer {
             let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
 
             game_loop.base.get_from_area(bounds).for_each(|(_, base)| {
-                let spec = &assets.base_specs[base.spec_id];
-
-                let bounds = iaabb2(base.position, base.position + ivec2(1, 1)).as_aabb2();
+                let bounds = iaabb2(base.position, base.position + 1).as_aabb2();
                 let texcoord = &self.texcoords[base.spec_id];
                 let batch = &mut self.batches[texcoord.page as usize];
 
@@ -266,21 +263,21 @@ impl BaseRenderer {
                 batch.indices.push(vertex_count + 3);
                 batch.indices.push(vertex_count);
 
-                const Z_INDEX: f32 = -0.00390625; // 2^(-8)
+                const Z: f32 = -0.00390625; // z = -2^(-8)
                 batch.vertices.push(Vertex {
-                    position: [bounds.min.x, bounds.min.y, Z_INDEX],
+                    position: [bounds.min.x, bounds.min.y, Z],
                     texcoord: [texcoord.min_x, texcoord.max_y],
                 });
                 batch.vertices.push(Vertex {
-                    position: [bounds.max.x, bounds.min.y, Z_INDEX],
+                    position: [bounds.max.x, bounds.min.y, Z],
                     texcoord: [texcoord.max_x, texcoord.max_y],
                 });
                 batch.vertices.push(Vertex {
-                    position: [bounds.max.x, bounds.max.y, Z_INDEX],
+                    position: [bounds.max.x, bounds.max.y, Z],
                     texcoord: [texcoord.max_x, texcoord.min_y],
                 });
                 batch.vertices.push(Vertex {
-                    position: [bounds.min.x, bounds.max.y, Z_INDEX],
+                    position: [bounds.min.x, bounds.max.y, Z],
                     texcoord: [texcoord.min_x, texcoord.min_y],
                 });
             });

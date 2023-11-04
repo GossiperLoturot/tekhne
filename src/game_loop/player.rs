@@ -72,22 +72,22 @@ impl PlayerSystem {
     ) {
         if let Some(id) = self.player_id {
             if let Some(mut player) = entity_system.remove(id) {
-                let speed = if input.key_held(winit::event::VirtualKeyCode::LShift) {
+                let speed = if input.key_held(winit::keyboard::KeyCode::ShiftLeft) {
                     Self::SPRINT_SPEED
                 } else {
                     Self::DEFAULT_SPEED
                 };
 
-                if input.key_held(winit::event::VirtualKeyCode::W) {
+                if input.key_held(winit::keyboard::KeyCode::KeyW) {
                     player.position.y += speed * elased.as_secs_f32();
                 }
-                if input.key_held(winit::event::VirtualKeyCode::S) {
+                if input.key_held(winit::keyboard::KeyCode::KeyS) {
                     player.position.y -= speed * elased.as_secs_f32();
                 }
-                if input.key_held(winit::event::VirtualKeyCode::A) {
+                if input.key_held(winit::keyboard::KeyCode::KeyA) {
                     player.position.x -= speed * elased.as_secs_f32();
                 }
-                if input.key_held(winit::event::VirtualKeyCode::D) {
+                if input.key_held(winit::keyboard::KeyCode::KeyD) {
                     player.position.x += speed * elased.as_secs_f32();
                 }
 

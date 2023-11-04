@@ -269,24 +269,25 @@ impl BlockRenderer {
                     batch.indices.push(vertex_count + 3);
                     batch.indices.push(vertex_count);
 
-                    let z_index = match spec.y_axis {
+                    let z = block.z_random as f32 * 0.00024414062; // 0 <= z < 2^(-8)
+                    let y_to_z = match spec.y_axis {
                         assets::YAxis::Y => 0.0,
                         assets::YAxis::YZ => spec.size.y as f32,
                     };
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.min.y, 0.0],
+                        position: [bounds.min.x, bounds.min.y, z],
                         texcoord: [texcoord.min_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.min.y, 0.0],
+                        position: [bounds.max.x, bounds.min.y, z],
                         texcoord: [texcoord.max_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.max.y, z_index],
+                        position: [bounds.max.x, bounds.max.y, z + y_to_z],
                         texcoord: [texcoord.max_x, texcoord.min_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.max.y, z_index],
+                        position: [bounds.min.x, bounds.max.y, z + y_to_z],
                         texcoord: [texcoord.min_x, texcoord.min_y],
                     });
                 });

@@ -8,13 +8,18 @@ use slab::Slab;
 pub struct Block {
     pub spec_id: usize,
     pub position: IVec2,
+    pub z_random: u8,
 }
 
 impl Block {
     /// 新しいブロックを作成する。
     #[inline]
-    pub fn new(spec_id: usize, position: IVec2) -> Self {
-        Self { spec_id, position }
+    pub fn new(spec_id: usize, position: IVec2, z_random: u8) -> Self {
+        Self {
+            spec_id,
+            position,
+            z_random,
+        }
     }
 }
 

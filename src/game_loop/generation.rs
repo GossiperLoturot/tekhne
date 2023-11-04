@@ -59,7 +59,8 @@ impl GenerationSystem {
                                 continue;
                             }
 
-                            let block = block::Block::new(*block_spec_id, position);
+                            let z_index = rand::random();
+                            let block = block::Block::new(*block_spec_id, position, z_index);
                             block_system.insert(block);
                         }
                     }

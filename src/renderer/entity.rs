@@ -268,9 +268,9 @@ impl EntityRenderer {
                     batch.indices.push(vertex_count + 3);
                     batch.indices.push(vertex_count);
 
-                    let z_index = match spec.y_axis {
+                    let y_to_z = match spec.y_axis {
                         assets::YAxis::Y => 0.0,
-                        assets::YAxis::YZ => spec.size.y as f32,
+                        assets::YAxis::YZ => spec.size.y,
                     };
                     batch.vertices.push(Vertex {
                         position: [bounds.min.x, bounds.min.y, 0.0],
@@ -281,11 +281,11 @@ impl EntityRenderer {
                         texcoord: [texcoord.max_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.max.y, z_index],
+                        position: [bounds.max.x, bounds.max.y, y_to_z],
                         texcoord: [texcoord.max_x, texcoord.min_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.max.y, z_index],
+                        position: [bounds.min.x, bounds.max.y, y_to_z],
                         texcoord: [texcoord.min_x, texcoord.min_y],
                     });
                 });

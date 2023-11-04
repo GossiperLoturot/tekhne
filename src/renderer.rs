@@ -96,7 +96,6 @@ impl Renderer {
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            assets,
             game_loop,
         );
         self.block_renderer.upload(

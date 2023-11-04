@@ -111,7 +111,8 @@ impl CameraSystem {
                 camera.zoom = Self::ZOOM_INIT;
             }
 
-            camera.zoom = (camera.zoom + input.scroll_diff()).clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
+            let (_, y_scroll) = input.scroll_diff();
+            camera.zoom = (camera.zoom + y_scroll).clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
         }
     }
 }
