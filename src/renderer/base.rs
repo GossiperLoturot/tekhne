@@ -266,21 +266,21 @@ impl BaseRenderer {
                     batch.indices.push(vertex_count + 3);
                     batch.indices.push(vertex_count);
 
-                    const Z: f32 = -0.00390625; // z = -2^(-8)
+                    const BASE_Z: f32 = -0.00390625; // z = -2^(-8)
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.min.y, Z],
+                        position: [bounds.min.x, bounds.min.y, BASE_Z],
                         texcoord: [texcoord.min_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.min.y, Z],
+                        position: [bounds.max.x, bounds.min.y, BASE_Z],
                         texcoord: [texcoord.max_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.max.y, Z],
+                        position: [bounds.max.x, bounds.max.y, BASE_Z],
                         texcoord: [texcoord.max_x, texcoord.min_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.max.y, Z],
+                        position: [bounds.min.x, bounds.max.y, BASE_Z],
                         texcoord: [texcoord.min_x, texcoord.min_y],
                     });
                 });

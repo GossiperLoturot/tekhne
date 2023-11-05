@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use aabb::*;
 use glam::*;
 
 pub enum YAxis {
@@ -21,6 +22,7 @@ pub struct BlockSpec {
     pub id: usize,
     pub label: String,
     pub size: IVec2,
+    pub render_size: Aabb2,
     pub y_axis: YAxis,
     pub texture_path: PathBuf,
     pub texture_mip_option: image_atlas::AtlasEntryMipOption,
@@ -30,6 +32,7 @@ pub struct EntitySpec {
     pub id: usize,
     pub label: String,
     pub size: Vec2,
+    pub render_size: Aabb2,
     pub y_axis: YAxis,
     pub texture_path: PathBuf,
     pub texture_mip_option: image_atlas::AtlasEntryMipOption,
@@ -56,7 +59,28 @@ pub struct Assets {
 
 impl Assets {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        #[derive(serde::Serialize, serde::Deserialize)]
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Vec2In {
+            x: f32,
+            y: f32,
+        }
+
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct IVec2In {
+            x: i32,
+            y: i32,
+        }
+
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Aabb2In {
+            min: Vec2In,
+            max: Vec2In,
+        }
+
+        #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct BaseSpecIn {
             label: String,
@@ -64,29 +88,29 @@ impl Assets {
             texture_mip_option: String,
         }
 
-        #[derive(serde::Serialize, serde::Deserialize)]
+        #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct BlockSpecIn {
             label: String,
-            x_size: i32,
-            y_size: i32,
+            size: IVec2In,
+            render_size: Aabb2In,
             y_axis: String,
             texture_path: String,
             texture_mip_option: String,
         }
 
-        #[derive(serde::Serialize, serde::Deserialize)]
+        #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct EntitySpecIn {
             label: String,
-            x_size: f32,
-            y_size: f32,
+            size: Vec2In,
+            render_size: Aabb2In,
             y_axis: String,
             texture_path: String,
             texture_mip_option: String,
         }
 
-        #[derive(serde::Serialize, serde::Deserialize)]
+        #[derive(serde::Deserialize)]
         #[serde(tag = "mode", rename_all = "camelCase")]
         enum GenerationSpecIn {
             #[serde(rename_all = "camelCase")]
@@ -98,7 +122,7 @@ impl Assets {
             FillBase { base_spec_label: String },
         }
 
-        #[derive(serde::Serialize, serde::Deserialize)]
+        #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct AssetsIn {
             base_specs: Vec<BaseSpecIn>,
@@ -152,19 +176,24 @@ impl Assets {
                     id,
                     BlockSpecIn {
                         label,
-                        x_size,
-                        y_size,
+                        size,
+                        render_size,
                         y_axis,
                         texture_path,
                         texture_mip_option,
                     },
                 )| {
+                    let size = ivec2(size.x, size.y);
+                    let render_size = aabb2(
+                        vec2(render_size.min.x, render_size.min.y),
+                        vec2(render_size.max.x, render_size.max.y),
+                    );
                     let y_axis = match y_axis.as_str() {
                         "y" => YAxis::Y,
                         "yz" => YAxis::YZ,
                         _ => unreachable!(),
                     };
-
+                    let texture_path = texture_path.into();
                     let texture_mip_option = match texture_mip_option.as_str() {
                         "clamp" => image_atlas::AtlasEntryMipOption::Clamp,
                         "repeat" => image_atlas::AtlasEntryMipOption::Repeat,
@@ -175,9 +204,10 @@ impl Assets {
                     BlockSpec {
                         id,
                         label,
-                        size: ivec2(x_size, y_size),
+                        size,
+                        render_size,
                         y_axis,
-                        texture_path: texture_path.into(),
+                        texture_path,
                         texture_mip_option,
                     }
                 },
@@ -192,19 +222,24 @@ impl Assets {
                     id,
                     EntitySpecIn {
                         label,
-                        x_size,
-                        y_size,
+                        size,
+                        render_size,
                         y_axis,
                         texture_path,
                         texture_mip_option,
                     },
                 )| {
+                    let size = vec2(size.x, size.y);
+                    let render_size = aabb2(
+                        vec2(render_size.min.x, render_size.min.y),
+                        vec2(render_size.max.x, render_size.max.y),
+                    );
                     let y_axis = match y_axis.as_str() {
                         "y" => YAxis::Y,
                         "yz" => YAxis::YZ,
                         _ => unreachable!(),
                     };
-
+                    let texture_path = texture_path.into();
                     let texture_mip_option = match texture_mip_option.as_str() {
                         "clamp" => image_atlas::AtlasEntryMipOption::Clamp,
                         "repeat" => image_atlas::AtlasEntryMipOption::Repeat,
@@ -215,9 +250,10 @@ impl Assets {
                     EntitySpec {
                         id,
                         label,
-                        size: vec2(x_size, y_size),
+                        size,
+                        render_size,
                         y_axis,
-                        texture_path: texture_path.into(),
+                        texture_path,
                         texture_mip_option,
                     }
                 },
@@ -227,7 +263,7 @@ impl Assets {
         let generation_specs = generation_specs
             .into_iter()
             .enumerate()
-            .map(|(id, generation)| match generation {
+            .map(|(id, spec)| match spec {
                 GenerationSpecIn::RandomBlock {
                     block_spec_label,
                     probability,

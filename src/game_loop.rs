@@ -56,14 +56,12 @@ impl GameLoop {
         self.player.update(assets, input, &mut self.entity, elapsed);
         self.camera.update(input, &self.entity, &self.player);
 
-        if let Some(camera) = self.camera.get_camera() {
-            self.generation.generate(
-                assets,
-                &mut self.base,
-                &mut self.block,
-                &mut self.entity,
-                camera.view_bounds(),
-            );
-        }
+        self.generation.generate(
+            assets,
+            &mut self.base,
+            &mut self.block,
+            &mut self.entity,
+            &self.camera,
+        );
     }
 }

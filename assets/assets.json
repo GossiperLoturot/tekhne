@@ -2,36 +2,26 @@
     "baseSpecs": [
         {
             "label": "surfaceDirt",
-            "xSize": 1,
-            "ySize": 1,
             "texturePath": "assets/textures/surface_dirt.png",
             "textureMipOption": "repeat"
         },
         {
             "label": "surfaceGrass",
-            "xSize": 1,
-            "ySize": 1,
             "texturePath": "assets/textures/surface_grass.png",
             "textureMipOption": "repeat"
         },
         {
             "label": "surfaceGravel",
-            "xSize": 1,
-            "ySize": 1,
             "texturePath": "assets/textures/surface_gravel.png",
             "textureMipOption": "repeat"
         },
         {
             "label": "surfaceSand",
-            "xSize": 1,
-            "ySize": 1,
             "texturePath": "assets/textures/surface_sand.png",
             "textureMipOption": "repeat"
         },
         {
             "label": "surfaceStone",
-            "xSize": 1,
-            "ySize": 1,
             "texturePath": "assets/textures/surface_stone.png",
             "textureMipOption": "repeat"
         }
@@ -39,80 +29,80 @@
     "blockSpecs": [
         {
             "label": "mixGrass",
-            "xSize": 1,
-            "ySize": 1,
+            "size": { "x": 1, "y": 1 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 1.0, "y": 1.0 } },
             "yAxis": "yz",
             "texturePath": "assets/textures/mix_grass.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "dandelion",
-            "xSize": 1,
-            "ySize": 1,
+            "size": { "x": 1, "y": 1 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 1.0, "y": 1.0 } },
             "yAxis": "y",
             "texturePath": "assets/textures/dandelion.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "fallenBranch",
-            "xSize": 1,
-            "ySize": 1,
+            "size": { "x": 1, "y": 1 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 1.0, "y": 1.0 } },
             "yAxis": "y",
             "texturePath": "assets/textures/fallen_branch.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "fallenLeaves",
-            "xSize": 1,
-            "ySize": 1,
+            "size": { "x": 1, "y": 1 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 1.0, "y": 1.0 } },
             "yAxis": "y",
             "texturePath": "assets/textures/fallen_leaves.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "mixPebbles",
-            "xSize": 1,
-            "ySize": 1,
+            "size": { "x": 1, "y": 1 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 1.0, "y": 1.0 } },
             "yAxis": "y",
             "texturePath": "assets/textures/mix_pebbles.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "oakTree",
-            "xSize": 4,
-            "ySize": 6,
+            "size": { "x": 4, "y": 2 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 4.0, "y": 6.0 } },
             "yAxis": "yz",
             "texturePath": "assets/textures/oak_tree.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "birchTree",
-            "xSize": 4,
-            "ySize": 6,
+            "size": { "x": 4, "y": 2 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 4.0, "y": 6.0 } },
             "yAxis": "yz",
             "texturePath": "assets/textures/birch_tree.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "dyingTree",
-            "xSize": 4,
-            "ySize": 6,
+            "size": { "x": 4, "y": 2 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 4.0, "y": 6.0 } },
             "yAxis": "yz",
             "texturePath": "assets/textures/dying_tree.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "fallenTree",
-            "xSize": 4,
-            "ySize": 2,
+            "size": { "x": 4, "y": 2 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 4.0, "y": 2.0 } },
             "yAxis": "yz",
             "texturePath": "assets/textures/fallen_tree.png",
             "textureMipOption": "clamp"
         },
         {
             "label": "mixRock",
-            "xSize": 2,
-            "ySize": 2,
+            "size": { "x": 2, "y": 2 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 2.0, "y": 2.0 } },
             "yAxis": "yz",
             "texturePath": "assets/textures/mix_rock.png",
             "textureMipOption": "clamp"
@@ -121,8 +111,8 @@
     "entitySpecs": [
         {
             "label": "player",
-            "xSize": 1.0,
-            "ySize": 2.0,
+            "size": { "x": 1, "y": 2 },
+            "renderSize": { "min": { "x": 0.0, "y": 0.0 }, "max": { "x": 1.0, "y": 2.0 } },
             "yAxis": "yz",
             "texturePath": "assets/textures/frame.png",
             "textureMipOption": "clamp"

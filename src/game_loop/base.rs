@@ -30,9 +30,6 @@ impl BaseSystem {
     /// 近傍探索のための空間分割サイズ
     const GRID_SIZE: i32 = 32;
 
-    /// 使用するイテレータの種類の切り替え
-    const VOLUME_THRESHOLD: i32 = 256;
-
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -94,7 +91,8 @@ impl BaseSystem {
     /// 指定した範囲に存在するベースの識別子と参照を返す。
     #[inline]
     pub fn get_from_bounds(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
-        if bounds.volume() <= Self::VOLUME_THRESHOLD {
+        const VOLUME_THRESHOLD: i32 = 256;
+        if bounds.volume() <= VOLUME_THRESHOLD {
             itertools::Either::Right(self.get_from_bounds_small(bounds))
         } else {
             itertools::Either::Left(self.get_from_bounds_large(bounds))

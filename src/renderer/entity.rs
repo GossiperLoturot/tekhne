@@ -247,8 +247,11 @@ impl EntityRenderer {
         assets: &assets::Assets,
         game_loop: &game_loop::GameLoop,
     ) {
+        const MARGIN: f32 = 32.0;
+
         if let Some(camera) = game_loop.camera.get_camera() {
             let bounds = camera.view_bounds();
+            let bounds = aabb2(bounds.min - MARGIN, bounds.max + MARGIN);
 
             game_loop
                 .entity
@@ -256,7 +259,7 @@ impl EntityRenderer {
                 .for_each(|(_, entity)| {
                     let spec = &assets.entity_specs[entity.spec_id];
 
-                    let bounds = aabb2(entity.position, entity.position + spec.size);
+                    let bounds = aabb2(entity.position, entity.position) + spec.render_size;
                     let texcoord = &self.texcoords[entity.spec_id];
                     let batch = &mut self.batches[texcoord.page as usize];
 
@@ -268,24 +271,24 @@ impl EntityRenderer {
                     batch.indices.push(vertex_count + 3);
                     batch.indices.push(vertex_count);
 
-                    let y_to_z = match spec.y_axis {
-                        assets::YAxis::Y => 0.0,
-                        assets::YAxis::YZ => spec.size.y,
+                    let (negative_y2z, positive_y2z) = match spec.y_axis {
+                        assets::YAxis::Y => (0.0, 0.0),
+                        assets::YAxis::YZ => (spec.render_size.min.y, spec.render_size.max.y),
                     };
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.min.y, 0.0],
+                        position: [bounds.min.x, bounds.min.y, negative_y2z],
                         texcoord: [texcoord.min_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.min.y, 0.0],
+                        position: [bounds.max.x, bounds.min.y, negative_y2z],
                         texcoord: [texcoord.max_x, texcoord.max_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.max.y, y_to_z],
+                        position: [bounds.max.x, bounds.max.y, positive_y2z],
                         texcoord: [texcoord.max_x, texcoord.min_y],
                     });
                     batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.max.y, y_to_z],
+                        position: [bounds.min.x, bounds.max.y, positive_y2z],
                         texcoord: [texcoord.min_x, texcoord.min_y],
                     });
                 });
