@@ -2,8 +2,6 @@
 
 use std::time;
 
-use aabb::*;
-
 use crate::assets;
 
 pub mod base;
@@ -48,21 +46,24 @@ impl GameLoop {
         self.time_instant = std::time::Instant::now();
 
         if self.player.get_player(&self.entity).is_none() {
-            self.player.spawn_player(&mut self.entity);
+            self.player.spawn_player(assets, &mut self.entity);
         }
 
         if self.camera.get_camera().is_none() {
             self.camera.spawn_camera();
         }
 
-        self.player.update(&mut self.entity, input, elapsed);
-        self.camera.update(&self.entity, &self.player, input);
+        self.player.update(assets, input, &mut self.entity, elapsed);
+        self.camera.update(input, &self.entity, &self.player);
 
         if let Some(camera) = self.camera.get_camera() {
-            let bounds = camera.view_bounds();
-            let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
-            self.generation
-                .generate(assets, &mut self.base, &mut self.block, bounds);
+            self.generation.generate(
+                assets,
+                &mut self.base,
+                &mut self.block,
+                &mut self.entity,
+                camera.view_bounds(),
+            );
         }
     }
 }

@@ -253,7 +253,7 @@ impl BlockRenderer {
 
             game_loop
                 .block
-                .get_from_area(bounds)
+                .get_from_bounds(assets, bounds)
                 .for_each(|(_, block)| {
                     let spec = &assets.block_specs[block.spec_id];
 

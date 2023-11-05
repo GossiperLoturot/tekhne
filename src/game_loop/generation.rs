@@ -3,15 +3,16 @@
 use aabb::*;
 use ahash::HashSet;
 use glam::*;
+use itertools::Itertools;
 
 use crate::{
     assets,
-    game_loop::{base, block},
+    game_loop::{base, block, entity},
 };
 
 /// ワールド生成の機能
 pub struct GenerationSystem {
-    init_flags: HashSet<IVec2>,
+    grid_flags: HashSet<IVec2>,
 }
 
 impl GenerationSystem {
@@ -21,7 +22,7 @@ impl GenerationSystem {
     #[inline]
     pub fn new() -> Self {
         Self {
-            init_flags: Default::default(),
+            grid_flags: Default::default(),
         }
     }
 
@@ -31,49 +32,48 @@ impl GenerationSystem {
         assets: &assets::Assets,
         base_system: &mut base::BaseSystem,
         block_system: &mut block::BlockSystem,
-        bounds: IAabb2,
+        entity_system: &mut entity::EntitySystem,
+        bounds: Aabb2,
     ) {
-        fn iter_point(bounds: IAabb2) -> impl Iterator<Item = IVec2> {
-            let min = bounds.min;
-            let max = bounds.max;
-            (min.x..=max.x).flat_map(move |x| (min.y..=max.y).map(move |y| ivec2(x, y)))
-        }
+        let grid_bounds = bounds.div_euclid_f32(Self::GRID_SIZE as f32).as_iaabb2();
+        let (min, max) = (grid_bounds.min - IVec2::ONE, grid_bounds.max + IVec2::ONE);
 
-        let bounds = bounds.div_euclid_i32(Self::GRID_SIZE);
-        for grid_point in iter_point(bounds) {
-            if self.init_flags.contains(&grid_point) {
-                continue;
-            }
-
-            let bounds = iaabb2(grid_point, grid_point + ivec2(1, 1)) * Self::GRID_SIZE;
-
-            for spec in &assets.generation_specs {
-                match spec {
-                    assets::GenerationSpec::RandomBlock {
-                        block_spec_id,
-                        probability,
-                        ..
-                    } => {
-                        for position in iter_point(bounds) {
-                            if *probability < rand::random::<f32>() {
-                                continue;
-                            }
-
-                            let z_index = rand::random();
-                            let block = block::Block::new(*block_spec_id, position, z_index);
-                            block_system.insert(block);
-                        }
-                    }
-                    assets::GenerationSpec::FillBase { base_spec_id, .. } => {
-                        for position in iter_point(bounds) {
+        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
+            .map(|(x, y)| ivec2(x, y))
+            .filter(|grid_point| !self.grid_flags.contains(grid_point))
+            .cartesian_product(&assets.generation_specs)
+            .for_each(|(grid_point, generation_spec)| match generation_spec {
+                assets::GenerationSpec::FillBase { base_spec_id, .. } => {
+                    let min = grid_point * Self::GRID_SIZE;
+                    let max = grid_point * Self::GRID_SIZE + Self::GRID_SIZE;
+                    itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
+                        .map(|(x, y)| ivec2(x, y))
+                        .for_each(|position| {
                             let base = base::Base::new(*base_spec_id, position);
                             base_system.insert(base);
-                        }
-                    }
+                        });
                 }
-            }
+                assets::GenerationSpec::RandomBlock {
+                    block_spec_id,
+                    probability,
+                    ..
+                } => {
+                    let min = grid_point * Self::GRID_SIZE;
+                    let max = grid_point * Self::GRID_SIZE + Self::GRID_SIZE;
+                    itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
+                        .filter(|_| rand::random::<f32>() < *probability)
+                        .map(|(x, y)| ivec2(x, y))
+                        .for_each(|position| {
+                            let block = block::Block::new(*block_spec_id, position, rand::random());
+                            block_system.insert(assets, block);
+                        });
+                }
+            });
 
-            self.init_flags.insert(grid_point);
-        }
+        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
+            .map(|(x, y)| ivec2(x, y))
+            .for_each(|grid_point| {
+                self.grid_flags.insert(grid_point);
+            });
     }
 }

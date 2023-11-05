@@ -252,7 +252,7 @@ impl EntityRenderer {
 
             game_loop
                 .entity
-                .get_from_area(bounds)
+                .get_from_bounds(assets, bounds)
                 .for_each(|(_, entity)| {
                     let spec = &assets.entity_specs[entity.spec_id];
 

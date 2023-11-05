@@ -2,7 +2,7 @@
 
 use glam::*;
 
-use crate::game_loop::entity;
+use crate::{assets, game_loop::entity};
 
 /// プレイヤーシステムの機能
 pub struct PlayerSystem {
@@ -27,13 +27,13 @@ impl PlayerSystem {
     #[inline]
     pub fn spawn_player<'a>(
         &mut self,
+        assets: &'a assets::Assets,
         entity_system: &'a mut entity::EntitySystem,
     ) -> Option<&'a entity::Entity> {
         if self.player_id.is_none() {
             // TODO: customizable player entity picking
             let entity = entity::Entity::new(0, vec2(0.0, 0.0));
-            let id = entity_system.insert(entity);
-            self.player_id = Some(id);
+            self.player_id = entity_system.insert(assets, entity);
             self.get_player(entity_system)
         } else {
             None
@@ -44,9 +44,11 @@ impl PlayerSystem {
     #[inline]
     pub fn despawn_player(
         &mut self,
+        assets: &assets::Assets,
         entity_system: &mut entity::EntitySystem,
     ) -> Option<entity::Entity> {
-        self.player_id.and_then(|id| entity_system.remove(id))
+        self.player_id
+            .and_then(|id| entity_system.remove(assets, id))
     }
 
     /// プレイヤーの参照を返す。
@@ -66,12 +68,13 @@ impl PlayerSystem {
     /// - プレイヤーはWSADで上下左右の移動を行う。
     pub fn update(
         &mut self,
-        entity_system: &mut entity::EntitySystem,
+        assets: &assets::Assets,
         input: &winit_input_helper::WinitInputHelper,
+        entity_system: &mut entity::EntitySystem,
         elased: std::time::Duration,
     ) {
         if let Some(id) = self.player_id {
-            if let Some(mut player) = entity_system.remove(id) {
+            if let Some(mut player) = entity_system.remove(assets, id) {
                 let speed = if input.key_held(winit::keyboard::KeyCode::ShiftLeft) {
                     Self::SPRINT_SPEED
                 } else {
@@ -91,7 +94,7 @@ impl PlayerSystem {
                     player.position.x += speed * elased.as_secs_f32();
                 }
 
-                entity_system.insert(player);
+                entity_system.insert(assets, player);
             }
         }
     }

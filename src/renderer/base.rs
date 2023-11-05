@@ -250,37 +250,40 @@ impl BaseRenderer {
             let bounds = camera.view_bounds();
             let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
 
-            game_loop.base.get_from_area(bounds).for_each(|(_, base)| {
-                let bounds = iaabb2(base.position, base.position + 1).as_aabb2();
-                let texcoord = &self.texcoords[base.spec_id];
-                let batch = &mut self.batches[texcoord.page as usize];
+            game_loop
+                .base
+                .get_from_bounds(bounds)
+                .for_each(|(_, base)| {
+                    let bounds = iaabb2(base.position, base.position + IVec2::ONE).as_aabb2();
+                    let texcoord = &self.texcoords[base.spec_id];
+                    let batch = &mut self.batches[texcoord.page as usize];
 
-                let vertex_count = batch.vertices.len() as u32;
-                batch.indices.push(vertex_count);
-                batch.indices.push(vertex_count + 1);
-                batch.indices.push(vertex_count + 2);
-                batch.indices.push(vertex_count + 2);
-                batch.indices.push(vertex_count + 3);
-                batch.indices.push(vertex_count);
+                    let vertex_count = batch.vertices.len() as u32;
+                    batch.indices.push(vertex_count);
+                    batch.indices.push(vertex_count + 1);
+                    batch.indices.push(vertex_count + 2);
+                    batch.indices.push(vertex_count + 2);
+                    batch.indices.push(vertex_count + 3);
+                    batch.indices.push(vertex_count);
 
-                const Z: f32 = -0.00390625; // z = -2^(-8)
-                batch.vertices.push(Vertex {
-                    position: [bounds.min.x, bounds.min.y, Z],
-                    texcoord: [texcoord.min_x, texcoord.max_y],
+                    const Z: f32 = -0.00390625; // z = -2^(-8)
+                    batch.vertices.push(Vertex {
+                        position: [bounds.min.x, bounds.min.y, Z],
+                        texcoord: [texcoord.min_x, texcoord.max_y],
+                    });
+                    batch.vertices.push(Vertex {
+                        position: [bounds.max.x, bounds.min.y, Z],
+                        texcoord: [texcoord.max_x, texcoord.max_y],
+                    });
+                    batch.vertices.push(Vertex {
+                        position: [bounds.max.x, bounds.max.y, Z],
+                        texcoord: [texcoord.max_x, texcoord.min_y],
+                    });
+                    batch.vertices.push(Vertex {
+                        position: [bounds.min.x, bounds.max.y, Z],
+                        texcoord: [texcoord.min_x, texcoord.min_y],
+                    });
                 });
-                batch.vertices.push(Vertex {
-                    position: [bounds.max.x, bounds.min.y, Z],
-                    texcoord: [texcoord.max_x, texcoord.max_y],
-                });
-                batch.vertices.push(Vertex {
-                    position: [bounds.max.x, bounds.max.y, Z],
-                    texcoord: [texcoord.max_x, texcoord.min_y],
-                });
-                batch.vertices.push(Vertex {
-                    position: [bounds.min.x, bounds.max.y, Z],
-                    texcoord: [texcoord.min_x, texcoord.min_y],
-                });
-            });
 
             for batch in &mut self.batches {
                 let vertex_data = bytemuck::cast_slice(&batch.vertices);

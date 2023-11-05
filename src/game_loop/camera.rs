@@ -98,9 +98,9 @@ impl CameraSystem {
     /// - ホイールクリックで拡大・縮小をリセットする。
     pub fn update(
         &mut self,
+        input: &winit_input_helper::WinitInputHelper,
         entity_system: &entity::EntitySystem,
         player_system: &player::PlayerSystem,
-        input: &winit_input_helper::WinitInputHelper,
     ) {
         if let Some(camera) = &mut self.camera {
             if let Some(player) = player_system.get_player(entity_system) {
