@@ -4,6 +4,7 @@ use core::{
     ops::*,
 };
 
+use float_next_after::NextAfter;
 use glam::*;
 
 use crate::*;
@@ -198,13 +199,39 @@ impl Aabb2 {
         }
     }
 
+    /// Returns whether if `self` contains `rhs`.
+    #[inline]
+    pub fn contains_point(&self, rhs: Vec2) -> bool {
+        self.min.x <= rhs.x && self.min.y <= rhs.y && rhs.x < self.max.x && rhs.y < self.max.y
+    }
+
     /// Returns whether if `self` intersects `rhs`.
     #[inline]
-    pub fn intersect(&self, rhs: Aabb2) -> bool {
+    pub fn contains_bounds(&self, rhs: Aabb2) -> bool {
+        self.min.x <= rhs.min.x
+            && self.min.y <= rhs.min.y
+            && rhs.max.x <= self.max.x
+            && rhs.max.y <= self.max.y
+    }
+
+    /// Returns whether if `self` intersects `rhs`.
+    #[inline]
+    pub fn intersects(&self, rhs: Aabb2) -> bool {
         self.min.x < rhs.max.x
             && self.min.y < rhs.max.y
             && rhs.min.x < self.max.x
             && rhs.min.y < self.max.y
+    }
+
+    /// Returns a grid bounds which contains `self` bounds on subdivided each `size`.
+    #[inline]
+    pub fn to_grid(&self, size: f32) -> IAabb2 {
+        let max_x = self.max.x.next_after(f32::NEG_INFINITY);
+        let max_y = self.max.y.next_after(f32::NEG_INFINITY);
+        let bounds = aabb2(self.min, vec2(max_x, max_y))
+            .div_euclid_f32(size)
+            .as_iaabb2();
+        iaabb2(bounds.min, bounds.max + IVec2::ONE)
     }
 
     /// Casts into `IAabb2`.

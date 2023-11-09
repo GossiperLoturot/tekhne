@@ -20,11 +20,15 @@ impl Entity {
     }
 }
 
+struct EntityMeta {
+    entity: Entity,
+    grid_index_rev: Vec<(IVec2, usize)>,
+}
+
 /// エンティティシステムの機能
 pub struct EntitySystem {
-    entities: Slab<Entity>,
+    entity_metas: Slab<EntityMeta>,
     grid_index: HashMap<IVec2, Slab<usize>>,
-    grid_index_rev: Slab<usize>,
 }
 
 impl EntitySystem {
@@ -34,9 +38,8 @@ impl EntitySystem {
     #[inline]
     pub fn new() -> Self {
         Self {
-            entities: Default::default(),
+            entity_metas: Default::default(),
             grid_index: Default::default(),
-            grid_index_rev: Default::default(),
         }
     }
 
@@ -56,38 +59,46 @@ impl EntitySystem {
             return None;
         }
 
-        let id = self.entities.vacant_key();
+        let entity_id = self.entity_metas.vacant_key();
 
         // インデクスを構築
-        let grid_point = entity
-            .position
-            .div_euclid(Vec2::splat(Self::GRID_SIZE))
-            .as_ivec2();
-        let idx = self.grid_index.entry(grid_point).or_default().insert(id);
-        self.grid_index_rev.insert(idx);
+        let grid_bounds = bounds.to_grid(Self::GRID_SIZE);
+        let (min, max) = (grid_bounds.min, grid_bounds.max);
+        let grid_index_rev = itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
+            .map(|(x, y)| ivec2(x, y))
+            .map(|grid| {
+                let id = self.grid_index.entry(grid).or_default().insert(entity_id);
+                (grid, id)
+            })
+            .collect::<Vec<_>>();
 
-        self.entities.insert(entity);
-        Some(id)
+        self.entity_metas.insert(EntityMeta {
+            entity,
+            grid_index_rev,
+        });
+        Some(entity_id)
     }
 
     /// エンティティを削除し、そのエンティティを返す。
     pub fn remove(&mut self, assets: &assets::Assets, id: usize) -> Option<Entity> {
-        let entity = self.entities.try_remove(id)?;
+        let EntityMeta {
+            entity,
+            grid_index_rev,
+        } = self.entity_metas.try_remove(id)?;
 
         // インデクスを破棄
-        let idx = self.grid_index_rev.remove(id);
-        let grid_point = entity
-            .position
-            .div_euclid(Vec2::splat(Self::GRID_SIZE))
-            .as_ivec2();
-        self.grid_index.get_mut(&grid_point).unwrap().remove(idx);
+        grid_index_rev.into_iter().for_each(|(grid, id)| {
+            self.grid_index.get_mut(&grid).unwrap().remove(id);
+        });
 
         Some(entity)
     }
 
     /// 指定した識別子に対応するエンティティの参照を返す。
     pub fn get(&self, id: usize) -> Option<&Entity> {
-        self.entities.get(id)
+        self.entity_metas
+            .get(id)
+            .map(|entity_meta| &entity_meta.entity)
     }
 
     /// 指定した範囲に存在するエンティティの識別子と参照を返す。
@@ -97,17 +108,19 @@ impl EntitySystem {
         assets: &'a assets::Assets,
         bounds: Aabb2,
     ) -> impl Iterator<Item = (usize, &'a Entity)> {
-        let grid_bounds = bounds.div_euclid_f32(Self::GRID_SIZE).as_iaabb2();
-        let (min, max) = (grid_bounds.min - IVec2::ONE, grid_bounds.max + IVec2::ONE);
+        let grid_bounds = bounds.to_grid(Self::GRID_SIZE);
+        let (min, max) = (grid_bounds.min, grid_bounds.max);
         itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
             .map(|(x, y)| ivec2(x, y))
-            .filter_map(move |grid_point| self.grid_index.get(&grid_point))
+            .filter_map(move |grid| self.grid_index.get(&grid))
             .flatten()
-            .map(|(_, &id)| (id, &self.entities[id]))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .map(|(_, &id)| (id, &self.entity_metas[id].entity))
             .filter(move |(_, entity)| {
                 let spec = &assets.entity_specs[entity.spec_id];
-                let self_bounds = aabb2(entity.position, entity.position + spec.size);
-                bounds.intersect(self_bounds)
+                let entity_bounds = aabb2(entity.position, entity.position + spec.size);
+                bounds.intersects(entity_bounds)
             })
     }
 }

@@ -250,6 +250,7 @@ impl BaseRenderer {
             let bounds = camera.view_bounds();
             let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
 
+            let instant = std::time::Instant::now();
             game_loop
                 .base
                 .get_from_bounds(bounds)
@@ -284,6 +285,7 @@ impl BaseRenderer {
                         texcoord: [texcoord.min_x, texcoord.min_y],
                     });
                 });
+            println!("{}", instant.elapsed().as_secs_f32());
 
             for batch in &mut self.batches {
                 let vertex_data = bytemuck::cast_slice(&batch.vertices);

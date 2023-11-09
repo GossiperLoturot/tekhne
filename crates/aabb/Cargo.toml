@@ -10,3 +10,7 @@ std = []
 [dependencies.glam]
 version = "0.24"
 default-features = false
+
+[dependencies.float_next_after]
+version = "1"
+default-features = false

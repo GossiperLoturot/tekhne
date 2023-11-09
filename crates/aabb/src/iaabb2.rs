@@ -123,13 +123,35 @@ impl IAabb2 {
         }
     }
 
+    /// Returns whether if `self` contains `rhs`.
+    #[inline]
+    pub fn contains_point(&self, rhs: IVec2) -> bool {
+        self.min.x <= rhs.x && self.min.y <= rhs.y && rhs.x < self.max.x && rhs.y < self.max.y
+    }
+
     /// Returns whether if `self` intersects `rhs`.
     #[inline]
-    pub fn intersect(&self, rhs: IAabb2) -> bool {
+    pub fn contains_bounds(&self, rhs: IAabb2) -> bool {
+        self.min.x <= rhs.min.x
+            && self.min.y <= rhs.min.y
+            && rhs.max.x <= self.max.x
+            && rhs.max.y <= self.max.y
+    }
+
+    /// Returns whether if `self` intersects `rhs`.
+    #[inline]
+    pub fn intersects(&self, rhs: IAabb2) -> bool {
         self.min.x < rhs.max.x
             && self.min.y < rhs.max.y
             && rhs.min.x < self.max.x
             && rhs.min.y < self.max.y
+    }
+
+    /// Returns a grid bounds which contains `self` bounds on subdivided each `size`.
+    #[inline]
+    pub fn to_grid(&self, size: i32) -> IAabb2 {
+        let bounds = iaabb2(self.min, self.max - IVec2::ONE).div_euclid_i32(size);
+        iaabb2(bounds.min, bounds.max + IVec2::ONE)
     }
 
     /// Casts into `Aabb2`.

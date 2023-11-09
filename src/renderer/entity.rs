@@ -247,11 +247,8 @@ impl EntityRenderer {
         assets: &assets::Assets,
         game_loop: &game_loop::GameLoop,
     ) {
-        const MARGIN: f32 = 32.0;
-
         if let Some(camera) = game_loop.camera.get_camera() {
             let bounds = camera.view_bounds();
-            let bounds = aabb2(bounds.min - MARGIN, bounds.max + MARGIN);
 
             game_loop
                 .entity

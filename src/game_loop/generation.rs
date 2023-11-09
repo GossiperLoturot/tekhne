@@ -1,6 +1,5 @@
 //! ワールド生成の機能に関するモジュール
 
-use aabb::*;
 use ahash::HashSet;
 use glam::*;
 use itertools::Itertools;
@@ -36,21 +35,17 @@ impl GenerationSystem {
         camera_system: &camera::CameraSystem,
     ) {
         if let Some(camera) = camera_system.get_camera() {
-            let bounds = camera.view_bounds();
-            let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
-
-            let bounds =
-                iaabb2(bounds.min, bounds.max - IVec2::ONE).div_euclid_i32(Self::GRID_SIZE);
-            let (min, max) = (bounds.min - IVec2::ONE, bounds.max + IVec2::ONE);
+            let grid_bounds = camera.view_bounds().to_grid(Self::GRID_SIZE as f32);
+            let (min, max) = (grid_bounds.min, grid_bounds.max);
 
             itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
                 .map(|(x, y)| ivec2(x, y))
-                .filter(|grid_point| !self.grid_flags.contains(grid_point))
+                .filter(|grid| !self.grid_flags.contains(grid))
                 .cartesian_product(&assets.generation_specs)
-                .for_each(|(grid_point, generation_spec)| match generation_spec {
+                .for_each(|(grid, generation_spec)| match generation_spec {
                     assets::GenerationSpec::FillBase { base_spec_id, .. } => {
-                        let min = grid_point * Self::GRID_SIZE;
-                        let max = grid_point * Self::GRID_SIZE + Self::GRID_SIZE;
+                        let min = grid * Self::GRID_SIZE;
+                        let max = (grid + IVec2::ONE) * Self::GRID_SIZE;
                         itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
                             .map(|(x, y)| ivec2(x, y))
                             .for_each(|position| {
@@ -63,14 +58,14 @@ impl GenerationSystem {
                         probability,
                         ..
                     } => {
-                        let min = grid_point * Self::GRID_SIZE;
-                        let max = grid_point * Self::GRID_SIZE + Self::GRID_SIZE;
+                        let min = grid * Self::GRID_SIZE;
+                        let max = (grid + IVec2::ONE) * Self::GRID_SIZE;
                         itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
                             .filter(|_| rand::random::<f32>() < *probability)
                             .map(|(x, y)| ivec2(x, y))
                             .for_each(|position| {
-                                let block =
-                                    block::Block::new(*block_spec_id, position, rand::random());
+                                let z_random = rand::random();
+                                let block = block::Block::new(*block_spec_id, position, z_random);
                                 block_system.insert(assets, block);
                             });
                     }
@@ -78,8 +73,8 @@ impl GenerationSystem {
 
             itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
                 .map(|(x, y)| ivec2(x, y))
-                .for_each(|grid_point| {
-                    self.grid_flags.insert(grid_point);
+                .for_each(|grid| {
+                    self.grid_flags.insert(grid);
                 });
         }
     }
