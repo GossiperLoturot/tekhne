@@ -1,8 +1,4 @@
-use core::{
-    fmt,
-    iter::{Product, Sum},
-    ops::*,
-};
+use core::{iter, mem, ops::*};
 
 use glam::*;
 
@@ -16,7 +12,7 @@ pub const fn iaabb2(min: IVec2, max: IVec2) -> IAabb2 {
 
 /// A 2-dimensional axis-aligned bounding box.
 #[repr(C, align(16))]
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct IAabb2 {
     pub min: IVec2,
     pub max: IVec2,
@@ -69,9 +65,18 @@ impl IAabb2 {
         size.x * size.y
     }
 
+    /// Returns the AABB with extended size.
+    #[inline]
+    pub fn extends(self, size: i32) -> Self {
+        Self {
+            min: self.min - IVec2::splat(size),
+            max: self.max + IVec2::splat(size),
+        }
+    }
+
     /// Calculates the Euclidean division.
     #[inline]
-    pub fn div_euclid_i32(&self, rhs: i32) -> Self {
+    pub fn div_euclid_i32(self, rhs: i32) -> Self {
         Self {
             min: self.min.div_euclid(ivec2(rhs, rhs)),
             max: self.max.div_euclid(ivec2(rhs, rhs)),
@@ -80,7 +85,7 @@ impl IAabb2 {
 
     /// Calculates the Euclidean division.
     #[inline]
-    pub fn div_euclid_ivec2(&self, rhs: IVec2) -> Self {
+    pub fn div_euclid_ivec2(self, rhs: IVec2) -> Self {
         Self {
             min: self.min.div_euclid(rhs),
             max: self.max.div_euclid(rhs),
@@ -89,7 +94,7 @@ impl IAabb2 {
 
     /// Calculates the Euclidean division.
     #[inline]
-    pub fn div_euclid(&self, rhs: IAabb2) -> Self {
+    pub fn div_euclid(self, rhs: IAabb2) -> Self {
         Self {
             min: self.min.div_euclid(rhs.min),
             max: self.max.div_euclid(rhs.max),
@@ -98,7 +103,7 @@ impl IAabb2 {
 
     /// Calculates the least nonnegative remainder of `self (mod rhs)`.
     #[inline]
-    pub fn rem_euclid_i32(&self, rhs: i32) -> Self {
+    pub fn rem_euclid_i32(self, rhs: i32) -> Self {
         Self {
             min: self.min.rem_euclid(ivec2(rhs, rhs)),
             max: self.max.rem_euclid(ivec2(rhs, rhs)),
@@ -107,7 +112,7 @@ impl IAabb2 {
 
     /// Calculates the least nonnegative remainder of `self (mod rhs)`.
     #[inline]
-    pub fn rem_euclid_ivec2(&self, rhs: IVec2) -> Self {
+    pub fn rem_euclid_ivec2(self, rhs: IVec2) -> Self {
         Self {
             min: self.min.rem_euclid(rhs),
             max: self.max.rem_euclid(rhs),
@@ -116,7 +121,7 @@ impl IAabb2 {
 
     /// Calculates the least nonnegative remainder of `self (mod rhs)`.
     #[inline]
-    pub fn rem_euclid(&self, rhs: IAabb2) -> Self {
+    pub fn rem_euclid(self, rhs: IAabb2) -> Self {
         Self {
             min: self.min.rem_euclid(rhs.min),
             max: self.max.rem_euclid(rhs.max),
@@ -147,11 +152,13 @@ impl IAabb2 {
             && rhs.min.y < self.max.y
     }
 
-    /// Returns a grid bounds which contains `self` bounds on subdivided each `size`.
+    /// Returns an iterator visiting all points contained by `self` area.
     #[inline]
-    pub fn to_grid(&self, size: i32) -> IAabb2 {
-        let bounds = iaabb2(self.min, self.max - IVec2::ONE).div_euclid_i32(size);
-        iaabb2(bounds.min, bounds.max + IVec2::ONE)
+    pub fn into_iter_points(self) -> IterPoint {
+        IterPoint {
+            bounds: self,
+            point: self.min,
+        }
     }
 
     /// Casts into `Aabb2`.
@@ -557,28 +564,28 @@ impl AsMut<[IVec2; 2]> for IAabb2 {
     }
 }
 
-impl Sum for IAabb2 {
+impl iter::Sum for IAabb2 {
     #[inline]
     fn sum<I: Iterator<Item = IAabb2>>(iter: I) -> IAabb2 {
         iter.fold(IAabb2::ZERO, IAabb2::add)
     }
 }
 
-impl<'a> Sum<&'a IAabb2> for IAabb2 {
+impl<'a> iter::Sum<&'a IAabb2> for IAabb2 {
     #[inline]
     fn sum<I: Iterator<Item = &'a IAabb2>>(iter: I) -> IAabb2 {
         iter.fold(IAabb2::ZERO, |a, &b| IAabb2::add(a, b))
     }
 }
 
-impl Product for IAabb2 {
+impl iter::Product for IAabb2 {
     #[inline]
     fn product<I: Iterator<Item = IAabb2>>(iter: I) -> IAabb2 {
         iter.fold(IAabb2::ZERO, IAabb2::mul)
     }
 }
 
-impl<'a> Product<&'a IAabb2> for IAabb2 {
+impl<'a> iter::Product<&'a IAabb2> for IAabb2 {
     #[inline]
     fn product<I: Iterator<Item = &'a IAabb2>>(iter: I) -> IAabb2 {
         iter.fold(IAabb2::ZERO, |a, &b| IAabb2::mul(a, b))
@@ -605,21 +612,6 @@ impl IndexMut<usize> for IAabb2 {
             1 => &mut self.max,
             _ => panic!("index out of bounds"),
         }
-    }
-}
-
-impl fmt::Display for IAabb2 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}, {}]", self.min, self.max)
-    }
-}
-
-impl fmt::Debug for IAabb2 {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_tuple(stringify!(IAabb2))
-            .field(&self.min)
-            .field(&self.max)
-            .finish()
     }
 }
 
@@ -656,3 +648,38 @@ impl From<IAabb2> for (IVec2, IVec2) {
         (value.min, value.max)
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct IterPoint {
+    bounds: IAabb2,
+    point: IVec2,
+}
+
+impl Iterator for IterPoint {
+    type Item = IVec2;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.point.y < self.bounds.max.y {
+            let n = if self.point.x + 1 < self.bounds.max.x {
+                ivec2(self.point.x + 1, self.point.y)
+            } else {
+                ivec2(self.bounds.min.x, self.point.y + 1)
+            };
+            Some(mem::replace(&mut self.point, n))
+        } else {
+            None
+        }
+    }
+}
+
+impl ExactSizeIterator for IterPoint {
+    #[inline]
+    fn len(&self) -> usize {
+        (self.bounds.max.x - 1 - self.point.x
+            + (self.bounds.max.y - 1 - self.point.y) * (self.bounds.max.y - self.bounds.min.y)
+            + 1) as usize
+    }
+}
+
+impl iter::FusedIterator for IterPoint {}

@@ -55,9 +55,13 @@ impl BaseSystem {
         let base_id = self.base_metas.vacant_key();
 
         // インデクスを構築 (1)
-        let grid = base.position.div_euclid(IVec2::splat(Self::GRID_SIZE));
-        let id = self.grid_index.entry(grid).or_default().insert(base_id);
-        let grid_index_rev = (grid, id);
+        let grid_point = base.position.to_grid_space(Self::GRID_SIZE);
+        let id = self
+            .grid_index
+            .entry(grid_point)
+            .or_default()
+            .insert(base_id);
+        let grid_index_rev = (grid_point, id);
 
         // インデクスを構築 (2)
         self.global_index.insert(base.position, base_id);
@@ -80,8 +84,8 @@ impl BaseSystem {
         } = self.base_metas.try_remove(id)?;
 
         // インデクスを破棄 (1)
-        let (grid, id) = grid_index_rev;
-        self.grid_index.get_mut(&grid).unwrap().remove(id);
+        let (grid_point, id) = grid_index_rev;
+        self.grid_index.get_mut(&grid_point).unwrap().remove(id);
 
         // インデクスを破棄 (2)
         self.global_index.remove(&global_index_rev);
@@ -114,20 +118,18 @@ impl BaseSystem {
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。狭い範囲で効果的。
     fn get_from_bounds_small(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
-        let (min, max) = (bounds.min, bounds.max);
-        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
+        bounds
+            .into_iter_points()
             .filter_map(move |position| self.global_index.get(&position))
             .map(|&id| (id, &self.base_metas[id].base))
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。広い範囲で効果的。
     fn get_from_bounds_large(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
-        let grid_bounds = bounds.to_grid(Self::GRID_SIZE);
-        let (min, max) = (grid_bounds.min, grid_bounds.max);
-        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .filter_map(move |grid| self.grid_index.get(&grid))
+        bounds
+            .to_grid_space(Self::GRID_SIZE)
+            .into_iter_points()
+            .filter_map(move |grid_point| self.grid_index.get(&grid_point))
             .flatten()
             .map(|(_, &id)| (id, &self.base_metas[id].base))
             .filter(move |(_, base)| {

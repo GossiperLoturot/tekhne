@@ -45,17 +45,8 @@ impl GameLoop {
         let elapsed = self.time_instant.elapsed();
         self.time_instant = std::time::Instant::now();
 
-        if self.player.get_player(&self.entity).is_none() {
-            self.player.spawn_player(assets, &mut self.entity);
-        }
-
-        if self.camera.get_camera().is_none() {
-            self.camera.spawn_camera();
-        }
-
         self.player.update(assets, input, &mut self.entity, elapsed);
         self.camera.update(input, &self.entity, &self.player);
-
         self.generation.generate(
             assets,
             &mut self.base,

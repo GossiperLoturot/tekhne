@@ -1,10 +1,5 @@
-use core::{
-    fmt,
-    iter::{Product, Sum},
-    ops::*,
-};
+use core::{iter, ops::*};
 
-use float_next_after::NextAfter;
 use glam::*;
 
 use crate::*;
@@ -17,7 +12,7 @@ pub const fn aabb2(min: Vec2, max: Vec2) -> Aabb2 {
 
 /// A 2-dimensional axis-aligned bounding box.
 #[repr(C, align(16))]
-#[derive(Default, Clone, Copy, PartialEq)]
+#[derive(Default, Clone, Copy, PartialEq, Debug)]
 pub struct Aabb2 {
     pub min: Vec2,
     pub max: Vec2,
@@ -70,10 +65,19 @@ impl Aabb2 {
         size.x * size.y
     }
 
+    /// Returns the AABB with extended size.
+    #[inline]
+    pub fn extends(self, size: f32) -> Self {
+        Self {
+            min: self.min - Vec2::splat(size),
+            max: self.max + Vec2::splat(size),
+        }
+    }
+
     /// Returns a AABB with the smallest integer greater than or equal to `self`'s
     /// element as element.
     #[inline]
-    pub fn ceil(&self) -> Self {
+    pub fn ceil(self) -> Self {
         Self {
             min: self.min.ceil(),
             max: self.max.ceil(),
@@ -83,7 +87,7 @@ impl Aabb2 {
     /// Returns a AABB with the nearest integer to `self`'s
     /// element as element.
     #[inline]
-    pub fn round(&self) -> Self {
+    pub fn round(self) -> Self {
         Self {
             min: self.min.round(),
             max: self.max.round(),
@@ -93,7 +97,7 @@ impl Aabb2 {
     /// Returns a AABB with the largest integer smaller than or equal to `self`'s
     /// element as element.
     #[inline]
-    pub fn floor(&self) -> Self {
+    pub fn floor(self) -> Self {
         Self {
             min: self.min.floor(),
             max: self.max.floor(),
@@ -102,7 +106,7 @@ impl Aabb2 {
 
     /// Returns a AABB with `self`'s element integer part.
     #[inline]
-    pub fn trunc(&self) -> Self {
+    pub fn trunc(self) -> Self {
         Self {
             min: self.min.trunc(),
             max: self.max.trunc(),
@@ -111,10 +115,28 @@ impl Aabb2 {
 
     /// Returns a AABB with `self`'s element fractional part.
     #[inline]
-    pub fn fract(&self) -> Self {
+    pub fn fract(self) -> Self {
         Self {
             min: self.min.fract(),
             max: self.max.fract(),
+        }
+    }
+
+    /// Returns the smallest integer AABB that can covers `self` area.
+    #[inline]
+    pub fn trunc_over(self) -> Self {
+        Self {
+            min: self.min.floor(),
+            max: self.max.ceil(),
+        }
+    }
+
+    /// Returns the largest integer AABB that can be covered by `self` area.
+    #[inline]
+    pub fn trunc_under(self) -> Self {
+        Self {
+            min: self.min.floor(),
+            max: self.max.ceil(),
         }
     }
 
@@ -147,7 +169,7 @@ impl Aabb2 {
 
     /// Calculates the Euclidean division.
     #[inline]
-    pub fn div_euclid_f32(&self, rhs: f32) -> Self {
+    pub fn div_euclid_f32(self, rhs: f32) -> Self {
         Self {
             min: self.min.div_euclid(vec2(rhs, rhs)),
             max: self.max.div_euclid(vec2(rhs, rhs)),
@@ -156,7 +178,7 @@ impl Aabb2 {
 
     /// Calculates the Euclidean division.
     #[inline]
-    pub fn div_euclid_vec2(&self, rhs: Vec2) -> Self {
+    pub fn div_euclid_vec2(self, rhs: Vec2) -> Self {
         Self {
             min: self.min.div_euclid(rhs),
             max: self.max.div_euclid(rhs),
@@ -165,7 +187,7 @@ impl Aabb2 {
 
     /// Calculates the Euclidean division.
     #[inline]
-    pub fn div_euclid(&self, rhs: Aabb2) -> Self {
+    pub fn div_euclid(self, rhs: Aabb2) -> Self {
         Self {
             min: self.min.div_euclid(rhs.min),
             max: self.max.div_euclid(rhs.max),
@@ -174,7 +196,7 @@ impl Aabb2 {
 
     /// Calculates the least nonnegative remainder of `self (mod rhs)`.
     #[inline]
-    pub fn rem_euclid_f32(&self, rhs: f32) -> Self {
+    pub fn rem_euclid_f32(self, rhs: f32) -> Self {
         Self {
             min: self.min.rem_euclid(vec2(rhs, rhs)),
             max: self.max.rem_euclid(vec2(rhs, rhs)),
@@ -183,7 +205,7 @@ impl Aabb2 {
 
     /// Calculates the least nonnegative remainder of `self (mod rhs)`.
     #[inline]
-    pub fn rem_euclid_vec2(&self, rhs: Vec2) -> Self {
+    pub fn rem_euclid_vec2(self, rhs: Vec2) -> Self {
         Self {
             min: self.min.rem_euclid(rhs),
             max: self.max.rem_euclid(rhs),
@@ -192,7 +214,7 @@ impl Aabb2 {
 
     /// Calculates the least nonnegative remainder of `self (mod rhs)`.
     #[inline]
-    pub fn rem_euclid(&self, rhs: Aabb2) -> Self {
+    pub fn rem_euclid(self, rhs: Aabb2) -> Self {
         Self {
             min: self.min.rem_euclid(rhs.min),
             max: self.max.rem_euclid(rhs.max),
@@ -221,17 +243,6 @@ impl Aabb2 {
             && self.min.y < rhs.max.y
             && rhs.min.x < self.max.x
             && rhs.min.y < self.max.y
-    }
-
-    /// Returns a grid bounds which contains `self` bounds on subdivided each `size`.
-    #[inline]
-    pub fn to_grid(&self, size: f32) -> IAabb2 {
-        let max_x = self.max.x.next_after(f32::NEG_INFINITY);
-        let max_y = self.max.y.next_after(f32::NEG_INFINITY);
-        let bounds = aabb2(self.min, vec2(max_x, max_y))
-            .div_euclid_f32(size)
-            .as_iaabb2();
-        iaabb2(bounds.min, bounds.max + IVec2::ONE)
     }
 
     /// Casts into `IAabb2`.
@@ -637,28 +648,28 @@ impl AsMut<[Vec2; 2]> for Aabb2 {
     }
 }
 
-impl Sum for Aabb2 {
+impl iter::Sum for Aabb2 {
     #[inline]
     fn sum<I: Iterator<Item = Aabb2>>(iter: I) -> Aabb2 {
         iter.fold(Aabb2::ZERO, Aabb2::add)
     }
 }
 
-impl<'a> Sum<&'a Aabb2> for Aabb2 {
+impl<'a> iter::Sum<&'a Aabb2> for Aabb2 {
     #[inline]
     fn sum<I: Iterator<Item = &'a Aabb2>>(iter: I) -> Aabb2 {
         iter.fold(Aabb2::ZERO, |a, &b| Aabb2::add(a, b))
     }
 }
 
-impl Product for Aabb2 {
+impl iter::Product for Aabb2 {
     #[inline]
     fn product<I: Iterator<Item = Aabb2>>(iter: I) -> Aabb2 {
         iter.fold(Aabb2::ZERO, Aabb2::mul)
     }
 }
 
-impl<'a> Product<&'a Aabb2> for Aabb2 {
+impl<'a> iter::Product<&'a Aabb2> for Aabb2 {
     #[inline]
     fn product<I: Iterator<Item = &'a Aabb2>>(iter: I) -> Aabb2 {
         iter.fold(Aabb2::ZERO, |a, &b| Aabb2::mul(a, b))
@@ -685,21 +696,6 @@ impl IndexMut<usize> for Aabb2 {
             1 => &mut self.max,
             _ => panic!("index out of bounds"),
         }
-    }
-}
-
-impl fmt::Display for Aabb2 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}, {}]", self.min, self.max)
-    }
-}
-
-impl fmt::Debug for Aabb2 {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_tuple(stringify!(Aabb2))
-            .field(&self.min)
-            .field(&self.max)
-            .finish()
     }
 }
 

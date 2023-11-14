@@ -28,14 +28,12 @@ impl Block {
 struct BlockMeta {
     block: Block,
     grid_index_rev: Vec<(IVec2, usize)>,
-    global_index_rev: IAabb2,
 }
 
 /// ブロックシステムの機能
 pub struct BlockSystem {
     block_metas: Slab<BlockMeta>,
     grid_index: HashMap<IVec2, Slab<usize>>,
-    global_index: HashMap<IVec2, usize>,
 }
 
 impl BlockSystem {
@@ -47,7 +45,6 @@ impl BlockSystem {
         Self {
             block_metas: Default::default(),
             grid_index: Default::default(),
-            global_index: Default::default(),
         }
     }
 
@@ -63,30 +60,23 @@ impl BlockSystem {
 
         let block_id = self.block_metas.vacant_key();
 
-        // インデクスを構築 (1)
-        let grid_bounds = bounds.to_grid(Self::GRID_SIZE);
-        let (min, max) = (grid_bounds.min, grid_bounds.max);
-        let grid_index_rev = itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .map(|grid| {
-                let id = self.grid_index.entry(grid).or_default().insert(block_id);
-                (grid, id)
+        // インデクスを構築
+        let grid_index_rev = bounds
+            .to_grid_space(Self::GRID_SIZE)
+            .into_iter_points()
+            .map(|grid_point| {
+                let id = self
+                    .grid_index
+                    .entry(grid_point)
+                    .or_default()
+                    .insert(block_id);
+                (grid_point, id)
             })
             .collect::<Vec<_>>();
-
-        // インデクスを構築 (2)
-        let (min, max) = (bounds.min, bounds.max);
-        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .for_each(|position| {
-                self.global_index.insert(position, block_id);
-            });
-        let global_index_rev = bounds;
 
         self.block_metas.insert(BlockMeta {
             block,
             grid_index_rev,
-            global_index_rev,
         });
         Some(block_id)
     }
@@ -96,22 +86,12 @@ impl BlockSystem {
         let BlockMeta {
             block,
             grid_index_rev,
-            global_index_rev,
         } = self.block_metas.try_remove(id)?;
 
-        // インデクスを破棄 (1)
-        grid_index_rev.into_iter().for_each(|(grid, id)| {
-            self.grid_index.get_mut(&grid).unwrap().remove(id);
+        // インデクスを破棄
+        grid_index_rev.into_iter().for_each(|(grid_point, id)| {
+            self.grid_index.get_mut(&grid_point).unwrap().remove(id);
         });
-
-        // インデクスを破棄 (2)
-        let bounds = global_index_rev;
-        let (min, max) = (bounds.min, bounds.max);
-        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .for_each(|position| {
-                self.global_index.remove(&position);
-            });
 
         Some(block)
     }
@@ -129,42 +109,15 @@ impl BlockSystem {
     }
 
     /// 指定した範囲に存在するブロックの識別子と参照を返す。
-    #[inline]
     pub fn get_from_bounds<'a>(
         &'a self,
         assets: &'a assets::Assets,
         bounds: IAabb2,
     ) -> impl Iterator<Item = (usize, &'a Block)> {
-        const VOLUME_THRESHOLD: i32 = 256;
-        if bounds.volume() <= VOLUME_THRESHOLD {
-            itertools::Either::Right(self.get_from_bounds_small(bounds))
-        } else {
-            itertools::Either::Left(self.get_from_bounds_large(assets, bounds))
-        }
-    }
-
-    /// 指定した範囲に存在するブロックの識別子と参照を返す。狭い範囲で効果的。
-    fn get_from_bounds_small(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Block)> {
-        let (min, max) = (bounds.min, bounds.max);
-        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .filter_map(move |position| self.global_index.get(&position))
-            .collect::<std::collections::BTreeSet<_>>()
-            .into_iter()
-            .map(|&id| (id, &self.block_metas[id].block))
-    }
-
-    /// 指定した範囲に存在するブロックの識別子と参照を返す。広い範囲で効果的。
-    fn get_from_bounds_large<'a>(
-        &'a self,
-        assets: &'a assets::Assets,
-        bounds: IAabb2,
-    ) -> impl Iterator<Item = (usize, &'a Block)> {
-        let grid_bounds = bounds.to_grid(Self::GRID_SIZE);
-        let (min, max) = (grid_bounds.min, grid_bounds.max);
-        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .filter_map(move |grid| self.grid_index.get(&grid))
+        bounds
+            .to_grid_space(Self::GRID_SIZE)
+            .into_iter_points()
+            .filter_map(move |grid_point| self.grid_index.get(&grid_point))
             .flatten()
             .collect::<std::collections::BTreeSet<_>>()
             .into_iter()

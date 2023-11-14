@@ -62,13 +62,16 @@ impl EntitySystem {
         let entity_id = self.entity_metas.vacant_key();
 
         // インデクスを構築
-        let grid_bounds = bounds.to_grid(Self::GRID_SIZE);
-        let (min, max) = (grid_bounds.min, grid_bounds.max);
-        let grid_index_rev = itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .map(|grid| {
-                let id = self.grid_index.entry(grid).or_default().insert(entity_id);
-                (grid, id)
+        let grid_index_rev = bounds
+            .to_grid_space(Self::GRID_SIZE)
+            .into_iter_points()
+            .map(|grid_point| {
+                let id = self
+                    .grid_index
+                    .entry(grid_point)
+                    .or_default()
+                    .insert(entity_id);
+                (grid_point, id)
             })
             .collect::<Vec<_>>();
 
@@ -87,8 +90,8 @@ impl EntitySystem {
         } = self.entity_metas.try_remove(id)?;
 
         // インデクスを破棄
-        grid_index_rev.into_iter().for_each(|(grid, id)| {
-            self.grid_index.get_mut(&grid).unwrap().remove(id);
+        grid_index_rev.into_iter().for_each(|(grid_point, id)| {
+            self.grid_index.get_mut(&grid_point).unwrap().remove(id);
         });
 
         Some(entity)
@@ -108,11 +111,10 @@ impl EntitySystem {
         assets: &'a assets::Assets,
         bounds: Aabb2,
     ) -> impl Iterator<Item = (usize, &'a Entity)> {
-        let grid_bounds = bounds.to_grid(Self::GRID_SIZE);
-        let (min, max) = (grid_bounds.min, grid_bounds.max);
-        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-            .map(|(x, y)| ivec2(x, y))
-            .filter_map(move |grid| self.grid_index.get(&grid))
+        bounds
+            .to_grid_space(Self::GRID_SIZE)
+            .into_iter_points()
+            .filter_map(move |grid_point| self.grid_index.get(&grid_point))
             .flatten()
             .collect::<std::collections::BTreeSet<_>>()
             .into_iter()

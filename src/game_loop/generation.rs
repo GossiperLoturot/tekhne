@@ -1,5 +1,6 @@
 //! ワールド生成の機能に関するモジュール
 
+use aabb::*;
 use ahash::HashSet;
 use glam::*;
 use itertools::Itertools;
@@ -18,6 +19,9 @@ impl GenerationSystem {
     /// 空間分割サイズ
     const GRID_SIZE: i32 = 32;
 
+    /// 範囲の外側に余剰に生成するグリッドの大きさ
+    const EXTEND_GRID: i32 = 2;
+
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -35,19 +39,22 @@ impl GenerationSystem {
         camera_system: &camera::CameraSystem,
     ) {
         if let Some(camera) = camera_system.get_camera() {
-            let grid_bounds = camera.view_bounds().to_grid(Self::GRID_SIZE as f32);
-            let (min, max) = (grid_bounds.min, grid_bounds.max);
+            let grid_bounds = camera
+                .view_bounds()
+                .trunc_over()
+                .as_iaabb2()
+                .to_grid_space(Self::GRID_SIZE)
+                .extends(Self::EXTEND_GRID);
 
-            itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-                .map(|(x, y)| ivec2(x, y))
-                .filter(|grid| !self.grid_flags.contains(grid))
+            grid_bounds
+                .into_iter_points()
+                .filter(|grid_point| !self.grid_flags.contains(grid_point))
                 .cartesian_product(&assets.generation_specs)
-                .for_each(|(grid, generation_spec)| match generation_spec {
+                .for_each(|(grid_point, generation_spec)| match generation_spec {
                     assets::GenerationSpec::FillBase { base_spec_id, .. } => {
-                        let min = grid * Self::GRID_SIZE;
-                        let max = (grid + IVec2::ONE) * Self::GRID_SIZE;
-                        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-                            .map(|(x, y)| ivec2(x, y))
+                        grid_point
+                            .to_base_space(Self::GRID_SIZE)
+                            .into_iter_points()
                             .for_each(|position| {
                                 let base = base::Base::new(*base_spec_id, position);
                                 base_system.insert(base);
@@ -58,11 +65,10 @@ impl GenerationSystem {
                         probability,
                         ..
                     } => {
-                        let min = grid * Self::GRID_SIZE;
-                        let max = (grid + IVec2::ONE) * Self::GRID_SIZE;
-                        itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
+                        grid_point
+                            .to_base_space(Self::GRID_SIZE)
+                            .into_iter_points()
                             .filter(|_| rand::random::<f32>() < *probability)
-                            .map(|(x, y)| ivec2(x, y))
                             .for_each(|position| {
                                 let z_random = rand::random();
                                 let block = block::Block::new(*block_spec_id, position, z_random);
@@ -71,11 +77,9 @@ impl GenerationSystem {
                     }
                 });
 
-            itertools::Itertools::cartesian_product(min.x..max.x, min.y..max.y)
-                .map(|(x, y)| ivec2(x, y))
-                .for_each(|grid| {
-                    self.grid_flags.insert(grid);
-                });
+            grid_bounds.into_iter_points().for_each(|grid_point| {
+                self.grid_flags.insert(grid_point);
+            });
         }
     }
 }

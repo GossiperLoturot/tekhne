@@ -113,6 +113,9 @@ impl CameraSystem {
 
             let (_, y_scroll) = input.scroll_diff();
             camera.zoom = (camera.zoom + y_scroll).clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
+        } else {
+            // カメラがなければ生成する。
+            self.spawn_camera();
         }
     }
 }

@@ -248,8 +248,7 @@ impl BlockRenderer {
         game_loop: &game_loop::GameLoop,
     ) {
         if let Some(camera) = game_loop.camera.get_camera() {
-            let bounds = camera.view_bounds();
-            let bounds = aabb2(bounds.min.floor(), bounds.max.ceil()).as_iaabb2();
+            let bounds = camera.view_bounds().trunc_over().as_iaabb2();
 
             game_loop
                 .block

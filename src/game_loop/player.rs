@@ -96,6 +96,9 @@ impl PlayerSystem {
 
                 entity_system.insert(assets, player);
             }
+        } else {
+            // プレイヤーがいなければ生成する。
+            self.spawn_player(assets, entity_system);
         }
     }
 }
