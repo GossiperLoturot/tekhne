@@ -48,7 +48,7 @@ impl BaseSystem {
     pub fn insert(&mut self, base: Base) -> Option<usize> {
         // 重複の回避
         let bounds = iaabb2(base.position, base.position + IVec2::ONE);
-        if self.contains_from_bounds(bounds) {
+        if self.contains_by_logic_bounds(bounds) {
             return None;
         }
 
@@ -101,23 +101,35 @@ impl BaseSystem {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn contains_from_bounds(&self, bounds: IAabb2) -> bool {
-        self.get_from_bounds(bounds).next().is_some()
+    pub fn contains_by_logic_bounds(&self, bounds: IAabb2) -> bool {
+        self.get_by_logic_bounds(bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。
     #[inline]
-    pub fn get_from_bounds(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
+    pub fn get_by_logic_bounds(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
         const VOLUME_THRESHOLD: i32 = 256;
         if bounds.volume() <= VOLUME_THRESHOLD {
-            itertools::Either::Right(self.get_from_bounds_small(bounds))
+            itertools::Either::Right(self.get_by_bounds_small(bounds))
         } else {
-            itertools::Either::Left(self.get_from_bounds_large(bounds))
+            itertools::Either::Left(self.get_by_bounds_large(bounds))
         }
     }
 
+    /// 指定した範囲にベースが存在するか真偽値を返す。
+    #[inline]
+    pub fn contains_by_view_bounds(&self, bounds: Aabb2) -> bool {
+        self.get_by_view_bounds(bounds).next().is_some()
+    }
+
+    /// 指定した範囲に存在するベースの識別子と参照を返す。
+    #[inline]
+    pub fn get_by_view_bounds(&self, bounds: Aabb2) -> impl Iterator<Item = (usize, &Base)> {
+        self.get_by_logic_bounds(bounds.trunc_over().as_iaabb2())
+    }
+
     /// 指定した範囲に存在するベースの識別子と参照を返す。狭い範囲で効果的。
-    fn get_from_bounds_small(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
+    fn get_by_bounds_small(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
         bounds
             .into_iter_points()
             .filter_map(move |position| self.global_index.get(&position))
@@ -125,7 +137,7 @@ impl BaseSystem {
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。広い範囲で効果的。
-    fn get_from_bounds_large(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
+    fn get_by_bounds_large(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
         bounds
             .to_grid_space(Self::GRID_SIZE)
             .into_iter_points()

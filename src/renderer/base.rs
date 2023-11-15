@@ -247,11 +247,11 @@ impl BaseRenderer {
         game_loop: &game_loop::GameLoop,
     ) {
         if let Some(camera) = game_loop.camera.get_camera() {
-            let bounds = camera.view_bounds().trunc_over().as_iaabb2();
+            let bounds = camera.view_bounds();
 
             game_loop
                 .base
-                .get_from_bounds(bounds)
+                .get_by_view_bounds(bounds)
                 .for_each(|(_, base)| {
                     let bounds = iaabb2(base.position, base.position + IVec2::ONE).as_aabb2();
                     let texcoord = &self.texcoords[base.spec_id];

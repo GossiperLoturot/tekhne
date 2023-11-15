@@ -248,16 +248,15 @@ impl BlockRenderer {
         game_loop: &game_loop::GameLoop,
     ) {
         if let Some(camera) = game_loop.camera.get_camera() {
-            let bounds = camera.view_bounds().trunc_over().as_iaabb2();
+            let bounds = camera.view_bounds();
 
             game_loop
                 .block
-                .get_from_bounds(assets, bounds)
+                .get_by_view_bounds(assets, bounds)
                 .for_each(|(_, block)| {
                     let spec = &assets.block_specs[block.spec_id];
 
-                    let bounds =
-                        iaabb2(block.position, block.position).as_aabb2() + spec.render_size;
+                    let bounds = iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
                     let texcoord = &self.texcoords[block.spec_id];
                     let batch = &mut self.batches[texcoord.page as usize];
 
@@ -272,7 +271,7 @@ impl BlockRenderer {
                     let base_z = block.z_random as f32 * 0.00024414062; // 0 <= z < 2^(-8)
                     let (negative_y2z, positive_y2z) = match spec.y_axis {
                         assets::YAxis::Y => (0.0, 0.0),
-                        assets::YAxis::YZ => (spec.render_size.min.y, spec.render_size.max.y),
+                        assets::YAxis::YZ => (spec.view_size.min.y, spec.view_size.max.y),
                     };
                     batch.vertices.push(Vertex {
                         position: [bounds.min.x, bounds.min.y, base_z + negative_y2z],

@@ -21,8 +21,8 @@ pub struct BaseSpec {
 pub struct BlockSpec {
     pub id: usize,
     pub label: String,
-    pub size: IVec2,
-    pub render_size: Aabb2,
+    pub logic_size: IVec2,
+    pub view_size: Aabb2,
     pub y_axis: YAxis,
     pub texture_path: PathBuf,
     pub texture_mip_option: image_atlas::AtlasEntryMipOption,
@@ -31,8 +31,8 @@ pub struct BlockSpec {
 pub struct EntitySpec {
     pub id: usize,
     pub label: String,
-    pub size: Vec2,
-    pub render_size: Aabb2,
+    pub logic_size: Vec2,
+    pub view_size: Aabb2,
     pub y_axis: YAxis,
     pub texture_path: PathBuf,
     pub texture_mip_option: image_atlas::AtlasEntryMipOption,
@@ -92,8 +92,8 @@ impl Assets {
         #[serde(rename_all = "camelCase")]
         struct BlockSpecIn {
             label: String,
-            size: IVec2In,
-            render_size: Aabb2In,
+            logic_size: IVec2In,
+            view_size: Aabb2In,
             y_axis: String,
             texture_path: String,
             texture_mip_option: String,
@@ -103,8 +103,8 @@ impl Assets {
         #[serde(rename_all = "camelCase")]
         struct EntitySpecIn {
             label: String,
-            size: Vec2In,
-            render_size: Aabb2In,
+            logic_size: Vec2In,
+            view_size: Aabb2In,
             y_axis: String,
             texture_path: String,
             texture_mip_option: String,
@@ -176,17 +176,17 @@ impl Assets {
                     id,
                     BlockSpecIn {
                         label,
-                        size,
-                        render_size,
+                        logic_size,
+                        view_size,
                         y_axis,
                         texture_path,
                         texture_mip_option,
                     },
                 )| {
-                    let size = ivec2(size.x, size.y);
-                    let render_size = aabb2(
-                        vec2(render_size.min.x, render_size.min.y),
-                        vec2(render_size.max.x, render_size.max.y),
+                    let logic_size = ivec2(logic_size.x, logic_size.y);
+                    let view_size = aabb2(
+                        vec2(view_size.min.x, view_size.min.y),
+                        vec2(view_size.max.x, view_size.max.y),
                     );
                     let y_axis = match y_axis.as_str() {
                         "y" => YAxis::Y,
@@ -204,8 +204,8 @@ impl Assets {
                     BlockSpec {
                         id,
                         label,
-                        size,
-                        render_size,
+                        logic_size,
+                        view_size,
                         y_axis,
                         texture_path,
                         texture_mip_option,
@@ -222,17 +222,17 @@ impl Assets {
                     id,
                     EntitySpecIn {
                         label,
-                        size,
-                        render_size,
+                        logic_size,
+                        view_size,
                         y_axis,
                         texture_path,
                         texture_mip_option,
                     },
                 )| {
-                    let size = vec2(size.x, size.y);
-                    let render_size = aabb2(
-                        vec2(render_size.min.x, render_size.min.y),
-                        vec2(render_size.max.x, render_size.max.y),
+                    let logic_size = vec2(logic_size.x, logic_size.y);
+                    let view_size = aabb2(
+                        vec2(view_size.min.x, view_size.min.y),
+                        vec2(view_size.max.x, view_size.max.y),
                     );
                     let y_axis = match y_axis.as_str() {
                         "y" => YAxis::Y,
@@ -250,8 +250,8 @@ impl Assets {
                     EntitySpec {
                         id,
                         label,
-                        size,
-                        render_size,
+                        logic_size,
+                        view_size,
                         y_axis,
                         texture_path,
                         texture_mip_option,
