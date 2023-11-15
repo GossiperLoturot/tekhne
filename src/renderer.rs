@@ -1,37 +1,33 @@
 //! 描写に関するモジュール
 
-use crate::system::{ReadBack, System};
-use camera::CameraResource;
-use depth::DepthResource;
-use primitive::PrimitivePipeline;
-use ui::UICameraResource;
-use ui::UIInventoryPipeline;
+use crate::{assets, game_loop};
 
-mod camera;
-mod depth;
-mod primitive;
-mod ui;
+pub mod base;
+pub mod block;
+pub mod camera;
+pub mod depth;
+pub mod entity;
 
-/// 描写に関する操作を行うコンテキスト
-pub struct Render {
+/// 描写の機能
+pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface,
     staging_belt: wgpu::util::StagingBelt,
-    camera_resource: CameraResource,
-    depth_resource: DepthResource,
-    primitive_pipeline: PrimitivePipeline,
-    ui_camera_resource: UICameraResource,
-    ui_inventoy_pipeline: UIInventoryPipeline,
+    camera_resource: camera::CameraResource,
+    depth_resource: depth::DepthResource,
+    base_renderer: base::BaseRenderer,
+    block_renderer: block::BlockRenderer,
+    entity_renderer: entity::EntityRenderer,
 }
 
-impl Render {
+impl Renderer {
     /// 新しいコンテキストを作成する。(非同期)
     ///
     /// # Panic
     ///
     /// 互換性のある`Adapter`、`Surface`が存在しない場合
-    pub async fn new_async(window: &winit::window::Window) -> Self {
+    pub async fn new_async(assets: &assets::Assets, window: &winit::window::Window) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
         let surface = unsafe { instance.create_surface(window) }.unwrap();
         let adapter = instance
@@ -53,12 +49,14 @@ impl Render {
         surface.configure(&device, &config);
         let staging_belt = wgpu::util::StagingBelt::new(1024);
 
-        let camera_resource = CameraResource::new(&device, &config);
-        let depth_resource = DepthResource::new(&device, &config);
-        let primitive_pipeline = PrimitivePipeline::new(&device, &queue, &config, &camera_resource);
-        let ui_camera_resource = UICameraResource::new(&device, &config);
-        let ui_inventoy_pipeline =
-            UIInventoryPipeline::new(&device, &queue, &config, &ui_camera_resource);
+        let depth_resource = depth::DepthResource::new(&device, &config);
+        let camera_resource = camera::CameraResource::new(&device, &config);
+        let base_renderer =
+            base::BaseRenderer::new(&device, &queue, &config, assets, &camera_resource);
+        let block_renderer =
+            block::BlockRenderer::new(&device, &queue, &config, assets, &camera_resource);
+        let entity_renderer =
+            entity::EntityRenderer::new(&device, &queue, &config, assets, &camera_resource);
 
         Self {
             device,
@@ -67,9 +65,9 @@ impl Render {
             staging_belt,
             camera_resource,
             depth_resource,
-            primitive_pipeline,
-            ui_camera_resource,
-            ui_inventoy_pipeline,
+            base_renderer,
+            block_renderer,
+            entity_renderer,
         }
     }
 
@@ -81,23 +79,39 @@ impl Render {
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn draw(&mut self, service: &System) -> ReadBack {
+    pub fn draw(&mut self, assets: &assets::Assets, game_loop: &game_loop::GameLoop) {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
         self.staging_belt.recall();
 
-        self.camera_resource
-            .pre_draw(&self.device, &mut encoder, &mut self.staging_belt, service);
-        self.primitive_pipeline.pre_draw(
+        self.camera_resource.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            service,
+            game_loop,
         );
-        self.ui_camera_resource
-            .pre_draw(&self.device, &mut encoder, &mut self.staging_belt);
+        self.base_renderer.upload(
+            &self.device,
+            &mut encoder,
+            &mut self.staging_belt,
+            game_loop,
+        );
+        self.block_renderer.upload(
+            &self.device,
+            &mut encoder,
+            &mut self.staging_belt,
+            assets,
+            game_loop,
+        );
+        self.entity_renderer.upload(
+            &self.device,
+            &mut encoder,
+            &mut self.staging_belt,
+            assets,
+            game_loop,
+        );
 
         self.staging_belt.finish();
 
@@ -112,34 +126,30 @@ impl Render {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: true,
+                    store: wgpu::StoreOp::Discard,
                 },
             })],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: self.depth_resource.view(),
                 depth_ops: Some(wgpu::Operations {
                     load: wgpu::LoadOp::Clear(1.0),
-                    store: true,
+                    store: wgpu::StoreOp::Discard,
                 }),
                 stencil_ops: None,
             }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
         });
 
-        self.primitive_pipeline
+        self.base_renderer
             .draw(&mut render_pass, &self.camera_resource);
-        self.ui_inventoy_pipeline
-            .draw(&mut render_pass, &self.ui_camera_resource);
+        self.block_renderer
+            .draw(&mut render_pass, &self.camera_resource);
+        self.entity_renderer
+            .draw(&mut render_pass, &self.camera_resource);
 
         drop(render_pass);
         self.queue.submit([encoder.finish()]);
         frame.present();
-
-        let screen_to_world_matrix = self.camera_resource.screen_to_world_matrix();
-        let screen_to_ui_matrix = self.ui_camera_resource.screen_to_ui_matrix();
-
-        ReadBack {
-            screen_to_world_matrix,
-            screen_to_ui_matrix,
-        }
     }
 }
