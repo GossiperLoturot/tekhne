@@ -7,7 +7,8 @@ use glam::*;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets, game_loop,
+    assets,
+    game_loop::{self, base},
     renderer::{camera, depth},
 };
 
@@ -251,7 +252,7 @@ impl BaseRenderer {
 
             game_loop
                 .base
-                .get_by_view_bounds(bounds)
+                .get_by_bounds(base::Bounds::View(bounds))
                 .for_each(|(_, base)| {
                     let bounds = iaabb2(base.position, base.position + IVec2::ONE).as_aabb2();
                     let texcoord = &self.texcoords[base.spec_id];

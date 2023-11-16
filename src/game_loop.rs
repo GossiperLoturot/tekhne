@@ -18,6 +18,7 @@ pub struct GameLoop {
     pub entity: entity::EntitySystem,
     pub generation: generation::GenerationSystem,
     pub player: player::PlayerSystem,
+    pub player_spawn_picker: player::PlayerSpawnPicker,
     pub time_instant: time::Instant,
 }
 
@@ -32,6 +33,7 @@ impl GameLoop {
             entity: entity::EntitySystem::new(),
             generation: generation::GenerationSystem::new(),
             player: player::PlayerSystem::new(),
+            player_spawn_picker: player::PlayerSpawnPicker::new(),
             time_instant: time::Instant::now(),
         }
     }
@@ -45,6 +47,8 @@ impl GameLoop {
         let elapsed = self.time_instant.elapsed();
         self.time_instant = std::time::Instant::now();
 
+        self.player_spawn_picker
+            .update(assets, input, &mut self.player, &mut self.entity);
         self.player.update(assets, input, &mut self.entity, elapsed);
         self.camera.update(input, &self.entity, &self.player);
         self.generation.generate(

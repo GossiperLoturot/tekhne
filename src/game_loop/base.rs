@@ -5,6 +5,11 @@ use ahash::HashMap;
 use glam::*;
 use slab::Slab;
 
+pub enum Bounds {
+    Logic(IAabb2),
+    View(Aabb2),
+}
+
 pub struct Base {
     pub spec_id: usize,
     pub position: IVec2,
@@ -48,7 +53,7 @@ impl BaseSystem {
     pub fn insert(&mut self, base: Base) -> Option<usize> {
         // 重複の回避
         let bounds = iaabb2(base.position, base.position + IVec2::ONE);
-        if self.contains_by_logic_bounds(bounds) {
+        if self.contains_by_bounds(Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -101,31 +106,33 @@ impl BaseSystem {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn contains_by_logic_bounds(&self, bounds: IAabb2) -> bool {
-        self.get_by_logic_bounds(bounds).next().is_some()
+    pub fn contains_by_bounds(&self, bounds: Bounds) -> bool {
+        self.get_by_bounds(bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。
-    #[inline]
-    pub fn get_by_logic_bounds(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
-        const VOLUME_THRESHOLD: i32 = 256;
-        if bounds.volume() <= VOLUME_THRESHOLD {
-            itertools::Either::Right(self.get_by_bounds_small(bounds))
-        } else {
-            itertools::Either::Left(self.get_by_bounds_large(bounds))
+    pub fn get_by_bounds(&self, bounds: Bounds) -> impl Iterator<Item = (usize, &Base)> {
+        match bounds {
+            Bounds::Logic(bounds) => {
+                const VOLUME_THRESHOLD: i32 = 256;
+
+                if bounds.volume() <= VOLUME_THRESHOLD {
+                    itertools::Either::Right(self.get_by_bounds_small(bounds))
+                } else {
+                    itertools::Either::Left(self.get_by_bounds_large(bounds))
+                }
+            }
+            Bounds::View(bounds) => {
+                const VOLUME_THRESHOLD: i32 = 256;
+                let bounds = bounds.trunc_over().as_iaabb2();
+
+                if bounds.volume() <= VOLUME_THRESHOLD {
+                    itertools::Either::Right(self.get_by_bounds_small(bounds))
+                } else {
+                    itertools::Either::Left(self.get_by_bounds_large(bounds))
+                }
+            }
         }
-    }
-
-    /// 指定した範囲にベースが存在するか真偽値を返す。
-    #[inline]
-    pub fn contains_by_view_bounds(&self, bounds: Aabb2) -> bool {
-        self.get_by_view_bounds(bounds).next().is_some()
-    }
-
-    /// 指定した範囲に存在するベースの識別子と参照を返す。
-    #[inline]
-    pub fn get_by_view_bounds(&self, bounds: Aabb2) -> impl Iterator<Item = (usize, &Base)> {
-        self.get_by_logic_bounds(bounds.trunc_over().as_iaabb2())
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。狭い範囲で効果的。

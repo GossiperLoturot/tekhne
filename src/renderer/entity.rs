@@ -7,7 +7,8 @@ use glam::*;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets, game_loop,
+    assets,
+    game_loop::{self, entity},
     renderer::{camera, depth},
 };
 
@@ -252,7 +253,7 @@ impl EntityRenderer {
 
             game_loop
                 .entity
-                .get_by_view_bounds(assets, bounds)
+                .get_by_bounds(assets, entity::Bounds::View(bounds))
                 .for_each(|(_, entity)| {
                     let spec = &assets.entity_specs[entity.spec_id];
 

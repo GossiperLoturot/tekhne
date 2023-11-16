@@ -96,9 +96,43 @@ impl PlayerSystem {
 
                 entity_system.insert(assets, player);
             }
-        } else {
-            // プレイヤーがいなければ生成する。
-            self.spawn_player(assets, entity_system);
+        }
+    }
+}
+
+pub enum PlayerSpawnPicker {
+    Suspend,
+    Pick,
+}
+
+impl PlayerSpawnPicker {
+    #[inline]
+    pub fn new() -> Self {
+        Self::Suspend
+    }
+
+    pub fn update(
+        &mut self,
+        assets: &assets::Assets,
+        input: &winit_input_helper::WinitInputHelper,
+        player_system: &mut PlayerSystem,
+        entity_system: &mut entity::EntitySystem,
+    ) {
+        match self {
+            PlayerSpawnPicker::Suspend => {
+                if player_system.get_player(entity_system).is_none() {
+                    *self = Self::Pick;
+                }
+            }
+            PlayerSpawnPicker::Pick => {
+                if player_system.get_player(entity_system).is_some() {
+                    *self = Self::Suspend;
+                }
+
+                if input.key_pressed(winit::keyboard::KeyCode::Enter) {
+                    player_system.spawn_player(assets, entity_system);
+                }
+            }
         }
     }
 }

@@ -7,6 +7,11 @@ use slab::Slab;
 
 use crate::assets;
 
+pub enum Bounds {
+    Logic(IAabb2),
+    View(Aabb2),
+}
+
 pub struct Block {
     pub spec_id: usize,
     pub position: IVec2,
@@ -60,7 +65,7 @@ impl BlockSystem {
 
         // 重複の回避
         let bounds = iaabb2(block.position, block.position + spec.logic_size);
-        if self.contains_by_logic_bounds(assets, bounds) {
+        if self.contains_by_bounds(assets, Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -143,56 +148,50 @@ impl BlockSystem {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn contains_by_logic_bounds(&self, assets: &assets::Assets, bounds: IAabb2) -> bool {
-        self.get_by_logic_bounds(assets, bounds).next().is_some()
+    pub fn contains_by_bounds(&self, assets: &assets::Assets, bounds: Bounds) -> bool {
+        self.get_by_bounds(assets, bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するブロックの識別子と参照を返す。
-    pub fn get_by_logic_bounds<'a>(
+    pub fn get_by_bounds<'a>(
         &'a self,
         assets: &'a assets::Assets,
-        bounds: IAabb2,
+        bounds: Bounds,
     ) -> impl Iterator<Item = (usize, &'a Block)> {
-        bounds
-            .to_grid_space(Self::LOGIC_GRID_SIZE)
-            .into_iter_points()
-            .filter_map(move |grid_point| self.logic_grid_index.get(&grid_point))
-            .flatten()
-            .collect::<std::collections::BTreeSet<_>>()
-            .into_iter()
-            .map(|(_, &id)| (id, &self.block_metas[id].block))
-            .filter(move |(_, block)| {
-                let spec = &assets.block_specs[block.spec_id];
-                let block_bounds = iaabb2(block.position, block.position + spec.logic_size);
-                bounds.intersects(block_bounds)
-            })
-    }
-
-    /// 指定した範囲にベースが存在するか真偽値を返す。
-    #[inline]
-    pub fn contains_by_view_bounds(&self, assets: &assets::Assets, bounds: Aabb2) -> bool {
-        self.get_by_view_bounds(assets, bounds).next().is_some()
-    }
-
-    /// 指定した範囲に存在するブロックの識別子と参照を返す。
-    pub fn get_by_view_bounds<'a>(
-        &'a self,
-        assets: &'a assets::Assets,
-        bounds: Aabb2,
-    ) -> impl Iterator<Item = (usize, &'a Block)> {
-        bounds
-            .to_grid_space(Self::VIEW_GRID_SIZE)
-            .into_iter_points()
-            .filter_map(move |grid_point| self.view_grid_index.get(&grid_point))
-            .flatten()
-            .collect::<std::collections::BTreeSet<_>>()
-            .into_iter()
-            .map(|(_, &id)| (id, &self.block_metas[id].block))
-            .filter(move |(_, block)| {
-                let spec = &assets.block_specs[block.spec_id];
-                let block_bounds =
-                    iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
-                bounds.intersects(block_bounds)
-            })
+        match bounds {
+            Bounds::Logic(bounds) => {
+                let iter = bounds
+                    .to_grid_space(Self::LOGIC_GRID_SIZE)
+                    .into_iter_points()
+                    .filter_map(move |grid_point| self.logic_grid_index.get(&grid_point))
+                    .flatten()
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .map(|(_, &id)| (id, &self.block_metas[id].block))
+                    .filter(move |(_, block)| {
+                        let spec = &assets.block_specs[block.spec_id];
+                        let block_bounds = iaabb2(block.position, block.position + spec.logic_size);
+                        bounds.intersects(block_bounds)
+                    });
+                itertools::Either::Right(iter)
+            }
+            Bounds::View(bounds) => {
+                let iter = bounds
+                    .to_grid_space(Self::VIEW_GRID_SIZE)
+                    .into_iter_points()
+                    .filter_map(move |grid_point| self.view_grid_index.get(&grid_point))
+                    .flatten()
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .map(|(_, &id)| (id, &self.block_metas[id].block))
+                    .filter(move |(_, block)| {
+                        let spec = &assets.block_specs[block.spec_id];
+                        let block_bounds =
+                            iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
+                        bounds.intersects(block_bounds)
+                    });
+                itertools::Either::Left(iter)
+            }
+        }
     }
 }

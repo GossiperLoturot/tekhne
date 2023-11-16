@@ -7,7 +7,8 @@ use glam::*;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets, game_loop,
+    assets,
+    game_loop::{self, block},
     renderer::{camera, depth},
 };
 
@@ -252,7 +253,7 @@ impl BlockRenderer {
 
             game_loop
                 .block
-                .get_by_view_bounds(assets, bounds)
+                .get_by_bounds(assets, block::Bounds::View(bounds))
                 .for_each(|(_, block)| {
                     let spec = &assets.block_specs[block.spec_id];
 
