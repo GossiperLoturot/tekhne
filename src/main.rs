@@ -15,6 +15,10 @@ fn main() {
     let mut game_loop = game_loop::GameLoop::new();
     let mut renderer = pollster::block_on(renderer::Renderer::new_async(&assets, &window));
     let mut input = winit_input_helper::WinitInputHelper::new();
+
+    let mut instant = std::time::Instant::now();
+    let mut read_back = None;
+
     use winit::event::Event;
     use winit::event::WindowEvent;
     event_loop
@@ -28,8 +32,10 @@ fn main() {
                 Event::WindowEvent { window_id, event } if window_id == window.id() => {
                     match event {
                         WindowEvent::RedrawRequested => {
-                            game_loop.update(&assets, &input);
-                            renderer.draw(&assets, &game_loop);
+                            let prev_instant =
+                                std::mem::replace(&mut instant, std::time::Instant::now());
+                            game_loop.update(&assets, &input, &read_back, prev_instant.elapsed());
+                            read_back = Some(renderer.draw(&assets, &game_loop));
                         }
                         WindowEvent::CloseRequested => {
                             control_flow.exit();

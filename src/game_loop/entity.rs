@@ -12,6 +12,7 @@ pub enum Bounds {
     View(Aabb2),
 }
 
+#[derive(Clone)]
 pub struct Entity {
     pub spec_id: usize,
     pub position: Vec2,
@@ -60,7 +61,7 @@ impl EntitySystem {
 
         // 重複の回避
         let bounds = aabb2(entity.position, entity.position + spec.logic_size);
-        if self.contains_by_bounds(assets, Bounds::Logic(bounds)) {
+        if self.exists_by_bounds(assets, Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -82,7 +83,7 @@ impl EntitySystem {
             .collect::<Vec<_>>();
 
         // インデクスを構築 (2)
-        let bounds = aabb2(entity.position, entity.position + spec.logic_size);
+        let bounds = entity.position + spec.view_size;
         let view_grid_index_rev = bounds
             .to_grid_space(Self::VIEW_GRID_SIZE)
             .into_iter_points()
@@ -144,7 +145,7 @@ impl EntitySystem {
 
     /// 指定した範囲にエンティティが存在するか真偽値を返す。
     #[inline]
-    pub fn contains_by_bounds(&self, assets: &assets::Assets, bounds: Bounds) -> bool {
+    pub fn exists_by_bounds(&self, assets: &assets::Assets, bounds: Bounds) -> bool {
         self.get_by_bounds(assets, bounds).next().is_some()
     }
 

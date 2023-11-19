@@ -50,11 +50,19 @@ pub enum GenerationSpec {
     },
 }
 
+pub struct PlayerSpec {
+    pub id: usize,
+    pub label: String,
+    pub entity_spec_id: usize,
+    pub texture_path: PathBuf,
+}
+
 pub struct Assets {
     pub base_specs: Vec<BaseSpec>,
     pub entity_specs: Vec<EntitySpec>,
     pub block_specs: Vec<BlockSpec>,
     pub generation_specs: Vec<GenerationSpec>,
+    pub player_specs: Vec<PlayerSpec>,
 }
 
 impl Assets {
@@ -124,11 +132,20 @@ impl Assets {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
+        struct PlayerSpecIn {
+            label: String,
+            entity_spec_label: String,
+            texture_path: String,
+        }
+
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
         struct AssetsIn {
             base_specs: Vec<BaseSpecIn>,
             block_specs: Vec<BlockSpecIn>,
             entity_specs: Vec<EntitySpecIn>,
             generation_specs: Vec<GenerationSpecIn>,
+            player_specs: Vec<PlayerSpecIn>,
         }
 
         let reader = File::open(path).unwrap();
@@ -137,6 +154,7 @@ impl Assets {
             block_specs,
             entity_specs,
             generation_specs,
+            player_specs,
         } = serde_json::from_reader(reader).unwrap();
 
         let base_specs = base_specs
@@ -268,11 +286,11 @@ impl Assets {
                     block_spec_label,
                     probability,
                 } => {
-                    let (block_spec_id, _) = block_specs
+                    let block_spec_id = block_specs
                         .iter()
-                        .enumerate()
-                        .find(|(_, block_spec)| block_spec.label == block_spec_label)
-                        .unwrap();
+                        .find(|block_spec| block_spec.label == block_spec_label)
+                        .unwrap()
+                        .id;
 
                     GenerationSpec::RandomBlock {
                         id,
@@ -281,15 +299,44 @@ impl Assets {
                     }
                 }
                 GenerationSpecIn::FillBase { base_spec_label } => {
-                    let (base_spec_id, _) = base_specs
+                    let base_spec_id = base_specs
                         .iter()
-                        .enumerate()
-                        .find(|(_, base_spec)| base_spec.label == base_spec_label)
-                        .unwrap();
+                        .find(|base_spec| base_spec.label == base_spec_label)
+                        .unwrap()
+                        .id;
 
                     GenerationSpec::FillBase { id, base_spec_id }
                 }
             })
+            .collect::<Vec<_>>();
+
+        let player_specs = player_specs
+            .into_iter()
+            .enumerate()
+            .map(
+                |(
+                    id,
+                    PlayerSpecIn {
+                        label,
+                        entity_spec_label,
+                        texture_path,
+                    },
+                )| {
+                    let entity_spec_id = entity_specs
+                        .iter()
+                        .find(|entity_spec| entity_spec.label == entity_spec_label)
+                        .unwrap()
+                        .id;
+                    let texture_path = texture_path.into();
+
+                    PlayerSpec {
+                        id,
+                        label,
+                        entity_spec_id,
+                        texture_path,
+                    }
+                },
+            )
             .collect::<Vec<_>>();
 
         Self {
@@ -297,6 +344,7 @@ impl Assets {
             block_specs,
             entity_specs,
             generation_specs,
+            player_specs,
         }
     }
 }

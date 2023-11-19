@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::{
     assets,
-    game_loop::{base, block, camera, entity},
+    game_loop::{base, block, entity},
 };
 
 /// ワールド生成の機能
@@ -30,56 +30,53 @@ impl GenerationSystem {
     }
 
     /// 指定した範囲のワールドを生成する。
-    pub fn generate(
+    pub fn update(
         &mut self,
         assets: &assets::Assets,
         base_system: &mut base::BaseSystem,
         block_system: &mut block::BlockSystem,
         entity_system: &mut entity::EntitySystem,
-        camera_system: &camera::CameraSystem,
+        bounds: Aabb2,
     ) {
-        if let Some(camera) = camera_system.get_camera() {
-            let grid_bounds = camera
-                .view_bounds()
-                .trunc_over()
-                .as_iaabb2()
-                .to_grid_space(Self::GRID_SIZE)
-                .extends(Self::EXTEND_GRID);
+        let grid_bounds = bounds
+            .trunc_over()
+            .as_iaabb2()
+            .to_grid_space(Self::GRID_SIZE)
+            .extends(Self::EXTEND_GRID);
 
-            grid_bounds
-                .into_iter_points()
-                .filter(|grid_point| !self.grid_flags.contains(grid_point))
-                .cartesian_product(&assets.generation_specs)
-                .for_each(|(grid_point, generation_spec)| match generation_spec {
-                    assets::GenerationSpec::FillBase { base_spec_id, .. } => {
-                        grid_point
-                            .to_base_space(Self::GRID_SIZE)
-                            .into_iter_points()
-                            .for_each(|position| {
-                                let base = base::Base::new(*base_spec_id, position);
-                                base_system.insert(base);
-                            });
-                    }
-                    assets::GenerationSpec::RandomBlock {
-                        block_spec_id,
-                        probability,
-                        ..
-                    } => {
-                        grid_point
-                            .to_base_space(Self::GRID_SIZE)
-                            .into_iter_points()
-                            .filter(|_| rand::random::<f32>() < *probability)
-                            .for_each(|position| {
-                                let z_random = rand::random();
-                                let block = block::Block::new(*block_spec_id, position, z_random);
-                                block_system.insert(assets, block);
-                            });
-                    }
-                });
-
-            grid_bounds.into_iter_points().for_each(|grid_point| {
-                self.grid_flags.insert(grid_point);
+        grid_bounds
+            .into_iter_points()
+            .filter(|grid_point| !self.grid_flags.contains(grid_point))
+            .cartesian_product(&assets.generation_specs)
+            .for_each(|(grid_point, generation_spec)| match generation_spec {
+                assets::GenerationSpec::FillBase { base_spec_id, .. } => {
+                    grid_point
+                        .to_base_space(Self::GRID_SIZE)
+                        .into_iter_points()
+                        .for_each(|position| {
+                            let base = base::Base::new(*base_spec_id, position);
+                            base_system.insert(base);
+                        });
+                }
+                assets::GenerationSpec::RandomBlock {
+                    block_spec_id,
+                    probability,
+                    ..
+                } => {
+                    grid_point
+                        .to_base_space(Self::GRID_SIZE)
+                        .into_iter_points()
+                        .filter(|_| rand::random::<f32>() < *probability)
+                        .for_each(|position| {
+                            let z_random = rand::random();
+                            let block = block::Block::new(*block_spec_id, position, z_random);
+                            block_system.insert(assets, block);
+                        });
+                }
             });
-        }
+
+        grid_bounds.into_iter_points().for_each(|grid_point| {
+            self.grid_flags.insert(grid_point);
+        });
     }
 }

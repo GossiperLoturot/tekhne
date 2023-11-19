@@ -20,7 +20,7 @@ struct Vertex {
 }
 
 impl Vertex {
-    const ATTRIBUTES: &[wgpu::VertexAttribute] =
+    const ATTRIBUTES: &'static [wgpu::VertexAttribute] =
         &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2];
 
     #[inline]
@@ -247,9 +247,7 @@ impl BaseRenderer {
         staging_belt: &mut wgpu::util::StagingBelt,
         game_loop: &game_loop::GameLoop,
     ) {
-        if let Some(camera) = game_loop.camera.get_camera() {
-            let bounds = camera.view_bounds();
-
+        if let Some(bounds) = game_loop.player.view_bounds() {
             game_loop
                 .base
                 .get_by_bounds(base::Bounds::View(bounds))

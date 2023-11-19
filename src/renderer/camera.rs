@@ -69,7 +69,7 @@ impl CameraResource {
     ) {
         self.screen_to_world_matrix = None;
 
-        if let Some(camera) = game_loop.camera.get_camera() {
+        if let Some(view_matrix) = game_loop.player.view_matrix() {
             // アスペクト比による引き延ばしを補正する行列
             // 描写空間の中に画面が収まるように補正する。
             let correction_matrix = Mat4::from_scale(vec3(
@@ -77,7 +77,7 @@ impl CameraResource {
                 (self.width as f32 / self.height as f32).max(1.0),
                 1.0,
             ));
-            let matrix = correction_matrix * camera.view_matrix();
+            let matrix = correction_matrix * view_matrix;
 
             if let Some(size) = num::NonZeroU64::new(self.matrix_buffer.size()) {
                 staging_belt

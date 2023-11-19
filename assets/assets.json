@@ -173,5 +173,12 @@
             "blockSpecLabel": "mixRock",
             "probability": 0.01
         }
+    ],
+    "playerSpecs": [
+        {
+            "label": "player",
+            "entitySpecLabel": "player",
+            "texturePath": "assets/textures/frame.png"
+        }
     ]
 }

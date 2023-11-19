@@ -10,6 +10,7 @@ pub enum Bounds {
     View(Aabb2),
 }
 
+#[derive(Clone)]
 pub struct Base {
     pub spec_id: usize,
     pub position: IVec2,
@@ -53,7 +54,7 @@ impl BaseSystem {
     pub fn insert(&mut self, base: Base) -> Option<usize> {
         // 重複の回避
         let bounds = iaabb2(base.position, base.position + IVec2::ONE);
-        if self.contains_by_bounds(Bounds::Logic(bounds)) {
+        if self.exists_by_bounds(Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -106,7 +107,7 @@ impl BaseSystem {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn contains_by_bounds(&self, bounds: Bounds) -> bool {
+    pub fn exists_by_bounds(&self, bounds: Bounds) -> bool {
         self.get_by_bounds(bounds).next().is_some()
     }
 

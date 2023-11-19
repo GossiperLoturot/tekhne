@@ -12,6 +12,7 @@ pub enum Bounds {
     View(Aabb2),
 }
 
+#[derive(Clone)]
 pub struct Block {
     pub spec_id: usize,
     pub position: IVec2,
@@ -65,7 +66,7 @@ impl BlockSystem {
 
         // 重複の回避
         let bounds = iaabb2(block.position, block.position + spec.logic_size);
-        if self.contains_by_bounds(assets, Bounds::Logic(bounds)) {
+        if self.exists_by_bounds(assets, Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -148,7 +149,7 @@ impl BlockSystem {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn contains_by_bounds(&self, assets: &assets::Assets, bounds: Bounds) -> bool {
+    pub fn exists_by_bounds(&self, assets: &assets::Assets, bounds: Bounds) -> bool {
         self.get_by_bounds(assets, bounds).next().is_some()
     }
 

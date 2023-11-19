@@ -1,5 +1,7 @@
 //! 描写に関するモジュール
 
+use glam::*;
+
 use crate::{assets, game_loop};
 
 pub mod base;
@@ -7,6 +9,10 @@ pub mod block;
 pub mod camera;
 pub mod depth;
 pub mod entity;
+
+pub struct ReadBack {
+    pub screen_to_world_matrix: Option<Mat4>,
+}
 
 /// 描写の機能
 pub struct Renderer {
@@ -79,7 +85,7 @@ impl Renderer {
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn draw(&mut self, assets: &assets::Assets, game_loop: &game_loop::GameLoop) {
+    pub fn draw(&mut self, assets: &assets::Assets, game_loop: &game_loop::GameLoop) -> ReadBack {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
@@ -151,5 +157,10 @@ impl Renderer {
         drop(render_pass);
         self.queue.submit([encoder.finish()]);
         frame.present();
+
+        let screen_to_world_matrix = self.camera_resource.screen_to_world_matrix();
+        ReadBack {
+            screen_to_world_matrix,
+        }
     }
 }
