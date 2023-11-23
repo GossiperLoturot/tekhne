@@ -7,9 +7,8 @@ use glam::*;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets,
-    game_loop::{self, block},
-    renderer::{camera, depth},
+    assets, game_loop,
+    renderer::{self, camera, depth},
 };
 
 #[repr(C)]
@@ -245,70 +244,65 @@ impl BlockRenderer {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        assets: &assets::Assets,
-        game_loop: &game_loop::GameLoop,
+        cx: &renderer::InputContext,
+        extract: &game_loop::GameExtract,
     ) {
-        if let Some(bounds) = game_loop.player.view_bounds() {
-            game_loop
-                .block
-                .get_by_bounds(assets, block::Bounds::View(bounds))
-                .for_each(|(_, block)| {
-                    let spec = &assets.block_specs[block.spec_id];
+        extract.blocks.iter().for_each(|block| {
+            let spec = &cx.assets.block_specs[block.spec_id];
 
-                    let bounds = iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
-                    let texcoord = &self.texcoords[block.spec_id];
-                    let batch = &mut self.batches[texcoord.page as usize];
+            let bounds = iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
+            let texcoord = &self.texcoords[block.spec_id];
+            let batch = &mut self.batches[texcoord.page as usize];
 
-                    let vertex_count = batch.vertices.len() as u32;
-                    batch.indices.push(vertex_count);
-                    batch.indices.push(vertex_count + 1);
-                    batch.indices.push(vertex_count + 2);
-                    batch.indices.push(vertex_count + 2);
-                    batch.indices.push(vertex_count + 3);
-                    batch.indices.push(vertex_count);
+            let vertex_count = batch.vertices.len() as u32;
+            batch.indices.push(vertex_count);
+            batch.indices.push(vertex_count + 1);
+            batch.indices.push(vertex_count + 2);
+            batch.indices.push(vertex_count + 2);
+            batch.indices.push(vertex_count + 3);
+            batch.indices.push(vertex_count);
 
-                    let base_z = block.z_random as f32 * 0.00024414062; // 0 <= z < 2^(-8)
-                    let (negative_y2z, positive_y2z) = match spec.y_axis {
-                        assets::YAxis::Y => (0.0, 0.0),
-                        assets::YAxis::YZ => (spec.view_size.min.y, spec.view_size.max.y),
-                    };
-                    batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.min.y, base_z + negative_y2z],
-                        texcoord: [texcoord.min_x, texcoord.max_y],
-                    });
-                    batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.min.y, base_z + negative_y2z],
-                        texcoord: [texcoord.max_x, texcoord.max_y],
-                    });
-                    batch.vertices.push(Vertex {
-                        position: [bounds.max.x, bounds.max.y, base_z + positive_y2z],
-                        texcoord: [texcoord.max_x, texcoord.min_y],
-                    });
-                    batch.vertices.push(Vertex {
-                        position: [bounds.min.x, bounds.max.y, base_z + positive_y2z],
-                        texcoord: [texcoord.min_x, texcoord.min_y],
-                    });
-                });
+            let base_z = block.z_random as f32 * 0.00024414062; // 0 <= z < 2^(-8)
+            let (negative_y2z, positive_y2z) = match spec.y_axis {
+                assets::YAxis::Y => (0.0, 0.0),
+                assets::YAxis::YZ => (spec.view_size.min.y, spec.view_size.max.y),
+            };
+            batch.vertices.push(Vertex {
+                position: [bounds.min.x, bounds.min.y, base_z + negative_y2z],
+                texcoord: [texcoord.min_x, texcoord.max_y],
+            });
+            batch.vertices.push(Vertex {
+                position: [bounds.max.x, bounds.min.y, base_z + negative_y2z],
+                texcoord: [texcoord.max_x, texcoord.max_y],
+            });
+            batch.vertices.push(Vertex {
+                position: [bounds.max.x, bounds.max.y, base_z + positive_y2z],
+                texcoord: [texcoord.max_x, texcoord.min_y],
+            });
+            batch.vertices.push(Vertex {
+                position: [bounds.min.x, bounds.max.y, base_z + positive_y2z],
+                texcoord: [texcoord.min_x, texcoord.min_y],
+            });
+        });
 
-            for batch in &mut self.batches {
-                let vertex_data = bytemuck::cast_slice(&batch.vertices);
-                if let Some(size) = num::NonZeroU64::new(vertex_data.len() as u64) {
-                    staging_belt
-                        .write_buffer(encoder, &batch.vertex_buffer, 0, size, device)
-                        .copy_from_slice(vertex_data);
-                }
-                batch.vertex_count = batch.vertices.len() as u32;
-                batch.vertices.clear();
-
-                let index_data = bytemuck::cast_slice(&batch.indices);
-                if let Some(size) = num::NonZeroU64::new(index_data.len() as u64) {
-                    staging_belt
-                        .write_buffer(encoder, &batch.index_buffer, 0, size, device)
-                        .copy_from_slice(index_data);
-                }
-                batch.index_count = batch.indices.len() as u32;
-                batch.indices.clear();
+        for batch in &mut self.batches {
+            let vertex_data = bytemuck::cast_slice(&batch.vertices);
+            if let Some(size) = num::NonZeroU64::new(vertex_data.len() as u64) {
+                staging_belt
+                    .write_buffer(encoder, &batch.vertex_buffer, 0, size, device)
+                    .copy_from_slice(vertex_data);
             }
+            batch.vertex_count = batch.vertices.len() as u32;
+            batch.vertices.clear();
+
+            let index_data = bytemuck::cast_slice(&batch.indices);
+            if let Some(size) = num::NonZeroU64::new(index_data.len() as u64) {
+                staging_belt
+                    .write_buffer(encoder, &batch.index_buffer, 0, size, device)
+                    .copy_from_slice(index_data);
+            }
+            batch.index_count = batch.indices.len() as u32;
+            batch.indices.clear();
         }
     }
 

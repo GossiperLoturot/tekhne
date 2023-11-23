@@ -10,8 +10,15 @@ pub mod camera;
 pub mod depth;
 pub mod entity;
 
+pub struct InputContext<'a> {
+    pub assets: &'a assets::Assets,
+    pub input: &'a winit_input_helper::WinitInputHelper,
+    pub read_back: &'a Option<ReadBack>,
+    pub elapsed: &'a std::time::Duration,
+}
+
 pub struct ReadBack {
-    pub screen_to_world_matrix: Option<Mat4>,
+    pub screen_to_world: Mat4,
 }
 
 /// 描写の機能
@@ -57,6 +64,7 @@ impl Renderer {
 
         let depth_resource = depth::DepthResource::new(&device, &config);
         let camera_resource = camera::CameraResource::new(&device, &config);
+
         let base_renderer =
             base::BaseRenderer::new(&device, &queue, &config, assets, &camera_resource);
         let block_renderer =
@@ -85,38 +93,41 @@ impl Renderer {
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn draw(&mut self, assets: &assets::Assets, game_loop: &game_loop::GameLoop) -> ReadBack {
+    pub fn draw(&mut self, cx: &InputContext, extract: &game_loop::GameExtract) -> ReadBack {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
         self.staging_belt.recall();
 
-        self.camera_resource.upload(
+        let camera_read_back = self.camera_resource.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            game_loop,
+            cx,
+            extract,
         );
+
         self.base_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            game_loop,
+            cx,
+            extract,
         );
         self.block_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            assets,
-            game_loop,
+            cx,
+            extract,
         );
         self.entity_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            assets,
-            game_loop,
+            cx,
+            extract,
         );
 
         self.staging_belt.finish();
@@ -158,9 +169,7 @@ impl Renderer {
         self.queue.submit([encoder.finish()]);
         frame.present();
 
-        let screen_to_world_matrix = self.camera_resource.screen_to_world_matrix();
-        ReadBack {
-            screen_to_world_matrix,
-        }
+        let screen_to_world = camera_read_back.screen_to_world;
+        ReadBack { screen_to_world }
     }
 }

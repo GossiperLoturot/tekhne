@@ -5,7 +5,7 @@ use ahash::HashMap;
 use glam::*;
 use slab::Slab;
 
-use crate::assets;
+use crate::game_loop;
 
 pub enum Bounds {
     Logic(IAabb2),
@@ -38,13 +38,13 @@ struct BlockMeta {
 }
 
 /// ブロックシステムの機能
-pub struct BlockSystem {
+pub struct BlockStorage {
     block_metas: Slab<BlockMeta>,
     logic_grid_index: HashMap<IVec2, Slab<usize>>,
     view_grid_index: HashMap<IVec2, Slab<usize>>,
 }
 
-impl BlockSystem {
+impl BlockStorage {
     /// 近傍探索のための空間分割サイズ
     const LOGIC_GRID_SIZE: i32 = 32;
 
@@ -61,12 +61,12 @@ impl BlockSystem {
     }
 
     /// ブロックを追加し、識別子を返す。
-    pub fn insert(&mut self, assets: &assets::Assets, block: Block) -> Option<usize> {
-        let spec = &assets.block_specs[block.spec_id];
+    pub fn insert(&mut self, cx: &game_loop::InputContext, block: Block) -> Option<usize> {
+        let spec = &cx.assets.block_specs[block.spec_id];
 
         // 重複の回避
         let bounds = iaabb2(block.position, block.position + spec.logic_size);
-        if self.exists_by_bounds(assets, Bounds::Logic(bounds)) {
+        if self.exists_by_bounds(cx, Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -111,7 +111,7 @@ impl BlockSystem {
     }
 
     /// ブロックを削除し、そのブロックを返す。
-    pub fn remove(&mut self, assets: &assets::Assets, id: usize) -> Option<Block> {
+    pub fn remove(&mut self, cx: &game_loop::InputContext, id: usize) -> Option<Block> {
         let BlockMeta {
             block,
             logic_grid_index_rev,
@@ -149,14 +149,14 @@ impl BlockSystem {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn exists_by_bounds(&self, assets: &assets::Assets, bounds: Bounds) -> bool {
-        self.get_by_bounds(assets, bounds).next().is_some()
+    pub fn exists_by_bounds(&self, cx: &game_loop::InputContext, bounds: Bounds) -> bool {
+        self.get_by_bounds(cx, bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するブロックの識別子と参照を返す。
     pub fn get_by_bounds<'a>(
         &'a self,
-        assets: &'a assets::Assets,
+        cx: &'a game_loop::InputContext,
         bounds: Bounds,
     ) -> impl Iterator<Item = (usize, &'a Block)> {
         match bounds {
@@ -170,7 +170,7 @@ impl BlockSystem {
                     .into_iter()
                     .map(|(_, &id)| (id, &self.block_metas[id].block))
                     .filter(move |(_, block)| {
-                        let spec = &assets.block_specs[block.spec_id];
+                        let spec = &cx.assets.block_specs[block.spec_id];
                         let block_bounds = iaabb2(block.position, block.position + spec.logic_size);
                         bounds.intersects(block_bounds)
                     });
@@ -186,7 +186,7 @@ impl BlockSystem {
                     .into_iter()
                     .map(|(_, &id)| (id, &self.block_metas[id].block))
                     .filter(move |(_, block)| {
-                        let spec = &assets.block_specs[block.spec_id];
+                        let spec = &cx.assets.block_specs[block.spec_id];
                         let block_bounds =
                             iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
                         bounds.intersects(block_bounds)

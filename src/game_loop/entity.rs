@@ -5,7 +5,7 @@ use ahash::HashMap;
 use glam::*;
 use slab::Slab;
 
-use crate::assets;
+use crate::game_loop;
 
 pub enum Bounds {
     Logic(Aabb2),
@@ -33,13 +33,13 @@ struct EntityMeta {
 }
 
 /// エンティティシステムの機能
-pub struct EntitySystem {
+pub struct EntityStorage {
     entity_metas: Slab<EntityMeta>,
     logic_grid_index: HashMap<IVec2, Slab<usize>>,
     view_grid_index: HashMap<IVec2, Slab<usize>>,
 }
 
-impl EntitySystem {
+impl EntityStorage {
     /// 近傍探索のための空間分割サイズ
     const LOGIC_GRID_SIZE: f32 = 32.0;
 
@@ -56,12 +56,12 @@ impl EntitySystem {
     }
 
     /// エンティティを追加し、識別子を返す。
-    pub fn insert(&mut self, assets: &assets::Assets, entity: Entity) -> Option<usize> {
-        let spec = &assets.entity_specs[entity.spec_id];
+    pub fn insert(&mut self, cx: &game_loop::InputContext, entity: Entity) -> Option<usize> {
+        let spec = &cx.assets.entity_specs[entity.spec_id];
 
         // 重複の回避
         let bounds = aabb2(entity.position, entity.position + spec.logic_size);
-        if self.exists_by_bounds(assets, Bounds::Logic(bounds)) {
+        if self.exists_by_bounds(cx, Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -106,7 +106,7 @@ impl EntitySystem {
     }
 
     /// エンティティを削除し、そのエンティティを返す。
-    pub fn remove(&mut self, assets: &assets::Assets, id: usize) -> Option<Entity> {
+    pub fn remove(&mut self, cx: &game_loop::InputContext, id: usize) -> Option<Entity> {
         let EntityMeta {
             entity,
             logic_grid_index_rev,
@@ -145,14 +145,14 @@ impl EntitySystem {
 
     /// 指定した範囲にエンティティが存在するか真偽値を返す。
     #[inline]
-    pub fn exists_by_bounds(&self, assets: &assets::Assets, bounds: Bounds) -> bool {
-        self.get_by_bounds(assets, bounds).next().is_some()
+    pub fn exists_by_bounds(&self, cx: &game_loop::InputContext, bounds: Bounds) -> bool {
+        self.get_by_bounds(cx, bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するエンティティの識別子と参照を返す。
     pub fn get_by_bounds<'a>(
         &'a self,
-        assets: &'a assets::Assets,
+        cx: &'a game_loop::InputContext,
         bounds: Bounds,
     ) -> impl Iterator<Item = (usize, &'a Entity)> {
         match bounds {
@@ -166,7 +166,7 @@ impl EntitySystem {
                     .into_iter()
                     .map(|(_, &id)| (id, &self.entity_metas[id].entity))
                     .filter(move |(_, entity)| {
-                        let spec = &assets.entity_specs[entity.spec_id];
+                        let spec = &cx.assets.entity_specs[entity.spec_id];
                         let entity_bounds =
                             aabb2(entity.position, entity.position + spec.logic_size);
                         bounds.intersects(entity_bounds)
@@ -183,7 +183,7 @@ impl EntitySystem {
                     .into_iter()
                     .map(|(_, &id)| (id, &self.entity_metas[id].entity))
                     .filter(move |(_, entity)| {
-                        let spec = &assets.entity_specs[entity.spec_id];
+                        let spec = &cx.assets.entity_specs[entity.spec_id];
                         let entity_bounds =
                             aabb2(entity.position, entity.position) + spec.view_size;
                         bounds.intersects(entity_bounds)

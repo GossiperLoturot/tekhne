@@ -4,7 +4,11 @@ use std::num;
 
 use glam::*;
 
-use crate::game_loop;
+use crate::{game_loop, renderer};
+
+pub struct ReadBack {
+    pub screen_to_world: Mat4,
+}
 
 /// カメラの変換行列と画面のアスペクト比の計算と保持を行うリソース
 pub struct CameraResource {
@@ -13,7 +17,6 @@ pub struct CameraResource {
     bind_group: wgpu::BindGroup,
     width: u32,
     height: u32,
-    screen_to_world_matrix: Option<Mat4>,
 }
 
 impl CameraResource {
@@ -55,7 +58,6 @@ impl CameraResource {
             bind_group,
             width: config.width,
             height: config.height,
-            screen_to_world_matrix: None,
         }
     }
 
@@ -65,35 +67,34 @@ impl CameraResource {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        game_loop: &game_loop::GameLoop,
-    ) {
-        self.screen_to_world_matrix = None;
+        cx: &renderer::InputContext,
+        extract: &game_loop::GameExtract,
+    ) -> ReadBack {
+        // アスペクト比による引き延ばしを補正する行列
+        // 描写空間の中に画面が収まるように補正する。
+        let correction_matrix = Mat4::from_scale(vec3(
+            (self.height as f32 / self.width as f32).max(1.0),
+            (self.width as f32 / self.height as f32).max(1.0),
+            1.0,
+        ));
+        let matrix = correction_matrix * extract.view_matrix;
 
-        if let Some(view_matrix) = game_loop.player.view_matrix() {
-            // アスペクト比による引き延ばしを補正する行列
-            // 描写空間の中に画面が収まるように補正する。
-            let correction_matrix = Mat4::from_scale(vec3(
-                (self.height as f32 / self.width as f32).max(1.0),
-                (self.width as f32 / self.height as f32).max(1.0),
+        if let Some(size) = num::NonZeroU64::new(self.matrix_buffer.size()) {
+            staging_belt
+                .write_buffer(encoder, &self.matrix_buffer, 0, size, device)
+                .copy_from_slice(bytemuck::cast_slice(&[matrix]));
+        }
+
+        // ピクセル座標空間から[0,1]座標空間へ変換する行列
+        let transform_matrix = Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
+            * Mat4::from_scale(vec3(
+                (self.width as f32).recip() * 2.0,
+                -(self.height as f32).recip() * 2.0,
                 1.0,
             ));
-            let matrix = correction_matrix * view_matrix;
 
-            if let Some(size) = num::NonZeroU64::new(self.matrix_buffer.size()) {
-                staging_belt
-                    .write_buffer(encoder, &self.matrix_buffer, 0, size, device)
-                    .copy_from_slice(bytemuck::cast_slice(&[matrix]));
-            }
-
-            // ピクセル座標空間から[0,1]座標空間へ変換する行列
-            let transform_matrix = Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
-                * Mat4::from_scale(vec3(
-                    (self.width as f32).recip() * 2.0,
-                    -(self.height as f32).recip() * 2.0,
-                    1.0,
-                ));
-            self.screen_to_world_matrix = Some(matrix.inverse() * transform_matrix);
-        }
+        let screen_to_world = matrix.inverse() * transform_matrix;
+        ReadBack { screen_to_world }
     }
 
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
@@ -102,10 +103,5 @@ impl CameraResource {
 
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
-    }
-
-    /// 画面座標空間からワールド座標空間への変換行列を返す。
-    pub fn screen_to_world_matrix(&self) -> Option<Mat4> {
-        self.screen_to_world_matrix
     }
 }

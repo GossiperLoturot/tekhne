@@ -32,10 +32,26 @@ fn main() {
                 Event::WindowEvent { window_id, event } if window_id == window.id() => {
                     match event {
                         WindowEvent::RedrawRequested => {
-                            let prev_instant =
-                                std::mem::replace(&mut instant, std::time::Instant::now());
-                            game_loop.update(&assets, &input, &read_back, prev_instant.elapsed());
-                            read_back = Some(renderer.draw(&assets, &game_loop));
+                            let elapsed =
+                                std::mem::replace(&mut instant, std::time::Instant::now())
+                                    .elapsed();
+
+                            let cx = game_loop::InputContext {
+                                assets: &assets,
+                                input: &input,
+                                read_back: &read_back,
+                                elapsed: &elapsed,
+                            };
+                            game_loop.update(&cx);
+                            let extract = game_loop.extract(&cx);
+
+                            let cx = renderer::InputContext {
+                                assets: &assets,
+                                input: &input,
+                                read_back: &read_back,
+                                elapsed: &elapsed,
+                            };
+                            read_back = Some(renderer.draw(&cx, &extract));
                         }
                         WindowEvent::CloseRequested => {
                             control_flow.exit();

@@ -5,6 +5,8 @@ use ahash::HashMap;
 use glam::*;
 use slab::Slab;
 
+use crate::game_loop;
+
 pub enum Bounds {
     Logic(IAabb2),
     View(Aabb2),
@@ -31,13 +33,13 @@ struct BaseMeta {
 }
 
 /// ベースシステムの機能
-pub struct BaseSystem {
+pub struct BaseStorage {
     base_metas: Slab<BaseMeta>,
     grid_index: HashMap<IVec2, Slab<usize>>,
     global_index: HashMap<IVec2, usize>,
 }
 
-impl BaseSystem {
+impl BaseStorage {
     /// 近傍探索のための空間分割サイズ
     const GRID_SIZE: i32 = 32;
 
@@ -51,10 +53,10 @@ impl BaseSystem {
     }
 
     /// ベースを追加し、識別子を返す。
-    pub fn insert(&mut self, base: Base) -> Option<usize> {
+    pub fn insert(&mut self, cx: &game_loop::InputContext, base: Base) -> Option<usize> {
         // 重複の回避
         let bounds = iaabb2(base.position, base.position + IVec2::ONE);
-        if self.exists_by_bounds(Bounds::Logic(bounds)) {
+        if self.exists_by_bounds(cx, Bounds::Logic(bounds)) {
             return None;
         }
 
@@ -82,7 +84,7 @@ impl BaseSystem {
     }
 
     /// ベースを削除し、そのベースを返す。
-    pub fn remove(&mut self, id: usize) -> Option<Base> {
+    pub fn remove(&mut self, cx: &game_loop::InputContext, id: usize) -> Option<Base> {
         let BaseMeta {
             base,
             grid_index_rev,
@@ -107,20 +109,24 @@ impl BaseSystem {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn exists_by_bounds(&self, bounds: Bounds) -> bool {
-        self.get_by_bounds(bounds).next().is_some()
+    pub fn exists_by_bounds(&self, cx: &game_loop::InputContext, bounds: Bounds) -> bool {
+        self.get_by_bounds(cx, bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。
-    pub fn get_by_bounds(&self, bounds: Bounds) -> impl Iterator<Item = (usize, &Base)> {
+    pub fn get_by_bounds(
+        &self,
+        cx: &game_loop::InputContext,
+        bounds: Bounds,
+    ) -> impl Iterator<Item = (usize, &Base)> {
         match bounds {
             Bounds::Logic(bounds) => {
                 const VOLUME_THRESHOLD: i32 = 256;
 
                 if bounds.volume() <= VOLUME_THRESHOLD {
-                    itertools::Either::Right(self.get_by_bounds_small(bounds))
+                    itertools::Either::Right(self.get_by_bounds_small(cx, bounds))
                 } else {
-                    itertools::Either::Left(self.get_by_bounds_large(bounds))
+                    itertools::Either::Left(self.get_by_bounds_large(cx, bounds))
                 }
             }
             Bounds::View(bounds) => {
@@ -128,16 +134,20 @@ impl BaseSystem {
                 let bounds = bounds.trunc_over().as_iaabb2();
 
                 if bounds.volume() <= VOLUME_THRESHOLD {
-                    itertools::Either::Right(self.get_by_bounds_small(bounds))
+                    itertools::Either::Right(self.get_by_bounds_small(cx, bounds))
                 } else {
-                    itertools::Either::Left(self.get_by_bounds_large(bounds))
+                    itertools::Either::Left(self.get_by_bounds_large(cx, bounds))
                 }
             }
         }
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。狭い範囲で効果的。
-    fn get_by_bounds_small(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
+    fn get_by_bounds_small(
+        &self,
+        cx: &game_loop::InputContext,
+        bounds: IAabb2,
+    ) -> impl Iterator<Item = (usize, &Base)> {
         bounds
             .into_iter_points()
             .filter_map(move |position| self.global_index.get(&position))
@@ -145,7 +155,11 @@ impl BaseSystem {
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。広い範囲で効果的。
-    fn get_by_bounds_large(&self, bounds: IAabb2) -> impl Iterator<Item = (usize, &Base)> {
+    fn get_by_bounds_large(
+        &self,
+        cx: &game_loop::InputContext,
+        bounds: IAabb2,
+    ) -> impl Iterator<Item = (usize, &Base)> {
         bounds
             .to_grid_space(Self::GRID_SIZE)
             .into_iter_points()

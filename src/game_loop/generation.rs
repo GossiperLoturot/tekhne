@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::{
     assets,
-    game_loop::{base, block, entity},
+    game_loop::{self, base, block, entity},
 };
 
 /// ワールド生成の機能
@@ -30,12 +30,12 @@ impl GenerationSystem {
     }
 
     /// 指定した範囲のワールドを生成する。
-    pub fn update(
+    pub fn generate(
         &mut self,
-        assets: &assets::Assets,
-        base_system: &mut base::BaseSystem,
-        block_system: &mut block::BlockSystem,
-        entity_system: &mut entity::EntitySystem,
+        cx: &game_loop::InputContext,
+        base_storage: &mut base::BaseStorage,
+        block_storage: &mut block::BlockStorage,
+        entity_storage: &mut entity::EntityStorage,
         bounds: Aabb2,
     ) {
         let grid_bounds = bounds
@@ -47,7 +47,7 @@ impl GenerationSystem {
         grid_bounds
             .into_iter_points()
             .filter(|grid_point| !self.grid_flags.contains(grid_point))
-            .cartesian_product(&assets.generation_specs)
+            .cartesian_product(&cx.assets.generation_specs)
             .for_each(|(grid_point, generation_spec)| match generation_spec {
                 assets::GenerationSpec::FillBase { base_spec_id, .. } => {
                     grid_point
@@ -55,7 +55,7 @@ impl GenerationSystem {
                         .into_iter_points()
                         .for_each(|position| {
                             let base = base::Base::new(*base_spec_id, position);
-                            base_system.insert(base);
+                            base_storage.insert(cx, base);
                         });
                 }
                 assets::GenerationSpec::RandomBlock {
@@ -70,7 +70,7 @@ impl GenerationSystem {
                         .for_each(|position| {
                             let z_random = rand::random();
                             let block = block::Block::new(*block_spec_id, position, z_random);
-                            block_system.insert(assets, block);
+                            block_storage.insert(cx, block);
                         });
                 }
             });
