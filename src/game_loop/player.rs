@@ -3,7 +3,7 @@
 use aabb::*;
 use glam::*;
 
-use crate::game_loop::{self, base, block, entity};
+use crate::game_loop::{self, base, block, camera, entity};
 
 /// 選択しているオブジェクト
 pub enum Target {
@@ -60,10 +60,11 @@ impl PlayerSystem {
     /// ゲームサイクルにおける振る舞いを実行する。
     pub fn update(
         &mut self,
-        cx: &game_loop::InputContext,
+        cx: &game_loop::Context,
         base_storage: &mut base::BaseStorage,
         block_storage: &mut block::BlockStorage,
         entity_storage: &mut entity::EntityStorage,
+        camera_sys: &camera::CameraSystem,
     ) {
         match self {
             PlayerSystem::NotPresent(no_player) => {
@@ -108,43 +109,42 @@ impl PlayerSystem {
                 // NOTE: プレイヤーの移動
                 let mut move_entity = entity.clone();
                 if cx.input.key_held(winit::keyboard::KeyCode::KeyW) {
-                    move_entity.position.y += speed * cx.elapsed.as_secs_f32();
+                    move_entity.position.y += speed * cx.tick.as_secs_f32();
                 }
                 if cx.input.key_held(winit::keyboard::KeyCode::KeyS) {
-                    move_entity.position.y -= speed * cx.elapsed.as_secs_f32();
+                    move_entity.position.y -= speed * cx.tick.as_secs_f32();
                 }
                 if cx.input.key_held(winit::keyboard::KeyCode::KeyA) {
-                    move_entity.position.x -= speed * cx.elapsed.as_secs_f32();
+                    move_entity.position.x -= speed * cx.tick.as_secs_f32();
                 }
                 if cx.input.key_held(winit::keyboard::KeyCode::KeyD) {
-                    move_entity.position.x += speed * cx.elapsed.as_secs_f32();
+                    move_entity.position.x += speed * cx.tick.as_secs_f32();
                 }
                 player.entity_id = entity_storage.insert(cx, move_entity).unwrap();
 
                 // NOTE: オブジェクトの選択
-                if let Some(read_back) = cx.read_back {
-                    if let Some((x, y)) = cx.input.cursor() {
-                        let position = read_back
-                            .screen_to_world
-                            .project_point3(vec3(x, y, 0.0))
-                            .xy();
+                if let Some((x, y)) = cx.input.cursor() {
+                    let matrix = camera_sys
+                        .get()
+                        .world_to_viewport(*cx.window_size)
+                        .inverse();
 
-                        let bounds = aabb2(position, position);
+                    let position = matrix.project_point3(vec3(x, y, 0.0)).xy();
+                    let bounds = aabb2(position, position);
 
-                        let bases = base_storage
-                            .get_by_bounds(cx, base::Bounds::View(bounds))
-                            .map(|(id, _)| Target::Base(id));
-                        let blocks = block_storage
-                            .get_by_bounds(cx, block::Bounds::View(bounds))
-                            .map(|(id, _)| Target::Block(id));
-                        let entities = entity_storage
-                            .get_by_bounds(cx, entity::Bounds::View(bounds))
-                            .map(|(id, _)| Target::Entity(id));
+                    let bases = base_storage
+                        .get_by_bounds(cx, base::Bounds::View(bounds))
+                        .map(|(id, _)| Target::Base(id));
+                    let blocks = block_storage
+                        .get_by_bounds(cx, block::Bounds::View(bounds))
+                        .map(|(id, _)| Target::Block(id));
+                    let entities = entity_storage
+                        .get_by_bounds(cx, entity::Bounds::View(bounds))
+                        .map(|(id, _)| Target::Entity(id));
 
-                        let mut iter = entities.chain(blocks).chain(bases);
-                        if let Some(one) = iter.next() {
-                            player.target = one;
-                        }
+                    let mut iter = entities.chain(blocks).chain(bases);
+                    if let Some(one) = iter.next() {
+                        player.target = one;
                     }
                 }
             }

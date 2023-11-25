@@ -61,7 +61,7 @@ impl BlockStorage {
     }
 
     /// ブロックを追加し、識別子を返す。
-    pub fn insert(&mut self, cx: &game_loop::InputContext, block: Block) -> Option<usize> {
+    pub fn insert(&mut self, cx: &game_loop::Context, block: Block) -> Option<usize> {
         let spec = &cx.assets.block_specs[block.spec_id];
 
         // 重複の回避
@@ -111,7 +111,7 @@ impl BlockStorage {
     }
 
     /// ブロックを削除し、そのブロックを返す。
-    pub fn remove(&mut self, cx: &game_loop::InputContext, id: usize) -> Option<Block> {
+    pub fn remove(&mut self, cx: &game_loop::Context, id: usize) -> Option<Block> {
         let BlockMeta {
             block,
             logic_grid_index_rev,
@@ -149,14 +149,14 @@ impl BlockStorage {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn exists_by_bounds(&self, cx: &game_loop::InputContext, bounds: Bounds) -> bool {
+    pub fn exists_by_bounds(&self, cx: &game_loop::Context, bounds: Bounds) -> bool {
         self.get_by_bounds(cx, bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するブロックの識別子と参照を返す。
     pub fn get_by_bounds<'a>(
         &'a self,
-        cx: &'a game_loop::InputContext,
+        cx: &'a game_loop::Context,
         bounds: Bounds,
     ) -> impl Iterator<Item = (usize, &'a Block)> {
         match bounds {

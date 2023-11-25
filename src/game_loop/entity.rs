@@ -56,7 +56,7 @@ impl EntityStorage {
     }
 
     /// エンティティを追加し、識別子を返す。
-    pub fn insert(&mut self, cx: &game_loop::InputContext, entity: Entity) -> Option<usize> {
+    pub fn insert(&mut self, cx: &game_loop::Context, entity: Entity) -> Option<usize> {
         let spec = &cx.assets.entity_specs[entity.spec_id];
 
         // 重複の回避
@@ -106,7 +106,7 @@ impl EntityStorage {
     }
 
     /// エンティティを削除し、そのエンティティを返す。
-    pub fn remove(&mut self, cx: &game_loop::InputContext, id: usize) -> Option<Entity> {
+    pub fn remove(&mut self, cx: &game_loop::Context, id: usize) -> Option<Entity> {
         let EntityMeta {
             entity,
             logic_grid_index_rev,
@@ -145,14 +145,14 @@ impl EntityStorage {
 
     /// 指定した範囲にエンティティが存在するか真偽値を返す。
     #[inline]
-    pub fn exists_by_bounds(&self, cx: &game_loop::InputContext, bounds: Bounds) -> bool {
+    pub fn exists_by_bounds(&self, cx: &game_loop::Context, bounds: Bounds) -> bool {
         self.get_by_bounds(cx, bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するエンティティの識別子と参照を返す。
     pub fn get_by_bounds<'a>(
         &'a self,
-        cx: &'a game_loop::InputContext,
+        cx: &'a game_loop::Context,
         bounds: Bounds,
     ) -> impl Iterator<Item = (usize, &'a Entity)> {
         match bounds {

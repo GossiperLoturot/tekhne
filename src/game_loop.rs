@@ -2,7 +2,7 @@
 
 use glam::*;
 
-use crate::{assets, game_loop, renderer};
+use crate::{assets, game_loop};
 
 pub mod base;
 pub mod block;
@@ -11,15 +11,15 @@ pub mod entity;
 pub mod generation;
 pub mod player;
 
-pub struct InputContext<'a> {
+pub struct Context<'a> {
     pub assets: &'a assets::Assets,
     pub input: &'a winit_input_helper::WinitInputHelper,
-    pub read_back: &'a Option<renderer::ReadBack>,
-    pub elapsed: &'a std::time::Duration,
+    pub tick: &'a std::time::Duration,
+    pub window_size: &'a (u32, u32),
 }
 
 pub struct GameExtract {
-    pub view_matrix: Mat4,
+    pub matrix: Mat4,
     pub bases: Vec<base::Base>,
     pub blocks: Vec<block::Block>,
     pub entities: Vec<entity::Entity>,
@@ -49,12 +49,13 @@ impl GameLoop {
     }
 
     /// ゲームループを実行する。
-    pub fn update(&mut self, cx: &game_loop::InputContext) {
+    pub fn update(&mut self, cx: &game_loop::Context) {
         self.player_sys.update(
             cx,
             &mut self.base_storage,
             &mut self.block_storage,
             &mut self.entity_storage,
+            &self.camera_sys,
         );
 
         // NOTE: カメラの操作
@@ -62,15 +63,15 @@ impl GameLoop {
             let target = camera::Target::Entity(player.entity_id);
             self.camera_sys.follow(
                 cx,
-                &mut self.base_storage,
-                &mut self.block_storage,
-                &mut self.entity_storage,
+                &self.base_storage,
+                &self.block_storage,
+                &self.entity_storage,
                 target,
             );
         }
 
         // NOTE: 地形の自動生成
-        let bounds = self.camera_sys.get().view_bounds();
+        let bounds = self.camera_sys.get().clipping();
         self.generation_sys.generate(
             cx,
             &mut self.base_storage,
@@ -80,10 +81,10 @@ impl GameLoop {
         );
     }
 
-    pub fn extract<'a>(&self, cx: &game_loop::InputContext) -> GameExtract {
-        let view_matrix = self.camera_sys.get().view_matrix();
+    pub fn extract(&self, cx: &game_loop::Context) -> GameExtract {
+        let matrix = self.camera_sys.get().world_to_ndc(*cx.window_size);
 
-        let bounds = self.camera_sys.get().view_bounds();
+        let bounds = self.camera_sys.get().clipping();
 
         let bases = self
             .base_storage
@@ -107,7 +108,7 @@ impl GameLoop {
             .collect::<Vec<_>>();
 
         GameExtract {
-            view_matrix,
+            matrix,
             bases,
             blocks,
             entities,

@@ -32,7 +32,7 @@ impl GenerationSystem {
     /// 指定した範囲のワールドを生成する。
     pub fn generate(
         &mut self,
-        cx: &game_loop::InputContext,
+        cx: &game_loop::Context,
         base_storage: &mut base::BaseStorage,
         block_storage: &mut block::BlockStorage,
         entity_storage: &mut entity::EntityStorage,

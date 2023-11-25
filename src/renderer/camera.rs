@@ -4,19 +4,17 @@ use std::num;
 
 use glam::*;
 
-use crate::{game_loop, renderer};
+use crate::{assets, game_loop};
 
-pub struct ReadBack {
-    pub screen_to_world: Mat4,
-}
+/// デプスマップに使用するテクスチャのフォーマット[`wgpu::TextureFormat`]
+pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
 /// カメラの変換行列と画面のアスペクト比の計算と保持を行うリソース
 pub struct CameraResource {
     matrix_buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
-    width: u32,
-    height: u32,
+    view: wgpu::TextureView,
 }
 
 impl CameraResource {
@@ -52,13 +50,22 @@ impl CameraResource {
             }],
         });
 
+        let texture = create_depth_texture(device, config.width, config.height);
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
         Self {
             matrix_buffer,
             bind_group_layout,
             bind_group,
-            width: config.width,
-            height: config.height,
+            view,
         }
+    }
+
+    pub fn resize(&mut self, device: &wgpu::Device, window_size: (u32, u32)) {
+        let (width, height) = window_size;
+        let texture = create_depth_texture(device, width, height);
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        self.view = view;
     }
 
     /// 変換行列の計算とGPU上の行列データの更新を行う。
@@ -67,34 +74,16 @@ impl CameraResource {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        cx: &renderer::InputContext,
+        assets: &assets::Assets,
         extract: &game_loop::GameExtract,
-    ) -> ReadBack {
-        // アスペクト比による引き延ばしを補正する行列
-        // 描写空間の中に画面が収まるように補正する。
-        let correction_matrix = Mat4::from_scale(vec3(
-            (self.height as f32 / self.width as f32).max(1.0),
-            (self.width as f32 / self.height as f32).max(1.0),
-            1.0,
-        ));
-        let matrix = correction_matrix * extract.view_matrix;
+    ) {
+        let matrix = extract.matrix;
 
         if let Some(size) = num::NonZeroU64::new(self.matrix_buffer.size()) {
             staging_belt
                 .write_buffer(encoder, &self.matrix_buffer, 0, size, device)
                 .copy_from_slice(bytemuck::cast_slice(&[matrix]));
         }
-
-        // ピクセル座標空間から[0,1]座標空間へ変換する行列
-        let transform_matrix = Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
-            * Mat4::from_scale(vec3(
-                (self.width as f32).recip() * 2.0,
-                -(self.height as f32).recip() * 2.0,
-                1.0,
-            ));
-
-        let screen_to_world = matrix.inverse() * transform_matrix;
-        ReadBack { screen_to_world }
     }
 
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
@@ -104,4 +93,26 @@ impl CameraResource {
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
     }
+
+    /// デプスマップに使用するテクスチャのビュー[`wgpu::TextureView`]を返す。
+    pub fn view(&self) -> &wgpu::TextureView {
+        &self.view
+    }
+}
+
+fn create_depth_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
+    device.create_texture(&wgpu::TextureDescriptor {
+        label: None,
+        size: wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: DEPTH_FORMAT,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    })
 }

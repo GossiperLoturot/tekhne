@@ -6,10 +6,7 @@ use aabb::*;
 use glam::*;
 use wgpu::util::DeviceExt;
 
-use crate::{
-    assets, game_loop,
-    renderer::{self, camera, depth},
-};
+use crate::{assets, game_loop, renderer::camera};
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -209,7 +206,7 @@ impl BaseRenderer {
                 conservative: false,
             },
             depth_stencil: Some(wgpu::DepthStencilState {
-                format: depth::DepthResource::DEPTH_FORMAT,
+                format: camera::DEPTH_FORMAT,
                 depth_write_enabled: true,
                 depth_compare: wgpu::CompareFunction::Less,
                 stencil: wgpu::StencilState::default(),
@@ -244,7 +241,7 @@ impl BaseRenderer {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        cx: &renderer::InputContext,
+        assets: &assets::Assets,
         extract: &game_loop::GameExtract,
     ) {
         extract.bases.iter().for_each(|base| {

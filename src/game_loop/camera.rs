@@ -13,39 +13,58 @@ pub enum Target {
 pub struct Camera {
     position: Vec2,
     zoom: f32,
+    z_near: f32,
+    z_far: f32,
 }
 
 impl Camera {
-    /// Z値クリップの最小値
-    const Z_NEAR: f32 = -32.0;
-
-    /// Z値クリップの最大値
-    const Z_FAR: f32 = 32.0;
-
     /// 新しいカメラシステムを作成する。
     #[inline]
-    pub fn new(position: Vec2, zoom: f32) -> Self {
-        Self { position, zoom }
+    pub fn new(position: Vec2, zoom: f32, z_near: f32, z_far: f32) -> Self {
+        Self {
+            position,
+            zoom,
+            z_near,
+            z_far,
+        }
     }
 
-    /// 描写範囲を返す。
-    #[inline]
-    pub fn view_bounds(&self) -> Aabb2 {
+    pub fn clipping(&self) -> Aabb2 {
         aabb2(self.position - self.zoom, self.position + self.zoom)
     }
 
-    /// 描写範囲のビュー行列を返す。
-    #[inline]
-    pub fn view_matrix(&self) -> Mat4 {
-        let bounds = self.view_bounds();
-        Mat4::orthographic_rh(
+    pub fn world_to_ndc(&self, viewport: (u32, u32)) -> Mat4 {
+        let bounds = self.clipping();
+
+        // アスペクト比による引き延ばしを補正する行列
+        // 描写空間の中に画面が収まるように補正する。
+        let (width, height) = viewport;
+        let correction = Mat4::from_scale(vec3(
+            (height as f32 / width as f32).max(1.0),
+            (width as f32 / height as f32).max(1.0),
+            1.0,
+        ));
+
+        let clipping = Mat4::orthographic_rh(
             bounds.min.x,
             bounds.max.x,
             bounds.min.y,
             bounds.max.y,
-            Self::Z_NEAR,
-            Self::Z_FAR,
-        )
+            self.z_near,
+            self.z_far,
+        );
+
+        correction * clipping
+    }
+
+    pub fn world_to_viewport(&self, viewport: (u32, u32)) -> Mat4 {
+        // NDC空間からビューポート空間へ変換する行列
+        let (width, height) = viewport;
+        let ndc_to_viewport = Mat4::from_scale(vec3(width as f32 * 0.5, height as f32 * 0.5, 1.0))
+            * Mat4::from_translation(vec3(1.0, 1.0, 0.0))
+            * Mat4::from_scale(vec3(1.0, -1.0, 1.0));
+
+        ndc_to_viewport * self.world_to_ndc(viewport)
     }
 }
 
@@ -54,6 +73,9 @@ pub struct CameraSystem {
 }
 
 impl CameraSystem {
+    /// 初期位置
+    const ORIZIN: Vec2 = Vec2::ZERO;
+
     /// 拡大・縮小の初期値
     const ZOOM_INIT: f32 = 16.0;
 
@@ -63,6 +85,12 @@ impl CameraSystem {
     /// 拡大・縮小の最大値
     const ZOOM_MAX: f32 = 128.0;
 
+    /// Z値クリップの最小値
+    const Z_NEAR: f32 = -32.0;
+
+    /// Z値クリップの最大値
+    const Z_FAR: f32 = 32.0;
+
     /// 移動の速さ
     const MOVE_SPEED: f32 = 4.0;
 
@@ -71,9 +99,8 @@ impl CameraSystem {
 
     #[inline]
     pub fn new() -> Self {
-        Self {
-            camera: Camera::new(Vec2::ZERO, Self::ZOOM_INIT),
-        }
+        let camera = Camera::new(Self::ORIZIN, Self::ZOOM_INIT, Self::Z_NEAR, Self::Z_FAR);
+        Self { camera }
     }
 
     #[inline]
@@ -81,26 +108,25 @@ impl CameraSystem {
         &self.camera
     }
 
-    pub fn free_look(&mut self, cx: &game_loop::InputContext) {
+    pub fn free_look(&mut self, cx: &game_loop::Context) {
         // NOTE: 視点の移動
         if cx.input.key_held(winit::keyboard::KeyCode::KeyW) {
-            self.camera.position.y += Self::MOVE_SPEED * cx.elapsed.as_secs_f32();
+            self.camera.position.y += Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
         if cx.input.key_held(winit::keyboard::KeyCode::KeyS) {
-            self.camera.position.y -= Self::MOVE_SPEED * cx.elapsed.as_secs_f32();
+            self.camera.position.y -= Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
         if cx.input.key_held(winit::keyboard::KeyCode::KeyA) {
-            self.camera.position.x -= Self::MOVE_SPEED * cx.elapsed.as_secs_f32();
+            self.camera.position.x -= Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
         if cx.input.key_held(winit::keyboard::KeyCode::KeyD) {
-            self.camera.position.x += Self::MOVE_SPEED * cx.elapsed.as_secs_f32();
+            self.camera.position.x += Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
 
         // NOTE: 視点の拡大・縮小
         let (_, y_scroll) = cx.input.scroll_diff();
-        self.camera.zoom = (self.camera.zoom
-            + y_scroll * Self::ZOOM_SPEED * cx.elapsed.as_secs_f32())
-        .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
+        self.camera.zoom = (self.camera.zoom + y_scroll * Self::ZOOM_SPEED * cx.tick.as_secs_f32())
+            .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
 
         // NOTE: 視点の拡大・縮小の初期化
         if cx.input.mouse_held(2) {
@@ -110,8 +136,8 @@ impl CameraSystem {
 
     pub fn follow(
         &mut self,
-        cx: &game_loop::InputContext,
-        base_storage: &mut base::BaseStorage,
+        cx: &game_loop::Context,
+        base_storage: &base::BaseStorage,
         block_storage: &block::BlockStorage,
         entity_storage: &entity::EntityStorage,
         target: Target,
@@ -136,9 +162,8 @@ impl CameraSystem {
 
         // NOTE: 視点の拡大・縮小
         let (_, y_scroll) = cx.input.scroll_diff();
-        self.camera.zoom = (self.camera.zoom
-            + y_scroll * Self::ZOOM_SPEED * cx.elapsed.as_secs_f32())
-        .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
+        self.camera.zoom = (self.camera.zoom + y_scroll * Self::ZOOM_SPEED * cx.tick.as_secs_f32())
+            .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
 
         // NOTE: 視点の拡大・縮小の初期化
         if cx.input.mouse_held(2) {

@@ -1,34 +1,20 @@
 //! 描写に関するモジュール
 
-use glam::*;
-
 use crate::{assets, game_loop};
 
 pub mod base;
 pub mod block;
 pub mod camera;
-pub mod depth;
 pub mod entity;
-
-pub struct InputContext<'a> {
-    pub assets: &'a assets::Assets,
-    pub input: &'a winit_input_helper::WinitInputHelper,
-    pub read_back: &'a Option<ReadBack>,
-    pub elapsed: &'a std::time::Duration,
-}
-
-pub struct ReadBack {
-    pub screen_to_world: Mat4,
-}
 
 /// 描写の機能
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface,
     staging_belt: wgpu::util::StagingBelt,
     camera_resource: camera::CameraResource,
-    depth_resource: depth::DepthResource,
     base_renderer: base::BaseRenderer,
     block_renderer: block::BlockRenderer,
     entity_renderer: entity::EntityRenderer,
@@ -62,7 +48,6 @@ impl Renderer {
         surface.configure(&device, &config);
         let staging_belt = wgpu::util::StagingBelt::new(1024);
 
-        let depth_resource = depth::DepthResource::new(&device, &config);
         let camera_resource = camera::CameraResource::new(&device, &config);
 
         let base_renderer =
@@ -75,14 +60,24 @@ impl Renderer {
         Self {
             device,
             queue,
+            config,
             surface,
             staging_belt,
             camera_resource,
-            depth_resource,
             base_renderer,
             block_renderer,
             entity_renderer,
         }
+    }
+
+    pub fn resize(&mut self, window_size: (u32, u32)) {
+        let (width, height) = window_size;
+
+        self.config.width = width;
+        self.config.height = height;
+        self.surface.configure(&self.device, &self.config);
+
+        self.camera_resource.resize(&self.device, window_size);
     }
 
     /// 描写サイクルを実行する。
@@ -93,40 +88,39 @@ impl Renderer {
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn draw(&mut self, cx: &InputContext, extract: &game_loop::GameExtract) -> ReadBack {
+    pub fn draw(&mut self, assets: &assets::Assets, extract: &game_loop::GameExtract) {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
         self.staging_belt.recall();
 
-        let camera_read_back = self.camera_resource.upload(
+        self.camera_resource.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            cx,
+            assets,
             extract,
         );
-
         self.base_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            cx,
+            assets,
             extract,
         );
         self.block_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            cx,
+            assets,
             extract,
         );
         self.entity_renderer.upload(
             &self.device,
             &mut encoder,
             &mut self.staging_belt,
-            cx,
+            assets,
             extract,
         );
 
@@ -147,7 +141,7 @@ impl Renderer {
                 },
             })],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: self.depth_resource.view(),
+                view: self.camera_resource.view(),
                 depth_ops: Some(wgpu::Operations {
                     load: wgpu::LoadOp::Clear(1.0),
                     store: wgpu::StoreOp::Discard,
@@ -168,8 +162,5 @@ impl Renderer {
         drop(render_pass);
         self.queue.submit([encoder.finish()]);
         frame.present();
-
-        let screen_to_world = camera_read_back.screen_to_world;
-        ReadBack { screen_to_world }
     }
 }

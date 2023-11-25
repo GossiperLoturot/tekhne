@@ -6,10 +6,7 @@ use aabb::*;
 use glam::*;
 use wgpu::util::DeviceExt;
 
-use crate::{
-    assets, game_loop,
-    renderer::{self, camera, depth},
-};
+use crate::{assets, game_loop, renderer::camera};
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -209,7 +206,7 @@ impl BlockRenderer {
                 conservative: false,
             },
             depth_stencil: Some(wgpu::DepthStencilState {
-                format: depth::DepthResource::DEPTH_FORMAT,
+                format: camera::DEPTH_FORMAT,
                 depth_write_enabled: true,
                 depth_compare: wgpu::CompareFunction::Less,
                 stencil: wgpu::StencilState::default(),
@@ -244,11 +241,11 @@ impl BlockRenderer {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         staging_belt: &mut wgpu::util::StagingBelt,
-        cx: &renderer::InputContext,
+        assets: &assets::Assets,
         extract: &game_loop::GameExtract,
     ) {
         extract.blocks.iter().for_each(|block| {
-            let spec = &cx.assets.block_specs[block.spec_id];
+            let spec = &assets.block_specs[block.spec_id];
 
             let bounds = iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
             let texcoord = &self.texcoords[block.spec_id];

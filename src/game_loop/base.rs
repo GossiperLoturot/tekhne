@@ -53,7 +53,7 @@ impl BaseStorage {
     }
 
     /// ベースを追加し、識別子を返す。
-    pub fn insert(&mut self, cx: &game_loop::InputContext, base: Base) -> Option<usize> {
+    pub fn insert(&mut self, cx: &game_loop::Context, base: Base) -> Option<usize> {
         // 重複の回避
         let bounds = iaabb2(base.position, base.position + IVec2::ONE);
         if self.exists_by_bounds(cx, Bounds::Logic(bounds)) {
@@ -84,7 +84,7 @@ impl BaseStorage {
     }
 
     /// ベースを削除し、そのベースを返す。
-    pub fn remove(&mut self, cx: &game_loop::InputContext, id: usize) -> Option<Base> {
+    pub fn remove(&mut self, cx: &game_loop::Context, id: usize) -> Option<Base> {
         let BaseMeta {
             base,
             grid_index_rev,
@@ -109,14 +109,14 @@ impl BaseStorage {
 
     /// 指定した範囲にベースが存在するか真偽値を返す。
     #[inline]
-    pub fn exists_by_bounds(&self, cx: &game_loop::InputContext, bounds: Bounds) -> bool {
+    pub fn exists_by_bounds(&self, cx: &game_loop::Context, bounds: Bounds) -> bool {
         self.get_by_bounds(cx, bounds).next().is_some()
     }
 
     /// 指定した範囲に存在するベースの識別子と参照を返す。
     pub fn get_by_bounds(
         &self,
-        cx: &game_loop::InputContext,
+        cx: &game_loop::Context,
         bounds: Bounds,
     ) -> impl Iterator<Item = (usize, &Base)> {
         match bounds {
@@ -145,7 +145,7 @@ impl BaseStorage {
     /// 指定した範囲に存在するベースの識別子と参照を返す。狭い範囲で効果的。
     fn get_by_bounds_small(
         &self,
-        cx: &game_loop::InputContext,
+        cx: &game_loop::Context,
         bounds: IAabb2,
     ) -> impl Iterator<Item = (usize, &Base)> {
         bounds
@@ -157,7 +157,7 @@ impl BaseStorage {
     /// 指定した範囲に存在するベースの識別子と参照を返す。広い範囲で効果的。
     fn get_by_bounds_large(
         &self,
-        cx: &game_loop::InputContext,
+        cx: &game_loop::Context,
         bounds: IAabb2,
     ) -> impl Iterator<Item = (usize, &Base)> {
         bounds
