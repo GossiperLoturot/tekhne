@@ -4,12 +4,13 @@ use glam::*;
 
 use crate::{assets, game_loop};
 
-pub mod base;
-pub mod block;
-pub mod camera;
-pub mod entity;
-pub mod generation;
-pub mod player;
+mod base;
+mod block;
+mod camera;
+mod entity;
+mod generation;
+mod player;
+mod ui;
 
 pub struct Context<'a> {
     pub assets: &'a assets::Assets,

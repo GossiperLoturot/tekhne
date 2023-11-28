@@ -7,6 +7,8 @@ edition = "2021"
 aabb = { path = "crates/aabb" }
 ahash = "0.8"
 bytemuck = { version = "1.14", features = ["derive"] }
+egui = "0.24"
+egui-wgpu = "0.24"
 glam = { version = "0.24", features = ["bytemuck"] }
 image = { version = "0.24", default-features = false, features = ["png"] }
 image-atlas = "0.3"
