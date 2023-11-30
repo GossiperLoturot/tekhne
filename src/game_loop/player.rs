@@ -68,14 +68,14 @@ impl PlayerSystem {
     ) {
         match self {
             PlayerSystem::NotPresent(no_player) => {
-                if cx.input.key_pressed(winit::keyboard::KeyCode::KeyA) {
+                if cx.input.key_pressed(winit::event::VirtualKeyCode::W) {
                     no_player.player_spec_id = no_player
                         .player_spec_id
                         .saturating_sub(1)
                         .clamp(0, cx.assets.player_specs.len() - 1);
                 }
 
-                if cx.input.key_pressed(winit::keyboard::KeyCode::KeyD) {
+                if cx.input.key_pressed(winit::event::VirtualKeyCode::S) {
                     no_player.player_spec_id = no_player
                         .player_spec_id
                         .saturating_add(1)
@@ -83,7 +83,7 @@ impl PlayerSystem {
                 }
 
                 // NOTE: プレイヤーをワールド上に作成する。
-                if cx.input.key_pressed(winit::keyboard::KeyCode::Enter) {
+                if cx.input.key_pressed(winit::event::VirtualKeyCode::Return) {
                     let player_spec = &cx.assets.player_specs[no_player.player_spec_id];
                     let entity_spec = &cx.assets.entity_specs[player_spec.entity_spec_id];
 
@@ -100,7 +100,7 @@ impl PlayerSystem {
                 let entity = entity_storage.remove(cx, player.entity_id).unwrap();
 
                 // NOTE: スプリント or 通常
-                let speed = if cx.input.key_held(winit::keyboard::KeyCode::ShiftLeft) {
+                let speed = if cx.input.key_held(winit::event::VirtualKeyCode::LShift) {
                     Self::SPRINT_SPEED
                 } else {
                     Self::DEFAULT_SPEED
@@ -108,22 +108,22 @@ impl PlayerSystem {
 
                 // NOTE: プレイヤーの移動
                 let mut move_entity = entity.clone();
-                if cx.input.key_held(winit::keyboard::KeyCode::KeyW) {
+                if cx.input.key_held(winit::event::VirtualKeyCode::W) {
                     move_entity.position.y += speed * cx.tick.as_secs_f32();
                 }
-                if cx.input.key_held(winit::keyboard::KeyCode::KeyS) {
+                if cx.input.key_held(winit::event::VirtualKeyCode::S) {
                     move_entity.position.y -= speed * cx.tick.as_secs_f32();
                 }
-                if cx.input.key_held(winit::keyboard::KeyCode::KeyA) {
+                if cx.input.key_held(winit::event::VirtualKeyCode::A) {
                     move_entity.position.x -= speed * cx.tick.as_secs_f32();
                 }
-                if cx.input.key_held(winit::keyboard::KeyCode::KeyD) {
+                if cx.input.key_held(winit::event::VirtualKeyCode::D) {
                     move_entity.position.x += speed * cx.tick.as_secs_f32();
                 }
                 player.entity_id = entity_storage.insert(cx, move_entity).unwrap();
 
                 // NOTE: オブジェクトの選択
-                if let Some((x, y)) = cx.input.cursor() {
+                if let Some((x, y)) = cx.input.mouse() {
                     let matrix = camera_sys
                         .get()
                         .world_to_viewport(*cx.window_size)

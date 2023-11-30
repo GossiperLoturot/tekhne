@@ -10,7 +10,6 @@ mod camera;
 mod entity;
 mod generation;
 mod player;
-mod ui;
 
 pub struct Context<'a> {
     pub assets: &'a assets::Assets,

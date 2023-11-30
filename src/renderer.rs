@@ -6,7 +6,6 @@ mod base;
 mod block;
 mod camera;
 mod entity;
-mod gui;
 
 /// 描写の機能
 pub struct Renderer {
@@ -19,7 +18,6 @@ pub struct Renderer {
     base_renderer: base::BaseRenderer,
     block_renderer: block::BlockRenderer,
     entity_renderer: entity::EntityRenderer,
-    gui_renderer: gui::GUIRenderer,
 }
 
 impl Renderer {
@@ -59,8 +57,6 @@ impl Renderer {
         let entity_renderer =
             entity::EntityRenderer::new(&device, &queue, &config, assets, &camera_resource);
 
-        let gui_renderer = gui::GUIRenderer::new(&device, &config);
-
         Self {
             device,
             queue,
@@ -71,7 +67,6 @@ impl Renderer {
             base_renderer,
             block_renderer,
             entity_renderer,
-            gui_renderer,
         }
     }
 
@@ -83,7 +78,6 @@ impl Renderer {
         self.surface.configure(&self.device, &self.config);
 
         self.camera_resource.resize(&self.device, window_size);
-        self.gui_renderer.resize(&self.device, window_size);
     }
 
     /// 描写サイクルを実行する。
@@ -129,8 +123,6 @@ impl Renderer {
             assets,
             extract,
         );
-        self.gui_renderer
-            .upload(&self.device, &self.queue, &mut encoder);
 
         self.staging_belt.finish();
 
@@ -166,9 +158,9 @@ impl Renderer {
             .draw(&mut render_pass, &self.camera_resource);
         self.entity_renderer
             .draw(&mut render_pass, &self.camera_resource);
-        self.gui_renderer.draw(&mut render_pass);
 
         drop(render_pass);
+
         self.queue.submit([encoder.finish()]);
         frame.present();
     }
