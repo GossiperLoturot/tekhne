@@ -6,6 +6,7 @@ mod base;
 mod block;
 mod camera;
 mod entity;
+mod gui;
 
 pub struct RenderState {
     pub device: wgpu::Device,
@@ -62,6 +63,7 @@ pub struct Renderer {
     base_renderer: base::BaseRenderer,
     block_renderer: block::BlockRenderer,
     entity_renderer: entity::EntityRenderer,
+    gui_renderer: gui::GuiRenderer,
 }
 
 impl Renderer {
@@ -78,12 +80,15 @@ impl Renderer {
         let block_renderer = block::BlockRenderer::new(&render_state, assets, &camera_resource);
         let entity_renderer = entity::EntityRenderer::new(&render_state, assets, &camera_resource);
 
+        let gui_renderer = gui::GuiRenderer::new(&render_state);
+
         Self {
             render_state,
             camera_resource,
             base_renderer,
             block_renderer,
             entity_renderer,
+            gui_renderer,
         }
     }
 
@@ -100,7 +105,13 @@ impl Renderer {
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn render(&mut self, assets: &assets::Assets, extract: &game_loop::GameExtract) {
+    pub fn render(
+        &mut self,
+        assets: &assets::Assets,
+        extract: &game_loop::Extract,
+        gui_cx: &egui::Context,
+        gui_output: egui::FullOutput,
+    ) {
         let mut encoder = self
             .render_state
             .device
@@ -115,6 +126,10 @@ impl Renderer {
         self.entity_renderer
             .upload(&mut self.render_state, &mut encoder, assets, extract);
 
+        let gui_resource_handle =
+            self.gui_renderer
+                .upload(&mut self.render_state, &mut encoder, gui_cx, gui_output);
+
         let frame = self.render_state.surface.get_current_texture().unwrap();
         let frame_view = frame
             .texture
@@ -127,7 +142,8 @@ impl Renderer {
             .render(&mut render_pass, &self.camera_resource);
         self.entity_renderer
             .render(&mut render_pass, &self.camera_resource);
-
+        self.gui_renderer
+            .render(&mut render_pass, &gui_resource_handle);
         drop(render_pass);
 
         self.render_state.staging_belt.finish();

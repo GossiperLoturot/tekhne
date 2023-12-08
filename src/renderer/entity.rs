@@ -238,7 +238,7 @@ impl EntityRenderer {
         render_state: &mut renderer::RenderState,
         encoder: &mut wgpu::CommandEncoder,
         assets: &assets::Assets,
-        extract: &game_loop::GameExtract,
+        extract: &game_loop::Extract,
     ) {
         let device = &render_state.device;
         let staging_belt = &mut render_state.staging_belt;
@@ -302,7 +302,7 @@ impl EntityRenderer {
     }
 
     pub fn render<'a>(
-        &'a mut self,
+        &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
         camera_resource: &'a camera::CameraResource,
     ) {

@@ -67,9 +67,9 @@ impl CameraResource {
     pub fn resize(&mut self, render_state: &renderer::RenderState) {
         let device = &render_state.device;
         let config = &render_state.config;
-        let texture = create_depth_texture(device, config.width, config.height);
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        self.depth_view = view;
+        let depth_texture = create_depth_texture(device, config.width, config.height);
+        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        self.depth_view = depth_view;
     }
 
     /// 変換行列の計算とGPU上の行列データの更新を行う。
@@ -77,7 +77,7 @@ impl CameraResource {
         &mut self,
         render_state: &mut renderer::RenderState,
         encoder: &mut wgpu::CommandEncoder,
-        extract: &game_loop::GameExtract,
+        extract: &game_loop::Extract,
     ) {
         let device = &render_state.device;
         let staging_belt = &mut render_state.staging_belt;

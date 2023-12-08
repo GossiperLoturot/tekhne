@@ -16,9 +16,10 @@ pub struct Context<'a> {
     pub input: &'a winit_input_helper::WinitInputHelper,
     pub tick: &'a std::time::Duration,
     pub window_size: &'a (u32, u32),
+    pub gui_cx: &'a egui::Context,
 }
 
-pub struct GameExtract {
+pub struct Extract {
     pub matrix: Mat4,
     pub bases: Vec<base::Base>,
     pub blocks: Vec<block::Block>,
@@ -81,7 +82,7 @@ impl GameLoop {
         );
     }
 
-    pub fn extract(&self, cx: &game_loop::Context) -> GameExtract {
+    pub fn extract(&self, cx: &game_loop::Context) -> Extract {
         let matrix = self.camera_sys.get().world_to_ndc(*cx.window_size);
 
         let bounds = self.camera_sys.get().clipping();
@@ -107,7 +108,7 @@ impl GameLoop {
             .cloned()
             .collect::<Vec<_>>();
 
-        GameExtract {
+        Extract {
             matrix,
             bases,
             blocks,

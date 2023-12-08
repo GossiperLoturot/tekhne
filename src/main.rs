@@ -18,8 +18,11 @@ fn main() {
     let mut input = winit_input_helper::WinitInputHelper::new();
     let mut instant = std::time::Instant::now();
 
+    let gui_cx = egui::Context::default();
+    let mut gui = egui_winit::State::new(gui_cx.viewport_id(), &window, None, None);
+
     event_loop.run(move |event, _, control_flow| {
-        input.update(&event);
+        let _ = input.update(&event);
 
         match event {
             Event::RedrawEventsCleared => {
@@ -28,28 +31,36 @@ fn main() {
             Event::RedrawRequested(_) => {
                 let tick = std::mem::replace(&mut instant, std::time::Instant::now()).elapsed();
 
-                let window_size = (window.inner_size().width, window.inner_size().height);
+                let gui_input = gui.take_egui_input(&window);
+                gui_cx.begin_frame(gui_input);
 
+                let window_size = (window.inner_size().width, window.inner_size().height);
                 let cx = game_loop::Context {
                     assets: &assets,
                     input: &input,
                     tick: &tick,
                     window_size: &window_size,
+                    gui_cx: &gui_cx,
                 };
                 game_loop.update(&cx);
                 let extract = game_loop.extract(&cx);
 
-                renderer.render(&assets, &extract);
+                let gui_output = gui_cx.end_frame();
+                renderer.render(&assets, &extract, &gui_cx, gui_output);
             }
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(new_inner_size) => {
-                    renderer.resize(new_inner_size);
+            Event::WindowEvent { event, .. } => {
+                let _ = gui.on_window_event(&gui_cx, &event);
+
+                match event {
+                    WindowEvent::Resized(new_inner_size) => {
+                        renderer.resize(new_inner_size);
+                    }
+                    WindowEvent::CloseRequested => {
+                        control_flow.set_exit();
+                    }
+                    _ => (),
                 }
-                WindowEvent::CloseRequested => {
-                    control_flow.set_exit();
-                }
-                _ => (),
-            },
+            }
             _ => (),
         }
     });
