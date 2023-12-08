@@ -6,7 +6,10 @@ use aabb::*;
 use glam::*;
 use wgpu::util::DeviceExt;
 
-use crate::{assets, game_loop, renderer::camera};
+use crate::{
+    assets, game_loop,
+    renderer::{self, camera},
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -29,7 +32,7 @@ impl Vertex {
     }
 }
 
-struct Batch {
+struct BatchBuffer {
     vertices: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_count: u32,
@@ -39,39 +42,22 @@ struct Batch {
     bind_group: wgpu::BindGroup,
 }
 
-impl Batch {
-    #[inline]
-    fn new(
-        vertex_buffer: wgpu::Buffer,
-        index_buffer: wgpu::Buffer,
-        bind_group: wgpu::BindGroup,
-    ) -> Self {
-        Self {
-            vertices: Vec::new(),
-            vertex_buffer,
-            vertex_count: 0,
-            indices: Vec::new(),
-            index_buffer,
-            index_count: 0,
-            bind_group,
-        }
-    }
-}
-
 pub struct BlockRenderer {
-    texcoords: Vec<image_atlas::Texcoord32>,
-    batches: Vec<Batch>,
+    texcoord_handles: Vec<image_atlas::Texcoord32>,
+    batch_buffers: Vec<BatchBuffer>,
     pipeline: wgpu::RenderPipeline,
 }
 
 impl BlockRenderer {
     pub fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
+        render_state: &renderer::RenderState,
         assets: &assets::Assets,
         camera_resource: &camera::CameraResource,
     ) -> Self {
+        let device = &render_state.device;
+        let queue = &render_state.queue;
+        let config = &render_state.config;
+
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
@@ -94,32 +80,34 @@ impl BlockRenderer {
             ],
         });
 
-        const ATLAS_MAX_COUNT: u32 = 8;
-        const ATLAS_SIZE: u32 = 1024;
-        const ATLAS_BLOCK_SIZE: u32 = 32;
-        const ATLAS_MIP_FILTER: image_atlas::AtlasMipFilter = image_atlas::AtlasMipFilter::Lanczos3;
+        let entries = assets
+            .block_specs
+            .iter()
+            .map(|spec| {
+                let texture = image::open(&spec.texture_path).unwrap();
+                let mip = spec.texture_mip_option;
+                image_atlas::AtlasEntry { texture, mip }
+            })
+            .collect::<Vec<_>>();
+
         let atlas = image_atlas::create_atlas(&image_atlas::AtlasDescriptor {
-            max_page_count: ATLAS_MAX_COUNT,
-            size: ATLAS_SIZE,
-            mip: image_atlas::AtlasMipOption::MipWithBlock(ATLAS_MIP_FILTER, ATLAS_BLOCK_SIZE),
-            entries: &assets
-                .block_specs
-                .iter()
-                .map(|spec| image_atlas::AtlasEntry {
-                    texture: image::open(&spec.texture_path).unwrap(),
-                    mip: spec.texture_mip_option,
-                })
-                .collect::<Vec<_>>(),
+            max_page_count: 8,
+            size: 1024,
+            mip: image_atlas::AtlasMipOption::MipWithBlock(
+                image_atlas::AtlasMipFilter::Lanczos3,
+                32,
+            ),
+            entries: &entries,
         })
         .unwrap();
 
-        let texcoords = atlas
+        let texcoord_handles = atlas
             .texcoords
             .into_iter()
             .map(|texcoord| texcoord.to_f32())
             .collect::<Vec<_>>();
 
-        let batches = atlas
+        let batch_buffers = atlas
             .textures
             .into_iter()
             .map(|texture| {
@@ -137,6 +125,11 @@ impl BlockRenderer {
                     mapped_at_creation: false,
                 });
 
+                let texture_data = texture
+                    .mip_maps
+                    .into_iter()
+                    .flat_map(|texture| texture.to_vec())
+                    .collect::<Vec<_>>();
                 let texture = device.create_texture_with_data(
                     queue,
                     &wgpu::TextureDescriptor {
@@ -153,11 +146,7 @@ impl BlockRenderer {
                         usage: wgpu::TextureUsages::TEXTURE_BINDING,
                         view_formats: &[],
                     },
-                    &texture
-                        .mip_maps
-                        .into_iter()
-                        .flat_map(|texture| texture.to_vec())
-                        .collect::<Vec<_>>(),
+                    &texture_data,
                 );
                 let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
                 let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
@@ -177,13 +166,21 @@ impl BlockRenderer {
                     ],
                 });
 
-                Batch::new(vertex_buffer, index_buffer, bind_group)
+                BatchBuffer {
+                    vertices: vec![],
+                    vertex_buffer,
+                    vertex_count: 0,
+                    indices: vec![],
+                    index_buffer,
+                    index_count: 0,
+                    bind_group,
+                }
             })
             .collect::<Vec<_>>();
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[camera_resource.bind_group_layout(), &bind_group_layout],
+            bind_group_layouts: &[&bind_group_layout, camera_resource.bind_group_layout()],
             push_constant_ranges: &[],
         });
 
@@ -230,26 +227,28 @@ impl BlockRenderer {
         });
 
         Self {
-            texcoords,
-            batches,
+            texcoord_handles,
+            batch_buffers,
             pipeline,
         }
     }
 
     pub fn upload(
         &mut self,
-        device: &wgpu::Device,
+        render_state: &mut renderer::RenderState,
         encoder: &mut wgpu::CommandEncoder,
-        staging_belt: &mut wgpu::util::StagingBelt,
         assets: &assets::Assets,
         extract: &game_loop::GameExtract,
     ) {
+        let device = &render_state.device;
+        let staging_belt = &mut render_state.staging_belt;
+
         extract.blocks.iter().for_each(|block| {
             let spec = &assets.block_specs[block.spec_id];
 
             let bounds = iaabb2(block.position, block.position).as_aabb2() + spec.view_size;
-            let texcoord = &self.texcoords[block.spec_id];
-            let batch = &mut self.batches[texcoord.page as usize];
+            let texcoord = &self.texcoord_handles[block.spec_id];
+            let batch = &mut self.batch_buffers[texcoord.page as usize];
 
             let vertex_count = batch.vertices.len() as u32;
             batch.indices.push(vertex_count);
@@ -282,7 +281,7 @@ impl BlockRenderer {
             });
         });
 
-        for batch in &mut self.batches {
+        for batch in &mut self.batch_buffers {
             let vertex_data = bytemuck::cast_slice(&batch.vertices);
             if let Some(size) = num::NonZeroU64::new(vertex_data.len() as u64) {
                 staging_belt
@@ -303,15 +302,15 @@ impl BlockRenderer {
         }
     }
 
-    pub fn draw<'a>(
+    pub fn render<'a>(
         &'a mut self,
         render_pass: &mut wgpu::RenderPass<'a>,
         camera_resource: &'a camera::CameraResource,
     ) {
-        for batch in &self.batches {
+        for batch in &self.batch_buffers {
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_bind_group(0, camera_resource.bind_group(), &[]);
-            render_pass.set_bind_group(1, &batch.bind_group, &[]);
+            render_pass.set_bind_group(0, &batch.bind_group, &[]);
+            render_pass.set_bind_group(1, camera_resource.bind_group(), &[]);
             render_pass.set_vertex_buffer(0, batch.vertex_buffer.slice(..));
             render_pass.set_index_buffer(batch.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             render_pass.draw_indexed(0..batch.index_count, 0, 0..1);

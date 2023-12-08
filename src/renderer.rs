@@ -7,26 +7,16 @@ mod block;
 mod camera;
 mod entity;
 
-/// 描写の機能
-pub struct Renderer {
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    surface: wgpu::Surface,
-    staging_belt: wgpu::util::StagingBelt,
-    camera_resource: camera::CameraResource,
-    base_renderer: base::BaseRenderer,
-    block_renderer: block::BlockRenderer,
-    entity_renderer: entity::EntityRenderer,
+pub struct RenderState {
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+    pub config: wgpu::SurfaceConfiguration,
+    pub surface: wgpu::Surface,
+    pub staging_belt: wgpu::util::StagingBelt,
 }
 
-impl Renderer {
-    /// 新しいコンテキストを作成する。(非同期)
-    ///
-    /// # Panic
-    ///
-    /// 互換性のある`Adapter`、`Surface`が存在しない場合
-    pub async fn new_async(assets: &assets::Assets, window: &winit::window::Window) -> Self {
+impl RenderState {
+    pub async fn new_async(window: &winit::window::Window) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
         let surface = unsafe { instance.create_surface(window) }.unwrap();
         let adapter = instance
@@ -48,21 +38,48 @@ impl Renderer {
         surface.configure(&device, &config);
         let staging_belt = wgpu::util::StagingBelt::new(1024);
 
-        let camera_resource = camera::CameraResource::new(&device, &config);
-
-        let base_renderer =
-            base::BaseRenderer::new(&device, &queue, &config, assets, &camera_resource);
-        let block_renderer =
-            block::BlockRenderer::new(&device, &queue, &config, assets, &camera_resource);
-        let entity_renderer =
-            entity::EntityRenderer::new(&device, &queue, &config, assets, &camera_resource);
-
         Self {
             device,
             queue,
             config,
             surface,
             staging_belt,
+        }
+    }
+
+    pub fn resize(&mut self, new_inner_size: winit::dpi::PhysicalSize<u32>) {
+        let winit::dpi::PhysicalSize { width, height } = new_inner_size;
+        self.config.width = width;
+        self.config.height = height;
+        self.surface.configure(&self.device, &self.config);
+    }
+}
+
+/// 描写の機能
+pub struct Renderer {
+    render_state: RenderState,
+    camera_resource: camera::CameraResource,
+    base_renderer: base::BaseRenderer,
+    block_renderer: block::BlockRenderer,
+    entity_renderer: entity::EntityRenderer,
+}
+
+impl Renderer {
+    /// 新しいコンテキストを作成する。(非同期)
+    ///
+    /// # Panic
+    ///
+    /// 互換性のある`Adapter`、`Surface`が存在しない場合
+    pub async fn new_async(assets: &assets::Assets, window: &winit::window::Window) -> Self {
+        let render_state = RenderState::new_async(window).await;
+        let camera_resource = camera::CameraResource::new(&render_state);
+
+        let base_renderer = base::BaseRenderer::new(&render_state, assets, &camera_resource);
+        let block_renderer = block::BlockRenderer::new(&render_state, assets, &camera_resource);
+        let entity_renderer = entity::EntityRenderer::new(&render_state, assets, &camera_resource);
+
+        Self {
+            render_state,
             camera_resource,
             base_renderer,
             block_renderer,
@@ -70,14 +87,9 @@ impl Renderer {
         }
     }
 
-    pub fn resize(&mut self, window_size: (u32, u32)) {
-        let (width, height) = window_size;
-
-        self.config.width = width;
-        self.config.height = height;
-        self.surface.configure(&self.device, &self.config);
-
-        self.camera_resource.resize(&self.device, window_size);
+    pub fn resize(&mut self, new_inner_size: winit::dpi::PhysicalSize<u32>) {
+        self.render_state.resize(new_inner_size);
+        self.camera_resource.resize(&self.render_state);
     }
 
     /// 描写サイクルを実行する。
@@ -88,80 +100,39 @@ impl Renderer {
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn draw(&mut self, assets: &assets::Assets, extract: &game_loop::GameExtract) {
+    pub fn render(&mut self, assets: &assets::Assets, extract: &game_loop::GameExtract) {
         let mut encoder = self
+            .render_state
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
-        self.staging_belt.recall();
+        self.camera_resource
+            .upload(&mut self.render_state, &mut encoder, extract);
+        self.base_renderer
+            .upload(&mut self.render_state, &mut encoder, assets, extract);
+        self.block_renderer
+            .upload(&mut self.render_state, &mut encoder, assets, extract);
+        self.entity_renderer
+            .upload(&mut self.render_state, &mut encoder, assets, extract);
 
-        self.camera_resource.upload(
-            &self.device,
-            &mut encoder,
-            &mut self.staging_belt,
-            assets,
-            extract,
-        );
-        self.base_renderer.upload(
-            &self.device,
-            &mut encoder,
-            &mut self.staging_belt,
-            assets,
-            extract,
-        );
-        self.block_renderer.upload(
-            &self.device,
-            &mut encoder,
-            &mut self.staging_belt,
-            assets,
-            extract,
-        );
-        self.entity_renderer.upload(
-            &self.device,
-            &mut encoder,
-            &mut self.staging_belt,
-            assets,
-            extract,
-        );
-
-        self.staging_belt.finish();
-
-        let frame = self.surface.get_current_texture().unwrap();
-        let view = frame
+        let frame = self.render_state.surface.get_current_texture().unwrap();
+        let frame_view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Discard,
-                },
-            })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: self.camera_resource.view(),
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Discard,
-                }),
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-        });
 
+        let mut render_pass = self.camera_resource.render_pass(&mut encoder, &frame_view);
         self.base_renderer
-            .draw(&mut render_pass, &self.camera_resource);
+            .render(&mut render_pass, &self.camera_resource);
         self.block_renderer
-            .draw(&mut render_pass, &self.camera_resource);
+            .render(&mut render_pass, &self.camera_resource);
         self.entity_renderer
-            .draw(&mut render_pass, &self.camera_resource);
+            .render(&mut render_pass, &self.camera_resource);
 
         drop(render_pass);
 
-        self.queue.submit([encoder.finish()]);
+        self.render_state.staging_belt.finish();
+        self.render_state.queue.submit([encoder.finish()]);
+        self.render_state.staging_belt.recall();
         frame.present();
     }
 }

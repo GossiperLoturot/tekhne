@@ -39,12 +39,11 @@ fn main() {
                 game_loop.update(&cx);
                 let extract = game_loop.extract(&cx);
 
-                renderer.draw(&assets, &extract);
+                renderer.render(&assets, &extract);
             }
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(inner_size) => {
-                    let window_size = (inner_size.width, inner_size.height);
-                    renderer.resize(window_size);
+                WindowEvent::Resized(new_inner_size) => {
+                    renderer.resize(new_inner_size);
                 }
                 WindowEvent::CloseRequested => {
                     control_flow.set_exit();

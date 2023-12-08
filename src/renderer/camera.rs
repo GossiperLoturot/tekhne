@@ -4,7 +4,7 @@ use std::num;
 
 use glam::*;
 
-use crate::{assets, game_loop};
+use crate::{game_loop, renderer};
 
 /// デプスマップに使用するテクスチャのフォーマット[`wgpu::TextureFormat`]
 pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
@@ -14,12 +14,15 @@ pub struct CameraResource {
     matrix_buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
-    view: wgpu::TextureView,
+    depth_view: wgpu::TextureView,
 }
 
 impl CameraResource {
     /// 新しいリソースを作成する。
-    pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
+    pub fn new(render_state: &renderer::RenderState) -> Self {
+        let device = &render_state.device;
+        let config = &render_state.config;
+
         let matrix_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: std::mem::size_of::<Mat4>() as u64,
@@ -50,33 +53,35 @@ impl CameraResource {
             }],
         });
 
-        let texture = create_depth_texture(device, config.width, config.height);
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let depth_texture = create_depth_texture(device, config.width, config.height);
+        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         Self {
             matrix_buffer,
             bind_group_layout,
             bind_group,
-            view,
+            depth_view,
         }
     }
 
-    pub fn resize(&mut self, device: &wgpu::Device, window_size: (u32, u32)) {
-        let (width, height) = window_size;
-        let texture = create_depth_texture(device, width, height);
+    pub fn resize(&mut self, render_state: &renderer::RenderState) {
+        let device = &render_state.device;
+        let config = &render_state.config;
+        let texture = create_depth_texture(device, config.width, config.height);
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        self.view = view;
+        self.depth_view = view;
     }
 
     /// 変換行列の計算とGPU上の行列データの更新を行う。
     pub fn upload(
         &mut self,
-        device: &wgpu::Device,
+        render_state: &mut renderer::RenderState,
         encoder: &mut wgpu::CommandEncoder,
-        staging_belt: &mut wgpu::util::StagingBelt,
-        assets: &assets::Assets,
         extract: &game_loop::GameExtract,
     ) {
+        let device = &render_state.device;
+        let staging_belt = &mut render_state.staging_belt;
+
         let matrix = extract.matrix;
 
         if let Some(size) = num::NonZeroU64::new(self.matrix_buffer.size()) {
@@ -86,17 +91,40 @@ impl CameraResource {
         }
     }
 
+    pub fn render_pass<'a>(
+        &'a self,
+        encoder: &'a mut wgpu::CommandEncoder,
+        frame_view: &'a wgpu::TextureView,
+    ) -> wgpu::RenderPass<'a> {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: frame_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: wgpu::StoreOp::Discard,
+                },
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &self.depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: wgpu::StoreOp::Discard,
+                }),
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        })
+    }
+
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
         &self.bind_group_layout
     }
 
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
-    }
-
-    /// デプスマップに使用するテクスチャのビュー[`wgpu::TextureView`]を返す。
-    pub fn view(&self) -> &wgpu::TextureView {
-        &self.view
     }
 }
 
