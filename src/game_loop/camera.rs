@@ -110,21 +110,21 @@ impl CameraSystem {
 
     pub fn free_look(&mut self, cx: &game_loop::Context) {
         // NOTE: 視点の移動
-        if cx.input.key_held(winit::event::VirtualKeyCode::W) {
+        if cx.input.key_held(winit::keyboard::KeyCode::KeyW) {
             self.camera.position.y += Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
-        if cx.input.key_held(winit::event::VirtualKeyCode::S) {
+        if cx.input.key_held(winit::keyboard::KeyCode::KeyS) {
             self.camera.position.y -= Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
-        if cx.input.key_held(winit::event::VirtualKeyCode::A) {
+        if cx.input.key_held(winit::keyboard::KeyCode::KeyA) {
             self.camera.position.x -= Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
-        if cx.input.key_held(winit::event::VirtualKeyCode::D) {
+        if cx.input.key_held(winit::keyboard::KeyCode::KeyD) {
             self.camera.position.x += Self::MOVE_SPEED * cx.tick.as_secs_f32();
         }
 
         // NOTE: 視点の拡大・縮小
-        let scroll = cx.input.scroll_diff();
+        let (_, scroll) = cx.input.scroll_diff();
         self.camera.zoom = (self.camera.zoom + scroll * Self::ZOOM_SPEED * cx.tick.as_secs_f32())
             .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
 
@@ -161,7 +161,7 @@ impl CameraSystem {
         }
 
         // NOTE: 視点の拡大・縮小
-        let scroll = cx.input.scroll_diff();
+        let (_, scroll) = cx.input.scroll_diff();
         self.camera.zoom = (self.camera.zoom + scroll * Self::ZOOM_SPEED * cx.tick.as_secs_f32())
             .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
 
