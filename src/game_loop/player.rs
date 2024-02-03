@@ -68,13 +68,6 @@ impl PlayerSystem {
     ) {
         match self {
             PlayerSystem::NotPresent(no_player) => {
-                egui::Window::new("Spawn").show(cx.gui_cx, |ui| {
-                    ui.label("Hello, world!");
-                    if ui.button("Spawn!").clicked() {
-                        println!("Spawn!");
-                    }
-                });
-
                 if cx.input.key_pressed(winit::keyboard::KeyCode::KeyW) {
                     no_player.player_spec_id = no_player
                         .player_spec_id

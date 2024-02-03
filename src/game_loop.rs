@@ -16,7 +16,6 @@ pub struct Context<'a> {
     pub input: &'a winit_input_helper::WinitInputHelper,
     pub tick: &'a std::time::Duration,
     pub window_size: &'a (u32, u32),
-    pub gui_cx: &'a egui::Context,
 }
 
 pub struct Extract {
