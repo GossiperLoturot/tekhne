@@ -1,5 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-
 pub mod aabb2;
 pub mod grid;
 pub mod iaabb2;

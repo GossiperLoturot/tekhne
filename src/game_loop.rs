@@ -2,7 +2,7 @@
 
 use glam::*;
 
-use crate::{assets, game_loop};
+use crate::assets;
 
 mod base;
 mod block;
@@ -10,13 +10,6 @@ mod camera;
 mod entity;
 mod generation;
 mod player;
-
-pub struct Context<'a> {
-    pub assets: &'a assets::Assets,
-    pub input: &'a winit_input_helper::WinitInputHelper,
-    pub tick: &'a std::time::Duration,
-    pub window_size: &'a (u32, u32),
-}
 
 pub struct Extract {
     pub matrix: Mat4,
@@ -26,32 +19,39 @@ pub struct Extract {
 }
 
 pub struct GameLoop {
-    pub base_storage: base::BaseStorage,
-    pub block_storage: block::BlockStorage,
-    pub entity_storage: entity::EntityStorage,
-    pub generation_sys: generation::GenerationSystem,
-    pub camera_sys: camera::CameraSystem,
-    pub player_sys: player::PlayerSystem,
+    base_storage: base::BaseStorage,
+    block_storage: block::BlockStorage,
+    entity_storage: entity::EntityStorage,
+    generation_sys: generation::GenerationSystem,
+    camera_sys: camera::CameraSystem,
+    player_sys: player::PlayerSystem,
 }
 
 impl GameLoop {
     /// 新しいゲームループを作成する。
     #[inline]
-    pub fn new() -> Self {
+    pub fn new(assets: std::rc::Rc<assets::Assets>) -> Self {
         Self {
-            base_storage: base::BaseStorage::new(),
-            block_storage: block::BlockStorage::new(),
-            entity_storage: entity::EntityStorage::new(),
-            generation_sys: generation::GenerationSystem::new(),
-            camera_sys: camera::CameraSystem::new(),
-            player_sys: player::PlayerSystem::new(),
+            base_storage: base::BaseStorage::new(assets.clone()),
+            block_storage: block::BlockStorage::new(assets.clone()),
+            entity_storage: entity::EntityStorage::new(assets.clone()),
+            generation_sys: generation::GenerationSystem::new(assets.clone()),
+            camera_sys: camera::CameraSystem::new(assets.clone()),
+            player_sys: player::PlayerSystem::new(assets.clone()),
         }
     }
 
     /// ゲームループを実行する。
-    pub fn update(&mut self, cx: &game_loop::Context) {
+    pub fn update(
+        &mut self,
+        input: &winit_input_helper::WinitInputHelper,
+        tick: &std::time::Duration,
+        window_size: (u32, u32),
+    ) {
         self.player_sys.update(
-            cx,
+            input,
+            tick,
+            window_size,
             &mut self.base_storage,
             &mut self.block_storage,
             &mut self.entity_storage,
@@ -59,50 +59,43 @@ impl GameLoop {
         );
 
         // NOTE: カメラの操作
-        if let player::PlayerSystem::Present(player) = &self.player_sys {
-            let target = camera::Target::Entity(player.entity_id);
-            self.camera_sys.follow(
-                cx,
-                &self.base_storage,
-                &self.block_storage,
-                &self.entity_storage,
-                target,
-            );
+        if let Some(player) = self.player_sys.get_player() {
+            self.camera_sys
+                .follow_entity(input, tick, &self.entity_storage, player.entity_id);
         }
 
         // NOTE: 地形の自動生成
-        let bounds = self.camera_sys.get().clipping();
+        let rect = self.camera_sys.get().clipping();
         self.generation_sys.generate(
-            cx,
             &mut self.base_storage,
             &mut self.block_storage,
             &mut self.entity_storage,
-            bounds,
+            rect,
         );
     }
 
-    pub fn extract(&self, cx: &game_loop::Context) -> Extract {
-        let matrix = self.camera_sys.get().world_to_ndc(*cx.window_size);
+    pub fn extract(&self, window_size: (u32, u32)) -> Extract {
+        let matrix = self.camera_sys.get().world_to_ndc(window_size);
 
-        let bounds = self.camera_sys.get().clipping();
+        let rect = self.camera_sys.get().clipping();
 
         let bases = self
             .base_storage
-            .get_by_bounds(cx, base::Bounds::View(bounds))
+            .get_rendering_by_rect(rect)
             .map(|(_, item)| item)
             .cloned()
             .collect::<Vec<_>>();
 
         let blocks = self
             .block_storage
-            .get_by_bounds(cx, block::Bounds::View(bounds))
+            .get_rendering_by_rect(rect)
             .map(|(_, item)| item)
             .cloned()
             .collect::<Vec<_>>();
 
         let entities = self
             .entity_storage
-            .get_by_bounds(cx, entity::Bounds::View(bounds))
+            .get_rendering_by_rect(rect)
             .map(|(_, item)| item)
             .cloned()
             .collect::<Vec<_>>();

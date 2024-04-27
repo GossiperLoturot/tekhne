@@ -1,40 +1,22 @@
-use aabb::*;
 use glam::*;
 
-use crate::game_loop::{self, base, block, entity};
+use crate::aabb::*;
+use crate::{assets, game_loop::entity};
 
-/// 追従しているオブジェクト
-pub enum Target {
-    Base(usize),
-    Block(usize),
-    Entity(usize),
+pub struct CameraState {
+    pub position: Vec2,
+    pub zoom: f32,
+    pub z_near: f32,
+    pub z_far: f32,
 }
 
-pub struct Camera {
-    position: Vec2,
-    zoom: f32,
-    z_near: f32,
-    z_far: f32,
-}
-
-impl Camera {
-    /// 新しいカメラシステムを作成する。
-    #[inline]
-    pub fn new(position: Vec2, zoom: f32, z_near: f32, z_far: f32) -> Self {
-        Self {
-            position,
-            zoom,
-            z_near,
-            z_far,
-        }
-    }
-
+impl CameraState {
     pub fn clipping(&self) -> Aabb2 {
         aabb2(self.position - self.zoom, self.position + self.zoom)
     }
 
     pub fn world_to_ndc(&self, viewport: (u32, u32)) -> Mat4 {
-        let bounds = self.clipping();
+        let rect = self.clipping();
 
         // アスペクト比による引き延ばしを補正する行列
         // 描写空間の中に画面が収まるように補正する。
@@ -46,10 +28,10 @@ impl Camera {
         ));
 
         let clipping = Mat4::orthographic_rh(
-            bounds.min.x,
-            bounds.max.x,
-            bounds.min.y,
-            bounds.max.y,
+            rect.min.x,
+            rect.max.x,
+            rect.min.y,
+            rect.max.y,
             self.z_near,
             self.z_far,
         );
@@ -69,7 +51,8 @@ impl Camera {
 }
 
 pub struct CameraSystem {
-    camera: Camera,
+    assets: std::rc::Rc<assets::Assets>,
+    camera_state: CameraState,
 }
 
 impl CameraSystem {
@@ -91,83 +74,56 @@ impl CameraSystem {
     /// Z値クリップの最大値
     const Z_FAR: f32 = 32.0;
 
-    /// 移動の速さ
-    const MOVE_SPEED: f32 = 4.0;
-
     /// ズームの速さ
-    const ZOOM_SPEED: f32 = 30.0;
+    const ZOOM_SPEED: f32 = 16.0;
 
     #[inline]
-    pub fn new() -> Self {
-        let camera = Camera::new(Self::ORIZIN, Self::ZOOM_INIT, Self::Z_NEAR, Self::Z_FAR);
-        Self { camera }
+    pub fn new(assets: std::rc::Rc<assets::Assets>) -> Self {
+        let camera_state = CameraState {
+            position: Self::ORIZIN,
+            zoom: Self::ZOOM_INIT,
+            z_near: Self::Z_NEAR,
+            z_far: Self::Z_FAR,
+        };
+
+        Self {
+            assets,
+            camera_state,
+        }
     }
 
     #[inline]
-    pub fn get(&self) -> &Camera {
-        &self.camera
+    pub fn get(&self) -> &CameraState {
+        &self.camera_state
     }
 
-    pub fn free_look(&mut self, cx: &game_loop::Context) {
-        // NOTE: 視点の移動
-        if cx.input.key_held(winit::keyboard::KeyCode::KeyW) {
-            self.camera.position.y += Self::MOVE_SPEED * cx.tick.as_secs_f32();
-        }
-        if cx.input.key_held(winit::keyboard::KeyCode::KeyS) {
-            self.camera.position.y -= Self::MOVE_SPEED * cx.tick.as_secs_f32();
-        }
-        if cx.input.key_held(winit::keyboard::KeyCode::KeyA) {
-            self.camera.position.x -= Self::MOVE_SPEED * cx.tick.as_secs_f32();
-        }
-        if cx.input.key_held(winit::keyboard::KeyCode::KeyD) {
-            self.camera.position.x += Self::MOVE_SPEED * cx.tick.as_secs_f32();
-        }
-
-        // NOTE: 視点の拡大・縮小
-        let (_, scroll) = cx.input.scroll_diff();
-        self.camera.zoom = (self.camera.zoom + scroll * Self::ZOOM_SPEED * cx.tick.as_secs_f32())
-            .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
-
-        // NOTE: 視点の拡大・縮小の初期化
-        if cx.input.mouse_held(2) {
-            self.camera.zoom = Self::ZOOM_INIT;
-        }
-    }
-
-    pub fn follow(
+    pub fn follow_entity(
         &mut self,
-        cx: &game_loop::Context,
-        base_storage: &base::BaseStorage,
-        block_storage: &block::BlockStorage,
+        input: &winit_input_helper::WinitInputHelper,
+        tick: &std::time::Duration,
         entity_storage: &entity::EntityStorage,
-        target: Target,
+        entity_id: usize,
     ) {
         // NOTE: 視点の追従
-        match target {
-            Target::Base(id) => {
-                let obj = base_storage.get(id).unwrap();
-                self.camera.position = obj.position.as_vec2() + Vec2::splat(0.5);
-            }
-            Target::Block(id) => {
-                let obj = block_storage.get(id).unwrap();
-                let obj_spec = &cx.assets.block_specs[obj.spec_id];
-                self.camera.position = obj.position.as_vec2() + obj_spec.view_size.center();
-            }
-            Target::Entity(id) => {
-                let obj = entity_storage.get(id).unwrap();
-                let obj_spec = &cx.assets.entity_specs[obj.spec_id];
-                self.camera.position = obj.position + obj_spec.view_size.center();
-            }
-        }
+        let entity = entity_storage.get(entity_id).unwrap();
+        let entity_spec = &self.assets.entity_specs[entity.spec_id];
+        self.camera_state.position = entity.position + entity_spec.rendering_size.center();
 
         // NOTE: 視点の拡大・縮小
-        let (_, scroll) = cx.input.scroll_diff();
-        self.camera.zoom = (self.camera.zoom + scroll * Self::ZOOM_SPEED * cx.tick.as_secs_f32())
+        if input.key_held(winit::keyboard::KeyCode::KeyE) {
+            self.camera_state.zoom = (self.camera_state.zoom
+                + Self::ZOOM_SPEED * tick.as_secs_f32())
             .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
+        }
+        if input.key_held(winit::keyboard::KeyCode::KeyQ) {
+            self.camera_state.zoom = (self.camera_state.zoom
+                - Self::ZOOM_SPEED * tick.as_secs_f32())
+            .clamp(Self::ZOOM_MIN, Self::ZOOM_MAX);
+        }
 
         // NOTE: 視点の拡大・縮小の初期化
-        if cx.input.mouse_held(2) {
-            self.camera.zoom = Self::ZOOM_INIT;
+        if input.mouse_held(winit::event::MouseButton::Middle) {
+            self.camera_state.zoom = Self::ZOOM_INIT;
         }
     }
 }

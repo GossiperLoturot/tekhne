@@ -2,7 +2,7 @@ use core::{iter, ops::*};
 
 use glam::*;
 
-use crate::*;
+use super::*;
 
 /// Creates a new AABB from two points.
 #[inline]
@@ -229,7 +229,7 @@ impl Aabb2 {
 
     /// Returns whether if `self` intersects `rhs`.
     #[inline]
-    pub fn contains_bounds(&self, rhs: Aabb2) -> bool {
+    pub fn contains_rect(&self, rhs: Aabb2) -> bool {
         self.min.x <= rhs.min.x
             && self.min.y <= rhs.min.y
             && rhs.max.x <= self.max.x
@@ -683,7 +683,7 @@ impl Index<usize> for Aabb2 {
         match index {
             0 => &self.min,
             1 => &self.max,
-            _ => panic!("index out of bounds"),
+            _ => panic!("index out of rect"),
         }
     }
 }
@@ -694,7 +694,7 @@ impl IndexMut<usize> for Aabb2 {
         match index {
             0 => &mut self.min,
             1 => &mut self.max,
-            _ => panic!("index out of bounds"),
+            _ => panic!("index out of rect"),
         }
     }
 }

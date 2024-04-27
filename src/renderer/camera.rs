@@ -19,9 +19,9 @@ pub struct CameraResource {
 
 impl CameraResource {
     /// 新しいリソースを作成する。
-    pub fn new(render_state: &renderer::RenderState) -> Self {
-        let device = &render_state.device;
-        let config = &render_state.config;
+    pub fn new(rendering_state: &renderer::RenderingState) -> Self {
+        let device = &rendering_state.device;
+        let config = &rendering_state.config;
 
         let matrix_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -64,7 +64,7 @@ impl CameraResource {
         }
     }
 
-    pub fn resize(&mut self, render_state: &renderer::RenderState) {
+    pub fn resize(&mut self, render_state: &renderer::RenderingState) {
         let device = &render_state.device;
         let config = &render_state.config;
         let depth_texture = create_depth_texture(device, config.width, config.height);
@@ -75,12 +75,12 @@ impl CameraResource {
     /// 変換行列の計算とGPU上の行列データの更新を行う。
     pub fn upload(
         &mut self,
-        render_state: &mut renderer::RenderState,
+        rendering_state: &mut renderer::RenderingState,
         encoder: &mut wgpu::CommandEncoder,
         extract: &game_loop::Extract,
     ) {
-        let device = &render_state.device;
-        let staging_belt = &mut render_state.staging_belt;
+        let device = &rendering_state.device;
+        let staging_belt = &mut rendering_state.staging_belt;
 
         let matrix = extract.matrix;
 
@@ -103,14 +103,14 @@ impl CameraResource {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Discard,
+                    store: wgpu::StoreOp::Store,
                 },
             })],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: &self.depth_view,
                 depth_ops: Some(wgpu::Operations {
                     load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Discard,
+                    store: wgpu::StoreOp::Store,
                 }),
                 stencil_ops: None,
             }),

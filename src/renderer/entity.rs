@@ -2,10 +2,10 @@
 
 use std::num;
 
-use aabb::*;
 use glam::*;
 use wgpu::util::DeviceExt;
 
+use crate::aabb::*;
 use crate::{
     assets, game_loop,
     renderer::{self, camera},
@@ -43,20 +43,21 @@ struct BatchBuffer {
 }
 
 pub struct EntityRenderer {
-    texcoord_handles: Vec<image_atlas::Texcoord32>,
+    assets: std::rc::Rc<assets::Assets>,
+    texcoords: Vec<image_atlas::Texcoord32>,
     batch_buffers: Vec<BatchBuffer>,
     pipeline: wgpu::RenderPipeline,
 }
 
 impl EntityRenderer {
     pub fn new(
-        render_state: &renderer::RenderState,
-        assets: &assets::Assets,
+        assets: std::rc::Rc<assets::Assets>,
+        rendering_state: &renderer::RenderingState,
         camera_resource: &camera::CameraResource,
     ) -> Self {
-        let device = &render_state.device;
-        let queue = &render_state.queue;
-        let config = &render_state.config;
+        let device = &rendering_state.device;
+        let queue = &rendering_state.queue;
+        let config = &rendering_state.config;
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
@@ -89,10 +90,9 @@ impl EntityRenderer {
                 image_atlas::AtlasEntry { texture, mip }
             })
             .collect::<Vec<_>>();
-
-        let atlas = image_atlas::create_atlas(&image_atlas::AtlasDescriptor {
-            max_page_count: 8,
-            size: 1024,
+        let texture_atlas = image_atlas::create_atlas(&image_atlas::AtlasDescriptor {
+            max_page_count: 4,
+            size: 2048,
             mip: image_atlas::AtlasMipOption::MipWithBlock(
                 image_atlas::AtlasMipFilter::Lanczos3,
                 32,
@@ -101,13 +101,13 @@ impl EntityRenderer {
         })
         .unwrap();
 
-        let texcoord_handles = atlas
+        let texcoords = texture_atlas
             .texcoords
             .into_iter()
             .map(|texcoord| texcoord.to_f32())
             .collect::<Vec<_>>();
 
-        let batch_buffers = atlas
+        let batch_buffers = texture_atlas
             .textures
             .into_iter()
             .map(|texture| {
@@ -194,15 +194,12 @@ impl EntityRenderer {
                 entry_point: "vs_main",
                 buffers: &[Vertex::layout()],
             },
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: Some(wgpu::Face::Back),
-                unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                conservative: false,
-            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: "fs_main",
+                targets: &[Some(config.format.into())],
+            }),
+            primitive: wgpu::PrimitiveState::default(),
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: camera::DEPTH_FORMAT,
                 depth_write_enabled: true,
@@ -210,25 +207,13 @@ impl EntityRenderer {
                 stencil: wgpu::StencilState::default(),
                 bias: wgpu::DepthBiasState::default(),
             }),
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
+            multisample: wgpu::MultisampleState::default(),
             multiview: None,
         });
 
         Self {
-            texcoord_handles,
+            assets,
+            texcoords,
             batch_buffers,
             pipeline,
         }
@@ -236,19 +221,18 @@ impl EntityRenderer {
 
     pub fn upload(
         &mut self,
-        render_state: &mut renderer::RenderState,
+        rendering_state: &mut renderer::RenderingState,
         encoder: &mut wgpu::CommandEncoder,
-        assets: &assets::Assets,
         extract: &game_loop::Extract,
     ) {
-        let device = &render_state.device;
-        let staging_belt = &mut render_state.staging_belt;
+        let device = &rendering_state.device;
+        let staging_belt = &mut rendering_state.staging_belt;
 
         extract.entities.iter().for_each(|entity| {
-            let spec = &assets.entity_specs[entity.spec_id];
+            let spec = &self.assets.entity_specs[entity.spec_id];
 
-            let bounds = aabb2(entity.position, entity.position) + spec.view_size;
-            let texcoord = &self.texcoord_handles[entity.spec_id];
+            let rect = aabb2(entity.position, entity.position) + spec.rendering_size;
+            let texcoord = &self.texcoords[entity.spec_id];
             let batch = &mut self.batch_buffers[texcoord.page as usize];
 
             let vertex_count = batch.vertices.len() as u32;
@@ -259,24 +243,25 @@ impl EntityRenderer {
             batch.indices.push(vertex_count + 3);
             batch.indices.push(vertex_count);
 
-            let (negative_y2z, positive_y2z) = match spec.y_axis {
-                assets::YAxis::Y => (0.0, 0.0),
-                assets::YAxis::YZ => (spec.view_size.min.y, spec.view_size.max.y),
+            let (negative_y2z, positive_y2z) = if spec.z_along_y {
+                (spec.rendering_size.min.y, spec.rendering_size.max.y)
+            } else {
+                (0.0, 0.0)
             };
             batch.vertices.push(Vertex {
-                position: [bounds.min.x, bounds.min.y, negative_y2z],
+                position: [rect.min.x, rect.min.y, negative_y2z],
                 texcoord: [texcoord.min_x, texcoord.max_y],
             });
             batch.vertices.push(Vertex {
-                position: [bounds.max.x, bounds.min.y, negative_y2z],
+                position: [rect.max.x, rect.min.y, negative_y2z],
                 texcoord: [texcoord.max_x, texcoord.max_y],
             });
             batch.vertices.push(Vertex {
-                position: [bounds.max.x, bounds.max.y, positive_y2z],
+                position: [rect.max.x, rect.max.y, positive_y2z],
                 texcoord: [texcoord.max_x, texcoord.min_y],
             });
             batch.vertices.push(Vertex {
-                position: [bounds.min.x, bounds.max.y, positive_y2z],
+                position: [rect.min.x, rect.max.y, positive_y2z],
                 texcoord: [texcoord.min_x, texcoord.min_y],
             });
         });

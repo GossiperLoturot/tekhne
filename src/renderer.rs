@@ -7,7 +7,7 @@ mod block;
 mod camera;
 mod entity;
 
-pub struct RenderState {
+pub struct RenderingState {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
@@ -15,15 +15,18 @@ pub struct RenderState {
     pub staging_belt: wgpu::util::StagingBelt,
 }
 
-impl RenderState {
-    pub async fn new_async(window: std::sync::Arc<winit::window::Window>) -> Self {
+impl RenderingState {
+    pub async fn new_async(window: std::rc::Rc<winit::window::Window>) -> Self {
         let inner_size = window.inner_size();
 
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
-        let surface = instance.create_surface(window).unwrap();
+        let instance = wgpu::Instance::default();
+        let surface = unsafe {
+            let target = wgpu::SurfaceTargetUnsafe::from_window(&*window).unwrap();
+            instance.create_surface_unsafe(target).unwrap()
+        };
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::LowPower,
+                power_preference: wgpu::PowerPreference::default(),
                 force_fallback_adapter: false,
                 compatible_surface: Some(&surface),
             })
@@ -49,41 +52,42 @@ impl RenderState {
     }
 
     pub fn resize(&mut self, new_inner_size: winit::dpi::PhysicalSize<u32>) {
-        let winit::dpi::PhysicalSize { width, height } = new_inner_size;
-        self.config.width = width;
-        self.config.height = height;
+        self.config.width = new_inner_size.width;
+        self.config.height = new_inner_size.height;
         self.surface.configure(&self.device, &self.config);
     }
 }
 
 /// 描写の機能
-pub struct Renderer {
-    render_state: RenderState,
+pub struct RenderingSystem {
+    rendering_state: RenderingState,
     camera_resource: camera::CameraResource,
     base_renderer: base::BaseRenderer,
     block_renderer: block::BlockRenderer,
     entity_renderer: entity::EntityRenderer,
 }
 
-impl Renderer {
+impl RenderingSystem {
     /// 新しいコンテキストを作成する。(非同期)
     ///
     /// # Panic
     ///
     /// 互換性のある`Adapter`、`Surface`が存在しない場合
     pub async fn new_async(
-        assets: &assets::Assets,
-        window: std::sync::Arc<winit::window::Window>,
+        assets: std::rc::Rc<assets::Assets>,
+        window: std::rc::Rc<winit::window::Window>,
     ) -> Self {
-        let render_state = RenderState::new_async(window).await;
-        let camera_resource = camera::CameraResource::new(&render_state);
-
-        let base_renderer = base::BaseRenderer::new(&render_state, assets, &camera_resource);
-        let block_renderer = block::BlockRenderer::new(&render_state, assets, &camera_resource);
-        let entity_renderer = entity::EntityRenderer::new(&render_state, assets, &camera_resource);
+        let rendering_state = RenderingState::new_async(window).await;
+        let camera_resource = camera::CameraResource::new(&rendering_state);
+        let base_renderer =
+            base::BaseRenderer::new(assets.clone(), &rendering_state, &camera_resource);
+        let block_renderer =
+            block::BlockRenderer::new(assets.clone(), &rendering_state, &camera_resource);
+        let entity_renderer =
+            entity::EntityRenderer::new(assets.clone(), &rendering_state, &camera_resource);
 
         Self {
-            render_state,
+            rendering_state,
             camera_resource,
             base_renderer,
             block_renderer,
@@ -92,34 +96,31 @@ impl Renderer {
     }
 
     pub fn resize(&mut self, new_inner_size: winit::dpi::PhysicalSize<u32>) {
-        self.render_state.resize(new_inner_size);
-        self.camera_resource.resize(&self.render_state);
+        self.rendering_state.resize(new_inner_size);
+        self.camera_resource.resize(&self.rendering_state);
     }
 
     /// 描写サイクルを実行する。
     ///
-    /// 描写の際に生成したデータをゲームサイクル内で使用するため、
-    /// フィードバックデータ[`ReadBack`]を返す。
-    ///
     /// # Panic
     ///
     /// 画面テクスチャの取得に失敗した場合
-    pub fn render(&mut self, assets: &assets::Assets, extract: &game_loop::Extract) {
+    pub fn draw(&mut self, extract: &game_loop::Extract) {
         let mut encoder = self
-            .render_state
+            .rendering_state
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
         self.camera_resource
-            .upload(&mut self.render_state, &mut encoder, extract);
+            .upload(&mut self.rendering_state, &mut encoder, extract);
         self.base_renderer
-            .upload(&mut self.render_state, &mut encoder, assets, extract);
+            .upload(&mut self.rendering_state, &mut encoder, extract);
         self.block_renderer
-            .upload(&mut self.render_state, &mut encoder, assets, extract);
+            .upload(&mut self.rendering_state, &mut encoder, extract);
         self.entity_renderer
-            .upload(&mut self.render_state, &mut encoder, assets, extract);
+            .upload(&mut self.rendering_state, &mut encoder, extract);
 
-        let frame = self.render_state.surface.get_current_texture().unwrap();
+        let frame = self.rendering_state.surface.get_current_texture().unwrap();
         let frame_view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -133,9 +134,10 @@ impl Renderer {
             .render(&mut render_pass, &self.camera_resource);
         drop(render_pass);
 
-        self.render_state.staging_belt.finish();
-        self.render_state.queue.submit([encoder.finish()]);
-        self.render_state.staging_belt.recall();
+        self.rendering_state.staging_belt.finish();
+        self.rendering_state.queue.submit([encoder.finish()]);
+        self.rendering_state.staging_belt.recall();
+
         frame.present();
     }
 }

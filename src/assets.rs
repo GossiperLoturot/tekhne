@@ -3,13 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aabb::*;
 use glam::*;
 
-pub enum YAxis {
-    Y,
-    YZ,
-}
+use crate::aabb::*;
 
 pub struct BaseSpec {
     pub id: usize,
@@ -21,9 +17,9 @@ pub struct BaseSpec {
 pub struct BlockSpec {
     pub id: usize,
     pub label: String,
-    pub logic_size: IVec2,
-    pub view_size: Aabb2,
-    pub y_axis: YAxis,
+    pub internal_size: IVec2,
+    pub rendering_size: Aabb2,
+    pub z_along_y: bool,
     pub texture_path: PathBuf,
     pub texture_mip_option: image_atlas::AtlasEntryMipOption,
 }
@@ -31,9 +27,9 @@ pub struct BlockSpec {
 pub struct EntitySpec {
     pub id: usize,
     pub label: String,
-    pub logic_size: Vec2,
-    pub view_size: Aabb2,
-    pub y_axis: YAxis,
+    pub internal_size: Vec2,
+    pub rendering_size: Aabb2,
+    pub z_along_y: bool,
     pub texture_path: PathBuf,
     pub texture_mip_option: image_atlas::AtlasEntryMipOption,
 }
@@ -42,6 +38,11 @@ pub enum GenerationSpec {
     FillBase {
         id: usize,
         base_spec_id: usize,
+    },
+    RandomBase {
+        id: usize,
+        base_spec_id: usize,
+        probability: f32,
     },
     RandomBlock {
         id: usize,
@@ -100,9 +101,9 @@ impl Assets {
         #[serde(rename_all = "camelCase")]
         struct BlockSpecIn {
             label: String,
-            logic_size: IVec2In,
-            view_size: Aabb2In,
-            y_axis: String,
+            internal_size: IVec2In,
+            rendering_size: Aabb2In,
+            z_along_y: bool,
             texture_path: String,
             texture_mip_option: String,
         }
@@ -111,9 +112,9 @@ impl Assets {
         #[serde(rename_all = "camelCase")]
         struct EntitySpecIn {
             label: String,
-            logic_size: Vec2In,
-            view_size: Aabb2In,
-            y_axis: String,
+            internal_size: Vec2In,
+            rendering_size: Aabb2In,
+            z_along_y: bool,
             texture_path: String,
             texture_mip_option: String,
         }
@@ -122,12 +123,17 @@ impl Assets {
         #[serde(tag = "mode", rename_all = "camelCase")]
         enum GenerationSpecIn {
             #[serde(rename_all = "camelCase")]
+            FillBase { base_spec_label: String },
+            #[serde(rename_all = "camelCase")]
+            RandomBase {
+                base_spec_label: String,
+                probability: f32,
+            },
+            #[serde(rename_all = "camelCase")]
             RandomBlock {
                 block_spec_label: String,
                 probability: f32,
             },
-            #[serde(rename_all = "camelCase")]
-            FillBase { base_spec_label: String },
         }
 
         #[derive(serde::Deserialize)]
@@ -194,23 +200,18 @@ impl Assets {
                     id,
                     BlockSpecIn {
                         label,
-                        logic_size,
-                        view_size,
-                        y_axis,
+                        internal_size,
+                        rendering_size,
+                        z_along_y,
                         texture_path,
                         texture_mip_option,
                     },
                 )| {
-                    let logic_size = ivec2(logic_size.x, logic_size.y);
-                    let view_size = aabb2(
-                        vec2(view_size.min.x, view_size.min.y),
-                        vec2(view_size.max.x, view_size.max.y),
+                    let internal_size = ivec2(internal_size.x, internal_size.y);
+                    let rendering_size = aabb2(
+                        vec2(rendering_size.min.x, rendering_size.min.y),
+                        vec2(rendering_size.max.x, rendering_size.max.y),
                     );
-                    let y_axis = match y_axis.as_str() {
-                        "y" => YAxis::Y,
-                        "yz" => YAxis::YZ,
-                        _ => unreachable!(),
-                    };
                     let texture_path = texture_path.into();
                     let texture_mip_option = match texture_mip_option.as_str() {
                         "clamp" => image_atlas::AtlasEntryMipOption::Clamp,
@@ -222,9 +223,9 @@ impl Assets {
                     BlockSpec {
                         id,
                         label,
-                        logic_size,
-                        view_size,
-                        y_axis,
+                        internal_size,
+                        rendering_size,
+                        z_along_y,
                         texture_path,
                         texture_mip_option,
                     }
@@ -240,23 +241,18 @@ impl Assets {
                     id,
                     EntitySpecIn {
                         label,
-                        logic_size,
-                        view_size,
-                        y_axis,
+                        internal_size,
+                        rendering_size,
+                        z_along_y,
                         texture_path,
                         texture_mip_option,
                     },
                 )| {
-                    let logic_size = vec2(logic_size.x, logic_size.y);
-                    let view_size = aabb2(
-                        vec2(view_size.min.x, view_size.min.y),
-                        vec2(view_size.max.x, view_size.max.y),
+                    let internal_size = vec2(internal_size.x, internal_size.y);
+                    let rendering_size = aabb2(
+                        vec2(rendering_size.min.x, rendering_size.min.y),
+                        vec2(rendering_size.max.x, rendering_size.max.y),
                     );
-                    let y_axis = match y_axis.as_str() {
-                        "y" => YAxis::Y,
-                        "yz" => YAxis::YZ,
-                        _ => unreachable!(),
-                    };
                     let texture_path = texture_path.into();
                     let texture_mip_option = match texture_mip_option.as_str() {
                         "clamp" => image_atlas::AtlasEntryMipOption::Clamp,
@@ -268,9 +264,9 @@ impl Assets {
                     EntitySpec {
                         id,
                         label,
-                        logic_size,
-                        view_size,
-                        y_axis,
+                        internal_size,
+                        rendering_size,
+                        z_along_y,
                         texture_path,
                         texture_mip_option,
                     }
@@ -282,6 +278,31 @@ impl Assets {
             .into_iter()
             .enumerate()
             .map(|(id, spec)| match spec {
+                GenerationSpecIn::FillBase { base_spec_label } => {
+                    let base_spec_id = base_specs
+                        .iter()
+                        .find(|base_spec| base_spec.label == base_spec_label)
+                        .unwrap()
+                        .id;
+
+                    GenerationSpec::FillBase { id, base_spec_id }
+                }
+                GenerationSpecIn::RandomBase {
+                    base_spec_label,
+                    probability,
+                } => {
+                    let base_spec_id = base_specs
+                        .iter()
+                        .find(|base_spec| base_spec.label == base_spec_label)
+                        .unwrap()
+                        .id;
+
+                    GenerationSpec::RandomBase {
+                        id,
+                        base_spec_id,
+                        probability,
+                    }
+                }
                 GenerationSpecIn::RandomBlock {
                     block_spec_label,
                     probability,
@@ -297,15 +318,6 @@ impl Assets {
                         block_spec_id,
                         probability,
                     }
-                }
-                GenerationSpecIn::FillBase { base_spec_label } => {
-                    let base_spec_id = base_specs
-                        .iter()
-                        .find(|base_spec| base_spec.label == base_spec_label)
-                        .unwrap()
-                        .id;
-
-                    GenerationSpec::FillBase { id, base_spec_id }
                 }
             })
             .collect::<Vec<_>>();

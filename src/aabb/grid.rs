@@ -1,7 +1,7 @@
 use float_next_after::NextAfter;
 use glam::*;
 
-use crate::*;
+use super::*;
 
 /// Trait for transforming to grid space from base space.
 pub trait ToGridSpace<V, E> {
@@ -32,8 +32,8 @@ impl ToGridSpace<IVec2, f32> for Vec2 {
 impl ToGridSpace<IAabb2, i32> for IAabb2 {
     #[inline]
     fn to_grid_space(self, size: i32) -> IAabb2 {
-        let bounds = iaabb2(self.min, self.max - IVec2::ONE).div_euclid_i32(size);
-        iaabb2(bounds.min, bounds.max + IVec2::ONE)
+        let rect = iaabb2(self.min, self.max - IVec2::ONE).div_euclid_i32(size);
+        iaabb2(rect.min, rect.max + IVec2::ONE)
     }
 }
 
@@ -42,10 +42,10 @@ impl ToGridSpace<IAabb2, f32> for Aabb2 {
     fn to_grid_space(self, size: f32) -> IAabb2 {
         let max_x = self.max.x.next_after(f32::NEG_INFINITY);
         let max_y = self.max.y.next_after(f32::NEG_INFINITY);
-        let bounds = aabb2(self.min, vec2(max_x, max_y))
+        let rect = aabb2(self.min, vec2(max_x, max_y))
             .div_euclid_f32(size)
             .as_iaabb2();
-        iaabb2(bounds.min, bounds.max + IVec2::ONE)
+        iaabb2(rect.min, rect.max + IVec2::ONE)
     }
 }
 
